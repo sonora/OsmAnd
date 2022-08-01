@@ -180,7 +180,8 @@ android {
 			// proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 		}
 		release {
-			signingConfig signingConfigs.publishing
+			// signingConfig signingConfigs.publishing
+			signingConfig signingConfigs.development
 		}
 	}
 
