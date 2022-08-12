@@ -135,7 +135,7 @@
     <string name="gpx_monitoring_disabled_warn">Записувати треки використовуючи GPX віджет або вибравши «Запис треку» в Налаштуваннях.</string>
     <string name="show_current_gpx_title">Показувати пройдений шлях</string>
     <string name="free_version_message">%1$s мап для завантаження або оновлення.</string>
-    <string name="free_version_title">Безкоштовна версія</string>
+    <string name="free_version_title">Безплатна версія</string>
     <string name="poi_context_menu_showdescription">Показати подробиці точки інтересу.</string>
     <string name="index_name_north_america">Північна Америка</string>
     <string name="index_name_us">Північна Америка - США</string>
@@ -442,7 +442,7 @@
     <string name="context_menu_item_search_poi">Шукати POI</string>
     <string name="use_trackball_descr">Використовувати трекбол для переміщення мапи.</string>
     <string name="use_trackball">Використовувати трекбол</string>
-    <string name="background_service_wait_int_descr">Установлює найбільший час очікування, дозволений для кожного фонового визначення положення.</string>
+    <string name="background_service_wait_int_descr">Встановлює найбільший час очікування, дозволений для кожного фонового визначення положення.</string>
     <string name="background_service_wait_int">Час очікування</string>
     <string name="where_am_i">Де я?</string>
     <string name="process_navigation_service">Сервіс навігації OsmAnd</string>
@@ -1282,7 +1282,7 @@
     <string name="arrival_distance_factor_late">Пізніше</string>
     <string name="arrival_distance_factor_at_last">На останніх метрах</string>
     <string name="av_camera_pic_size">Розмір зображення</string>
-    <string name="av_camera_pic_size_descr">Установити розмір зображення камери</string>
+    <string name="av_camera_pic_size_descr">Встановити розмір зображення камери</string>
     <string name="download_additional_maps">Завантажити відсутні мапи %1$s (%2$d МБ)\?</string>
     <string name="shared_string_more">Ще…</string>
     <string name="rendering_value_browse_map_name">Огляд мапи</string>
@@ -1706,7 +1706,7 @@
     <string name="successfully_uploaded_pattern">Надіслано {0}/{1}</string>
     <string name="try_again">Спробуйте ще раз</string>
     <string name="error_message_pattern">Помилка: {0}</string>
-    <string name="dahboard_options_dialog_title">Налатування панелі керування</string>
+    <string name="dahboard_options_dialog_title">Налаштування панелі керування</string>
     <string name="shared_string_card_was_hidden">Картку було приховано</string>
     <string name="shared_string_undo">Скасувати</string>
     <string name="shared_string_skip">Пропустити</string>
@@ -1738,8 +1738,8 @@
     <string name="value_downloaded_of_max">%1$.1f з %2$.1f МБ</string>
     <string name="file_size_in_mb">%.1f МБ</string>
     <string name="update_all">Оновити все (%1$s МБ)</string>
-    <string name="free_downloads_used">Використано безкоштовних завантажень</string>
-    <string name="free_downloads_used_description">Показує кількість безкоштовних завантажень, що лишилися.</string>
+    <string name="free_downloads_used">Використано безплатних завантажень</string>
+    <string name="free_downloads_used_description">Показує кількість безплатних завантажень, що лишилися.</string>
     <string name="application_dir_description">Виберіть, де Ви будете зберігати мапи та файли даних.</string>
     <string name="enter_country_name">Введіть назву країни</string>
     <string name="new_version">Нова версія</string>
@@ -1756,7 +1756,7 @@
     <string name="faq_item_description">Часті запитання.</string>
     <string name="map_viewing_item">Перегляд мапи</string>
     <string name="search_on_the_map_item">Пошук на мапі</string>
-    <string name="instalation_troubleshooting_item">Установка та розв\'язання проблем</string>
+    <string name="instalation_troubleshooting_item">Встановлення та розв\'язання проблем</string>
     <string name="techical_articles_item">Технічні статті</string>
     <string name="versions_item">Версії</string>
     <string name="feedback">Зворотній зв’язок</string>
@@ -1775,7 +1775,7 @@
     <string name="number_of_rows_in_dash">Кількість рядків на панелі %1$s</string>
     <string name="recent_places">Нещодавні місця</string>
     <string name="downloading_number_of_files">Завантаження файлу %1$d…</string>
-    <string name="show_free_version_banner">Показати банер безкоштовної версії</string>
+    <string name="show_free_version_banner">Показати банер безплатної версії</string>
     <string name="use_dashboard_btn">Використовувати панель керування</string>
     <string name="use_drawer_btn">Використовувати меню</string>
     <string name="share_osm_edits_subject">OSM правки, надіслані з OsmAnd</string>
@@ -1807,7 +1807,7 @@
     <string name="road_blocked">Дорога заблокована</string>
     <string name="shared_string_select">Обрати</string>
     <string name="switch_start_finish">Поміняти місцями пункт відправлення і пункт призначення</string>
-    <string name="rendering_attr_hideIcons_name">Значки точок інтересу</string>
+    <string name="rendering_attr_hideIcons_name">Піктограми точок інтересу</string>
     <string name="item_removed">Елемент вилучено</string>
     <string name="n_items_removed">Елементи вилучено</string>
     <string name="shared_string_undo_all">Повернути все</string>
@@ -1854,7 +1854,7 @@
     <string name="map_marker">Позначка мапи</string>
     <string name="consider_turning_polygons_off">Рекомендується вимкнути показ полігонів.</string>
     <string name="av_locations_descr">GPX-файл з координатами.</string>
-    <string name="show_free_version_banner_description">Навіть, якщо Ви придбали платну версію, Ви все ще можете бачити банер для безкоштовної версії.</string>
+    <string name="show_free_version_banner_description">Навіть, якщо Ви придбали платну версію, Ви все ще можете бачити банер для безплатної версії.</string>
     <string name="dashboard_or_drawer_description">На вибір пропонується керувати застосунком головним чином за допомогою гнучкої панелі керування або статичного меню. Ваш вибір завжди може бути змінений в налаштуваннях панелі керування.</string>
     <string name="map_marker_1st">Перша позначка мапи</string>
     <string name="map_marker_2nd">Друга позначка мапи</string>
@@ -2343,7 +2343,7 @@
 \n• Відомості високої якості від найкращих спільних проєктів світу
 \n• Дані OSM доступні за країною чи регіоном
 \n• Точки інтересу (POI), цікаві місця з Вікіпедії, чудово підходять для огляду визначних місць
-\n• Необмежена кількість безкоштовних звантажень, прямо у застосунку
+\n• Необмежена кількість безплатних звантажень, прямо у застосунку
 \n• Компактні автономні векторні мапи оновлюються не рідше одного разу на місяць
 \n
 \n• Вибір між повними даними регіону та лише дорожньою мережею (приклад: уся Японія займає 700 МБ та лише 200 МБ займає її дорожня мережа)</string>
@@ -2643,7 +2643,7 @@
     <string name="coord_input_add_point">Додати точку</string>
     <string name="coord_input_save_as_track">Зберегти як трек</string>
     <string name="quick_action_edit_actions">Редагувати дії</string>
-    <string name="get_osmand_live">Отримайте OsmAnd Live, щоб розблокувати всі функції: щоденні оновлення мап з необмеженими завантаженнями, всі платні та безоплатні плагіни, Вікіпедію, Вікімандри та багато іншого.</string>
+    <string name="get_osmand_live">Отримайте OsmAnd Live, щоб розблокувати всі функції: щоденні оновлення мап з необмеженими завантаженнями, всі платні та безплатні плагіни, Вікіпедію, Вікімандри та багато іншого.</string>
     <string name="shared_string_bookmark">Закладка</string>
     <string name="hide_full_description">Приховати повний опис</string>
     <string name="show_full_description">Показати повний опис</string>
@@ -2949,7 +2949,7 @@
     <string name="base_profile_descr_ski">Лижі</string>
     <string name="show_compass_ruler">Показати компас-лінійку</string>
     <string name="hide_compass_ruler">Сховати компас-лінійку</string>
-    <string name="select_icon_profile_dialog_title">Оберіть значок</string>
+    <string name="select_icon_profile_dialog_title">Оберіть піктограму</string>
     <string name="settings_routing_mode_string">Режим: %s</string>
     <string name="settings_derived_routing_mode_string">Користувацький режим, похідний від: %s</string>
     <string name="routing_profile_ski">Лижі</string>
@@ -2981,21 +2981,21 @@
     <string name="shared_string_crash">Збій</string>
     <string name="last_launch_crashed">Під час останнього запуску OsmAnd сталася помилка. Допоможіть нам покращити OsmAnd - надішліть повідомлення про помилку.</string>
     <string name="app_mode_ufo">НЛО</string>
-    <string name="release_3_4">• Профілі застосунку: створюйте власний профіль з довільним значком та кольором для ваших особистих потреб
+    <string name="release_3_4">• Профілі застосунку: створюйте власний профіль з довільною піктограмою та кольором для ваших особистих потреб
 \n
 \n• Налаштуйте типові обмеження мінімальної/максимальної швидкості у профілі
 \n
 \n• Додано віджет з поточними координатами
 \n
-\n• Додано можливість показувати на мапі компас і радіус-лінійку
+\n• Додано можливість показувати на мапі компас і радіусну лінійку
 \n
-\n• Виправлено записування шляху у фоновому режимі
+\n• Виправлено запис треку у фоновому режимі
 \n
-\n• Покращено завантаження мап у фоновому режимі
+\n• Поліпшено завантаження мап у фоновому режимі
 \n
-\n• Повернено параметр \'Увімкнути екран\'
+\n• Повернено параметр «Увімкнути екран»
 \n
-\n• Виправлено вибір мови Wikipedia
+\n• Виправлено вибір мови Вікіпедії
 \n
 \n• Виправлено поведінку кнопки компаса під час навігації
 \n
@@ -3108,7 +3108,7 @@
     <string name="years_2_4">Роки</string>
     <string name="years_5">Років</string>
     <string name="months_3">Три місяці</string>
-    <string name="price_free">Безкоштовно</string>
+    <string name="price_free">Безплатно</string>
     <string name="get_discount_title">Отримайте %1$d %2$s зі знижкою %3$s.</string>
     <string name="get_discount_first_part">%1$s за перший %2$s</string>
     <string name="get_discount_first_few_part">%1$s за перші %2$s</string>
@@ -3283,15 +3283,15 @@
     <string name="shared_string_downloading_formatted">Завантаження %s</string>
     <string name="rendering_value_thick_name">Товсто</string>
     <string name="desert_render_descr">Для пустель та інших малонаселених ділянок. Докладніше.</string>
-    <string name="select_navigation_icon">Значок положення під час руху</string>
-    <string name="select_map_icon">Позиція значка в стані спокою</string>
+    <string name="select_navigation_icon">Піктограма положення під час руху</string>
+    <string name="select_map_icon">Позиція піктограми в стані спокою</string>
     <string name="delete_profiles_descr">Натискання на \"Застосувати\" вилучить профілі назавжди.</string>
     <string name="master_profile">Основний профіль</string>
     <string name="select_color">Виберіть колір</string>
     <string name="edit_profiles_descr">Типові профілі OsmAnd не вилучено, проте вимкнуто (на попередньому екрані) чи перенесено вниз.</string>
     <string name="edit_profiles">Редагувати профілі</string>
     <string name="profile_appearance">Зовнішній вигляд профілю</string>
-    <string name="choose_icon_color_name">Значок, колір та назва</string>
+    <string name="choose_icon_color_name">Піктограма, колір і назва</string>
     <string name="reorder_profiles">Редагувати список профілів</string>
     <string name="selected_profile">Вибраний профіль</string>
     <string name="reset_confirmation_descr">Торкання %1$s відхилить всі зміни.</string>
@@ -3308,7 +3308,7 @@
     <string name="monitoring_prefs_descr">Навігація, точність запису</string>
     <string name="multimedia_notes_prefs_descr">Розмір зображення, якість звуку та відео</string>
     <string name="osm_editing_prefs_descr">Логін, пароль, редагування в офлайн режимі</string>
-    <string name="accessibility_prefs_descr">Оберіть значок, колір та назву</string>
+    <string name="accessibility_prefs_descr">Оберіть піктограму, колір і назву</string>
     <string name="live_monitoring_descr">Дозволяє поширювати дані про вашу поточну локацію використовуючи функції запису треків.</string>
     <string name="live_monitoring">Онлайн моніторинг</string>
     <string name="save_track_logging_accuracy">Точність запису</string>
@@ -3323,8 +3323,8 @@
     <string name="osm_editing">Редагування OSM</string>
     <string name="osm_edits_view_descr">Перегляньте всі свої ще не надіслані зміни чи OSM-помилки у %1$s. Вже надіслані зміни більше не показуватимуться.</string>
     <string name="app_mode_osm">OSM</string>
-    <string name="select_nav_icon_descr">Значок показується під час навігації чи руху.</string>
-    <string name="select_map_icon_descr">Значок показано в стані спокою.</string>
+    <string name="select_nav_icon_descr">Піктограма показується під час навігації чи руху.</string>
+    <string name="select_map_icon_descr">Піктограма, показувана у стані спокою.</string>
     <string name="logcat_buffer_descr">Переглянути та надіслати докладний журнал роботи застосунку</string>
     <string name="search_offline_geo_error">Не вдалося обробити гео: \'%s\'.</string>
     <string name="permission_is_required">Для використання цього параметра потрібен дозвіл.</string>
@@ -3403,7 +3403,7 @@
     <string name="plugin_disabled">Плагін вимкнено</string>
     <string name="plugin_disabled_descr">Цей плагін — це окремий застосунок, вимкнення плагіну не призводить до його вилучення.
 \n
-\nВилучити плагін можна в розділі «Програми» вашого пристрою.</string>
+\nВилучити плагін можна в розділі «Програми» («Додатки») вашого пристрою.</string>
     <string name="shared_string_menu">Меню</string>
     <string name="ltr_or_rtl_triple_combine_via_dash">%1$s — %2$s — %3$s</string>
     <string name="shared_string_routing">Прокладання маршрутів</string>
@@ -3457,7 +3457,7 @@
     <string name="shared_string_terrain">Рельєф</string>
     <string name="hillshade_description">Мапа рельєфу використовує темні відтінки для показу схилів, вершин і низин.</string>
     <string name="slope_description">У режимі Схил, рельєф місцевості візуалізується за допомогою кольорів.</string>
-    <string name="terrain_slider_description">Установіть найменший та найбільший рівні масштабування, при якому шар буде показуватись.</string>
+    <string name="terrain_slider_description">Встановіть найменший та найбільший рівні масштабування, при якому шар буде показуватись.</string>
     <string name="hillshade_download_description">Потрібні додаткові мапи для перегляду рельєфу.</string>
     <string name="slope_download_description">Для перегляду схилів потрібні додаткові мапи.</string>
     <string name="slope_read_more">Докладніше про схили у %1$s.</string>
@@ -3561,9 +3561,9 @@
     <string name="navigation_profiles_item">Профілі навігації</string>
     <string name="release_3_7">• Нові офлайн мапи схилів
 \n
-\n• Налаштування Закладок та маршрутних точок GPX- спеціальні кольори, значки, форми
+\n• Налаштування Закладок та маршрутних точок GPX- спеціальні кольори, піктограми, форми
 \n
-\n• Налаштування порядку елементів меню \"Контекстне меню\", \"Налаштувати мапу\" та \"Бічна панель\"
+\n• Налаштування порядку елементів меню «Контекстне меню», «Налаштувати мапу» та «Бічна панель»
 \n
 \n• Вікіпедія, як окремий шар. У налаштуваннях мапи вибір лише потрібних мов
 \n
@@ -3616,7 +3616,7 @@
     <string name="expire_time">Строк дії</string>
     <string name="mercator_projection">Проєкція Меркатора</string>
     <string name="storage_format">Формат зберігання</string>
-    <string name="map_source_zoom_levels">Установіть найменший та найбільший рівень масштабування для показу або завантаження онлайн мапи.</string>
+    <string name="map_source_zoom_levels">Встановіть найменший та найбільший рівень масштабування для показу або завантаження онлайн мапи.</string>
     <string name="map_source_zoom_levels_descr">Впливає на екран, коли використовується як мапа чи накладка/підкладка. 
 \n 
 \n%1$s: мапа обмежена вибраним проміжком масштабування. 
@@ -3689,7 +3689,7 @@
     <string name="route_between_points">Маршрут між точками</string>
     <string name="plan_a_route">Планування маршруту</string>
     <string name="add_to_a_track">Додати до треку</string>
-    <string name="track_show_start_finish_icons">Показати значки старту та фінішу</string>
+    <string name="track_show_start_finish_icons">Показати піктограми старту та фінішу</string>
     <string name="select_track_width">Задати ширину</string>
     <string name="gpx_split_interval_descr">Виберіть інтервал, з яким будуть показуватись позначки відстані або часу на треку.</string>
     <string name="gpx_split_interval_none_descr">Виберіть потрібний варіант поділу: за часом або за відстанню.</string>
@@ -3767,7 +3767,7 @@
     <string name="shared_string_redo">Повторити</string>
     <string name="release_3_8">• Оновлено функції планування маршруту: дозволено застосувати різні типи переходів для кожного відрізку та привʼязати будь-який трек до доріг
 \n
-\n• Нове меню вигляду треків: вибір кольору, товщина, вигляд стрілки напрямку, значки старту та фінішу
+\n• Нове меню вигляду треків: вибір кольору, товщина, вигляд стрілки напрямку, піктограми старту та фінішу
 \n
 \n• Удосконалено видимість велосипедних точок
 \n
@@ -3783,7 +3783,7 @@
     <string name="sort_last_modified">Востаннє змінено</string>
     <string name="sort_name_descending">За назвою: Я — А</string>
     <string name="sort_name_ascending">За назвою: А — Я</string>
-    <string name="start_finish_icons">Значки старту та фінішу</string>
+    <string name="start_finish_icons">Піктограми старту та фінішу</string>
     <string name="contour_lines_thanks">Дякуємо за придбання «Ізоліній»</string>
     <string name="what_is_new">Що нового</string>
     <string name="osm_live_payment_desc_hw">Передплата стягується раз на вибраний період. Скасуйте її в AppGallery у будь-який час.</string>
@@ -4293,7 +4293,7 @@
     <string name="pro_features">Можливості Pro</string>
     <string name="purchases_restored">Покупки відновлено</string>
     <string name="grey_color_undefined">Частки без даних – сірі.</string>
-    <string name="no_activity_for_intent">Установіть відповідний застосунок, що може виконувати цю дію.</string>
+    <string name="no_activity_for_intent">Встановіть відповідний застосунок, що може виконувати цю дію.</string>
     <string name="osm_live_payment_subscription_management_amz">Оплата стягується з вашого облікового запису Amazon під час підтвердження покупки.
 \n
 \nПідписка поновлюється, якщо не скасовано до вибраного проміжку поновлення.
@@ -4312,7 +4312,7 @@
     <string name="remove_group_from_markers">Вилучити групу зі списку позначок</string>
     <string name="start_point">Старт</string>
     <string name="mapillary_menu_filter_description_new">Добирати зображення за датою або типом. Працює лише на докладних масштабах.</string>
-    <string name="service_is_not_available_please_try_later">Служба недоступна, повторіть спробу пізніше.</string>
+    <string name="service_is_not_available_please_try_later">Служба недоступна. Повторіть спробу пізніше.</string>
     <string name="shared_string_files">Файли</string>
     <string name="travel_route_types">Типи маршрутів</string>
     <string name="sample_wikivoyage">Приклад Вікімадрів</string>
@@ -4349,7 +4349,7 @@
 \n
 \n• Віджет висоти (Pro)
 \n
-\n• Закладки: додана можливість перегляду нещодавно використаних значків
+\n• Закладки: додана можливість перегляду нещодавно використаних піктограм
 \n
 \n• Планування маршруту: вибраний профіль буде використаний після запуску
 \n
@@ -4457,12 +4457,12 @@
     <string name="shared_string_grade">Клас</string>
     <string name="shared_string_precision">Точність</string>
     <string name="ltr_or_rtl_combine">%1$s %2$s</string>
-    <string name="gps_filter_hdop_desc">Установіть максимально допустиме значення для HDOP.
+    <string name="gps_filter_hdop_desc">Встановіть максимально допустиме значення для HDOP.
 \nТочки з більшим значенням будуть приховані.</string>
     <string name="shared_string_statistics">Статистика</string>
     <string name="distance_between_points">Відстань між точками</string>
     <string name="gps_filter_speed_altitude_desc">На діаграмі та мапі з’являться лише точки треку, які відповідають встановленому проміжку, інше буде приховано.</string>
-    <string name="gps_filter_smoothing_desc">Установіть граничну відстань між точками.
+    <string name="gps_filter_smoothing_desc">Встановіть граничну відстань між точками.
 \nТочки треку, які розміщено за межами цієї відстані, від останньої видимої точки, будуть приховані.
 \nМайте на увазі, що високі граничні значення можуть надмірно спростити геометрію треку.</string>
     <string name="gps_filter_precision">Точність GPS</string>
@@ -4600,11 +4600,11 @@
     <string name="routing_attr_difficulty_preference_expert_name">Експерт</string>
     <string name="release_4_2">• Редизайн віджетів: новий вигляд, групування за сторінками, можливість зміни їхнього порядку і поєднання.
 \n
-\n• Пішохідні / Велосипедні / Туристичні маршрути: натисніть на символ маршруту та отримайте всі дані про маршрут.
+\n• Пішохідні / Велосипедні / Туристичні маршрути: натисніть на символ маршруту та отримайте всі дані про нього.
 \n
 \n• Вибрані групи: встановлюйте типовий зовнішній вигляд для нових точок у групі
 \n
-\n• Виправлення: автооновлення плиток мап онлайн
+\n• Виправлення: автооновлення онлайнових плиток мап
 \n
 \n</string>
     <string name="routing_attr_difficulty_preference_intermediate_name">Середня</string>
@@ -4778,4 +4778,6 @@
     <string name="attach_roads_descr">Бажаєте пов\'язати свій трек з дійсним маршрутом, прикріпленим до офлайн-мап\? У такому випадку ви матимете скориговану висоту дороги, відомості про дорогу та повороти, які можна використовувати пізніше в навігації.</string>
     <string name="shared_string_only_missing">Лише відсутні</string>
     <string name="attach_to_roads_banner_desc">Прикріпіть свій трек до доріг, щоб отримати докладні інструкції з навігації.</string>
+    <string name="included_in_your_current_plan">Включено до поточного плану \"%1$s\"</string>
+    <string name="available_as_part_of_subscription_plan">Доступно в рамках передплати %1$s.</string>
 </resources>
