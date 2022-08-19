@@ -112,6 +112,10 @@ public class Algorithms {
 		return map == null || map.size() == 0;
 	}
 
+	public static <T> boolean isEmpty(T[] array) {
+		return array == null || array.length == 0;
+	}
+
 	public static String emptyIfNull(String s) {
 		return s == null ? "" : s;
 	}
@@ -427,6 +431,10 @@ public class Algorithms {
 
 	public static boolean isDigit(char charAt) {
 		return charAt >= '0' && charAt <= '9';
+	}
+
+	public static boolean isHtmlText(String text) {
+		return text.contains("</");
 	}
 
 	/**
