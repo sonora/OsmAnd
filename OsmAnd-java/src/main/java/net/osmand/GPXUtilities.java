@@ -73,9 +73,11 @@ public class GPXUtilities {
 	public static final int TRAVEL_GPX_CONVERT_MULT_1 = 2;
 	public static final int TRAVEL_GPX_CONVERT_MULT_2 = 5;
 
+	public static boolean GPX_TIME_OLD_FORMAT = false;
 	private static final String GPX_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 	private static final String GPX_TIME_PATTERN_TZ = "yyyy-MM-dd'T'HH:mm:ssXXX";
 	private static final String GPX_TIME_MILLIS_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+	private static final String GPX_TIME_MILLIS_PATTERN_OLD = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
 	private static final NumberFormat LAT_LON_FORMAT = new DecimalFormat("0.00#####", new DecimalFormatSymbols(Locale.US));
 	// speed, ele, hdop
@@ -725,7 +727,7 @@ public class GPXUtilities {
 		public final String name;
 		public String iconName;
 		public String backgroundType;
-		public final List<WptPt> points = new ArrayList<>();
+		public List<WptPt> points = new ArrayList<>();
 		public int color;
 
 		public PointsGroup(String name) {
@@ -1438,7 +1440,7 @@ public class GPXUtilities {
 		public List<Route> routes = new ArrayList<>();
 
 		private final List<WptPt> points = new ArrayList<>();
-		private final Map<String, PointsGroup> pointsGroups = new LinkedHashMap<>();
+		private Map<String, PointsGroup> pointsGroups = new LinkedHashMap<>();
 		private final Map<String, String> networkRouteKeyTags = new LinkedHashMap<>();
 
 		public Exception error = null;
@@ -1534,6 +1536,10 @@ public class GPXUtilities {
 			pointsGroups.put(group.name, group);
 			modifiedTime = System.currentTimeMillis();
 			pointsModifiedTime = modifiedTime;
+		}
+		
+		public void setPointsGroups(Map<String, PointsGroup> groups) {
+			pointsGroups = groups;
 		}
 
 		private void addPointsToGroups(Collection<? extends WptPt> collection) {
@@ -2614,7 +2620,11 @@ public class GPXUtilities {
 	}
 
 	public static long parseTime(String text) {
-		return parseTime(text, getTimeFormatterTZ(), getTimeFormatterMills());
+		if (GPX_TIME_OLD_FORMAT) {
+			return parseTime(text, getTimeFormatter(), getTimeFormatterMills());
+		} else {
+			return parseTime(text, getTimeFormatterTZ(), getTimeFormatterMills());
+		}
 	}
 
 	public static long parseTime(String text, SimpleDateFormat format, SimpleDateFormat formatMillis) {
@@ -2646,7 +2656,8 @@ public class GPXUtilities {
 	}
 
 	private static SimpleDateFormat getTimeFormatterMills() {
-		SimpleDateFormat format = new SimpleDateFormat(GPX_TIME_MILLIS_PATTERN, Locale.US);
+		String pattern = GPX_TIME_OLD_FORMAT ? GPX_TIME_MILLIS_PATTERN_OLD : GPX_TIME_MILLIS_PATTERN;
+		SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.US);
 		format.setTimeZone(TimeZone.getTimeZone("UTC"));
 		return format;
 	}

@@ -134,44 +134,51 @@ public class RenderingRulesStorage {
 		RenderingRulesStorage depends = handler.getDependsStorage();
 		if (depends != null) {
 			dependsName = depends.getName();
-			// merge results
-			// dictionary and props are already merged
-			Iterator<Entry<String, RenderingRule>> it = depends.renderingAttributes.entrySet().iterator();
-			while (it.hasNext()) {
-				Entry<String, RenderingRule> e = it.next();
-				if (renderingAttributes.containsKey(e.getKey())) {
-					RenderingRule root = renderingAttributes.get(e.getKey());
-					List<RenderingRule> list = e.getValue().getIfElseChildren();
-					for (RenderingRule every : list) {
-						root.addIfElseChildren(every);
-					}
-					e.getValue().addToBeginIfElseChildren(root);
-				} else {
-					renderingAttributes.put(e.getKey(), e.getValue());
+			mergeDependsOrAddon(depends);
+		}
+	}
+
+	public void mergeDependsOrAddon(RenderingRulesStorage depends) {
+		if (depends == null) {
+			return;
+		}
+		// merge results
+		// dictionary and props are already merged
+		Iterator<Entry<String, RenderingRule>> it = depends.renderingAttributes.entrySet().iterator();
+		while (it.hasNext()) {
+			Entry<String, RenderingRule> e = it.next();
+			if (renderingAttributes.containsKey(e.getKey())) {
+				RenderingRule root = renderingAttributes.get(e.getKey());
+				List<RenderingRule> list = e.getValue().getIfElseChildren();
+				for (RenderingRule every : list) {
+					root.addIfElseChildren(every);
 				}
+				e.getValue().addToBeginIfElseChildren(root);
+			} else {
+				renderingAttributes.put(e.getKey(), e.getValue());
 			}
-			for (int i = 0; i < LENGTH_RULES; i++) {
-				if (depends.tagValueGlobalRules[i] == null || depends.tagValueGlobalRules[i].isEmpty()) {
-					continue;
-				}
-				if (tagValueGlobalRules[i] != null) {
-					int[] keys = depends.tagValueGlobalRules[i].keys();
-					for (int j = 0; j < keys.length; j++) {
-						RenderingRule rule = tagValueGlobalRules[i].get(keys[j]);
-						RenderingRule dependsRule = depends.tagValueGlobalRules[i].get(keys[j]);
-						if (dependsRule != null) {
-							if (rule != null) {
-								RenderingRule toInsert = createTagValueRootWrapperRule(keys[j], rule);
-								toInsert.addIfElseChildren(dependsRule);
-								tagValueGlobalRules[i].put(keys[j], toInsert);
-							} else {
-								tagValueGlobalRules[i].put(keys[j], dependsRule);
-							}
+		}
+		for (int i = 0; i < LENGTH_RULES; i++) {
+			if (depends.tagValueGlobalRules[i] == null || depends.tagValueGlobalRules[i].isEmpty()) {
+				continue;
+			}
+			if (tagValueGlobalRules[i] != null) {
+				int[] keys = depends.tagValueGlobalRules[i].keys();
+				for (int j = 0; j < keys.length; j++) {
+					RenderingRule rule = tagValueGlobalRules[i].get(keys[j]);
+					RenderingRule dependsRule = depends.tagValueGlobalRules[i].get(keys[j]);
+					if (dependsRule != null) {
+						if (rule != null) {
+							RenderingRule toInsert = createTagValueRootWrapperRule(keys[j], rule);
+							toInsert.addIfElseChildren(dependsRule);
+							tagValueGlobalRules[i].put(keys[j], toInsert);
+						} else {
+							tagValueGlobalRules[i].put(keys[j], dependsRule);
 						}
 					}
-				} else {
-					tagValueGlobalRules[i] = depends.tagValueGlobalRules[i];
 				}
+			} else {
+				tagValueGlobalRules[i] = depends.tagValueGlobalRules[i];
 			}
 		}
 	}
@@ -382,11 +389,12 @@ public class RenderingRulesStorage {
 					renderingConstants.put(attrsMap.get("name"), attrsMap.get("value"));
 				}
 			} else if("renderingStyle".equals(name)){ //$NON-NLS-1$
+				// here we need to check that style is not addon and throw unsupported exception
 				String depends = attrsMap.get("depends");
-				if(depends != null && depends.length()> 0){
+				if (depends != null && depends.length() > 0) {
 					this.dependsStorage = resolver.resolve(depends, resolver);
 				}
-				if(dependsStorage != null){
+				if (dependsStorage != null) {
 					// copy dictionary
 					dictionary = new ArrayList<String>(dependsStorage.dictionary);
 					dictionaryMap = new LinkedHashMap<String, Integer>(dependsStorage.dictionaryMap);
