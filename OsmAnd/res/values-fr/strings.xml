@@ -4975,4 +4975,11 @@
 \n</string>
     <string name="shared_string_purchased_on">Acheté le</string>
     <string name="shared_string_expires">Expire</string>
+    <string name="cloud_sync_progress">Sync…%1$s</string>
+    <string name="checking_progress">Vérification…</string>
+    <string name="choose_what_to_sync">Sélectionner que synchroniser</string>
+    <string name="res_unknown">Inconnu</string>
+    <string name="shared_string_unsynced">Non synchronisé</string>
+    <string name="check_for_updates">Vérifier les mises à jour</string>
+    <string name="shared_string_modified">Modifié</string>
 </resources>
