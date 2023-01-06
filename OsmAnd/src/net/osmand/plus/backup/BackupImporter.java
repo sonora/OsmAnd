@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class BackupImporter {
 
@@ -51,6 +52,9 @@ class BackupImporter {
 	private final NetworkImportProgressListener listener;
 
 	private boolean cancelled;
+
+	private AtomicInteger dataProgress;
+	private AtomicInteger itemsProgress;
 
 	public static class CollectItemsResult {
 		public List<SettingsItem> items;
@@ -102,6 +106,8 @@ class BackupImporter {
 	}
 
 	void importItems(@NonNull List<SettingsItem> items, boolean forceReadData) throws IllegalArgumentException {
+		dataProgress = new AtomicInteger(0);
+		itemsProgress = new AtomicInteger(0);
 		if (Algorithms.isEmpty(items)) {
 			throw new IllegalArgumentException("No items");
 		}
@@ -145,10 +151,11 @@ class BackupImporter {
 			if (reader != null) {
 				String fileName = remoteFile.getTypeNamePath();
 				File tempFile = new File(tempDir, fileName);
-				String error = backupHelper.downloadFile(tempFile, remoteFile, getOnDownloadItemFileListener(item));
-				if (Algorithms.isEmpty(error)) {
+				String errorStr = backupHelper.downloadFile(tempFile, remoteFile, getOnDownloadItemFileListener(item));
+				boolean error = !Algorithms.isEmpty(errorStr);
+				if (!error) {
 					is = new FileInputStream(tempFile);
-					reader.readFromStream(is, remoteFile.getName());
+					reader.readFromStream(is, tempFile, remoteFile.getName());
 					if (forceReadData) {
 						if (item instanceof CollectionSettingsItem<?>) {
 							((CollectionSettingsItem<?>) item).processDuplicateItems();
@@ -163,18 +170,16 @@ class BackupImporter {
 									remoteFile.getClienttimems());
 						}
 					}
-				} else {
-					throw new IOException("Error reading temp item file " + fileName + ": " + error);
+				}
+				if (tempFile.exists()) {
+					tempFile.delete();
+				}
+				if (error) {
+					throw new IOException("Error reading temp item file " + fileName + ": " + errorStr);
 				}
 			}
 			item.applyAdditionalParams(reader);
-		} catch (IllegalArgumentException e) {
-			item.getWarnings().add(app.getString(R.string.settings_item_read_error, item.getName()));
-			LOG.error("Error reading item data: " + item.getName(), e);
-		} catch (IOException e) {
-			item.getWarnings().add(app.getString(R.string.settings_item_read_error, item.getName()));
-			LOG.error("Error reading item data: " + item.getName(), e);
-		} catch (UserNotRegisteredException e) {
+		} catch (IllegalArgumentException | IOException | UserNotRegisteredException e) {
 			item.getWarnings().add(app.getString(R.string.settings_item_read_error, item.getName()));
 			LOG.error("Error reading item data: " + item.getName(), e);
 		} finally {
@@ -454,7 +459,14 @@ class BackupImporter {
 			}
 			ThreadPoolTaskExecutor<ItemFileDownloadTask> itemFilesDownloadExecutor = createExecutor();
 			itemFilesDownloadExecutor.run(itemFileDownloadTasks);
-		} else {
+		}
+		for (Entry<File, RemoteFile> entry : remoteFilesForDownload.entrySet()) {
+			File tempFile = entry.getKey();
+			if (tempFile.exists()) {
+				tempFile.delete();
+			}
+		}
+		if (hasDownloadErrors) {
 			throw new IOException("Error downloading temp item files");
 		}
 	}
@@ -476,12 +488,9 @@ class BackupImporter {
 		FileInputStream is = null;
 		try {
 			is = new FileInputStream(tempFile);
-			reader.readFromStream(is, item.getFileName());
+			reader.readFromStream(is, tempFile, item.getFileName());
 			item.applyAdditionalParams(reader);
-		} catch (IllegalArgumentException e) {
-			item.getWarnings().add(app.getString(R.string.settings_item_read_error, item.getName()));
-			LOG.error("Error reading item data: " + item.getName(), e);
-		} catch (IOException e) {
+		} catch (IllegalArgumentException | IOException e) {
 			item.getWarnings().add(app.getString(R.string.settings_item_read_error, item.getName()));
 			LOG.error("Error reading item data: " + item.getName(), e);
 		} finally {
@@ -530,15 +539,19 @@ class BackupImporter {
 
 			@Override
 			public void onFileDownloadProgress(@NonNull String type, @NonNull String fileName, int progress, int deltaWork) {
+				int p = dataProgress.addAndGet(deltaWork);
 				if (listener != null) {
 					listener.updateItemProgress(type, fileName, progress);
+					listener.updateGeneralProgress(itemsProgress.get(), p);
 				}
 			}
 
 			@Override
 			public void onFileDownloadDone(@NonNull String type, @NonNull String fileName, @Nullable String error) {
+				itemsProgress.addAndGet(1);
 				if (listener != null) {
 					listener.itemExportDone(type, fileName);
+					listener.updateGeneralProgress(itemsProgress.get(), dataProgress.get());
 				}
 			}
 
@@ -561,15 +574,19 @@ class BackupImporter {
 
 			@Override
 			public void onFileDownloadProgress(@NonNull String type, @NonNull String fileName, int progress, int deltaWork) {
+				int p = dataProgress.addAndGet(deltaWork);
 				if (listener != null) {
 					listener.updateItemProgress(type, itemFileName, progress);
+					listener.updateGeneralProgress(itemsProgress.get(), p);
 				}
 			}
 
 			@Override
 			public void onFileDownloadDone(@NonNull String type, @NonNull String fileName, @Nullable String error) {
+				itemsProgress.addAndGet(1);
 				if (listener != null) {
 					listener.itemExportDone(type, itemFileName);
+					listener.updateGeneralProgress(itemsProgress.get(), dataProgress.get());
 				}
 			}
 

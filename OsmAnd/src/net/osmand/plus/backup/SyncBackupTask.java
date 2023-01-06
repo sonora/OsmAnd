@@ -42,8 +42,8 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	private final boolean singleOperation;
 
 	private int maxProgress;
-	private int lastProgress;
-	private int currentProgress;
+	private int importProgress;
+	private int exportProgress;
 
 	public SyncBackupTask(@NonNull OsmandApplication app, @NonNull String key,
 	                      @NonNull SyncOperationType operation,
@@ -64,7 +64,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	}
 
 	public int getGeneralProgress() {
-		return lastProgress;
+		return importProgress + exportProgress;
 	}
 
 	@Override
@@ -108,13 +108,13 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.singletonList(item), Collections.emptyList(), this);
 	}
 
+	public void deleteItem(@NonNull SettingsItem item) {
+		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.emptyList(), Collections.singletonList(item), this);
+	}
+
 	public void downloadRemoteVersion(@NonNull SettingsItem item) {
 		item.setShouldReplace(true);
 		networkSettingsHelper.importSettings(BackupHelper.getItemFileName(item), Collections.singletonList(item), true, this);
-	}
-
-	public void deleteItem(@NonNull SettingsItem item) {
-		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.emptyList(), Collections.singletonList(item), this);
 	}
 
 	private void uploadNewItems() {
@@ -136,15 +136,17 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 
 	private long calculateExportMaxProgress() {
 		BackupInfo info = backupHelper.getBackup().getBackupInfo();
-
-		List<SettingsItem> oldItemsToDelete = new ArrayList<>();
-		for (SettingsItem item : info.itemsToUpload) {
-			ExportSettingsType exportType = ExportSettingsType.getExportSettingsTypeForItem(item);
-			if (exportType != null && backupHelper.getVersionHistoryTypePref(exportType).get()) {
-				oldItemsToDelete.add(item);
+		if (info != null) {
+			List<SettingsItem> oldItemsToDelete = new ArrayList<>();
+			for (SettingsItem item : info.itemsToUpload) {
+				ExportSettingsType exportType = ExportSettingsType.getExportSettingsTypeForItem(item);
+				if (exportType != null && backupHelper.getVersionHistoryTypePref(exportType).get()) {
+					oldItemsToDelete.add(item);
+				}
 			}
+			return ExportBackupTask.getEstimatedItemsSize(app, info.itemsToUpload, info.itemsToDelete, oldItemsToDelete);
 		}
-		return ExportBackupTask.getEstimatedItemsSize(app, info.itemsToUpload, info.itemsToDelete, oldItemsToDelete);
+		return 0;
 	}
 
 	@Override
@@ -204,9 +206,9 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 
 	@Override
 	public void onImportProgressUpdate(int value, int uploadedKb) {
-		currentProgress = uploadedKb;
+		importProgress = uploadedKb;
 		if (syncListener != null) {
-			syncListener.onBackupProgressUpdate(currentProgress);
+			syncListener.onBackupProgressUpdate(getGeneralProgress());
 		}
 	}
 
@@ -220,14 +222,10 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	}
 
 	@Override
-	public void onBackupExportProgressUpdate(int value) {
-		ExportBackupTask exportTask = networkSettingsHelper.getExportTask(BACKUP_ITEMS_KEY);
-		if (exportTask != null) {
-			currentProgress += exportTask.getGeneralProgress() - lastProgress;
-			if (syncListener != null) {
-				syncListener.onBackupProgressUpdate(currentProgress);
-			}
-			lastProgress = exportTask.getGeneralProgress();
+	public void onBackupExportProgressUpdate(int progress) {
+		exportProgress = progress;
+		if (syncListener != null) {
+			syncListener.onBackupProgressUpdate(getGeneralProgress());
 		}
 	}
 
