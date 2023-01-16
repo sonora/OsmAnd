@@ -2201,7 +2201,7 @@
     <string name="routing_attr_driving_style_balance_name">Ausgewogen</string>
     <string name="routing_attr_driving_style_safety_name">Nebenstraßen bevorzugen</string>
     <string name="routing_attr_relief_smoothness_factor_name">Höhenschwankung auswählen</string>
-    <string name="driving_region_automatic">Automatisch</string>
+    <string name="shared_string_automatic">Automatisch</string>
     <string name="osmand_extended_description_part1">OsmAnd (OSM Automated Navigation Directions) ist eine Karten- und Navigationsapp mit Zugriff auf die kostenlosen, weltweiten und qualitativ hochwertigen OSM-Daten. 
 \n 
 \nGenießen Sie die akustische und visuelle Navigation, die Anzeige von POIs (Orte von Interesse), die Erstellung und Verwaltung von GPX-Tracks, die Darstellung von Höhenlinien und -daten (durch eine Erweiterung), die Wahl zwischen Auto-, Fahrrad- oder Fußgängerbetrieb, die Möglichkeit, an OSM mitzuarbeiten und vieles mehr.</string>
@@ -5025,8 +5025,8 @@
     <string name="cloud_all_changes_uploaded_descr">Alle auf diesem Gerät vorgenommenen Änderungen werden mit OsmAnd Cloud synchronisiert.</string>
     <string name="download_cloud_version">Cloud-Version herunterladen</string>
     <string name="av_audio_format_bottom_sheet_descr">Audio-Ausgabe-Format auswählen. Dateitypformat für Audio is 3GPP (.3gp).</string>
-    <string name="si_nm_ft">Nautische Meilen/Fuß</string>
-    <string name="si_nm_mt">Nautische Meilen/Meter</string>
+    <string name="si_nm_ft">Seemeilen/Fuß</string>
+    <string name="si_nm_mt">Seemeilen/Meter</string>
     <string name="set_up_backup">Backup einrichten</string>
     <string name="x_axis">X-Achse</string>
     <string name="y_axis">Y-Achse</string>
