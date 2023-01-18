@@ -286,7 +286,7 @@
     <string name="gpx_selection_track">%1$s
 \nTraza %2$s</string>
     <string name="use_points_as_intermediates">Calcular ruta entre puntos</string>
-    <string name="always_center_position_on_map">Mostrar ubicación en el centro</string>
+    <string name="always_center_position_on_map">Mostrar ubicación siempre en el centro</string>
     <string name="voice_pref_title">Voz</string>
     <string name="misc_pref_title">Varios</string>
     <string name="localization_pref_title">Ubicación</string>
@@ -5042,4 +5042,9 @@
     <string name="set_up_backup">Configurar copia de seguridad</string>
     <string name="x_axis">Eje X</string>
     <string name="y_axis">Eje Y</string>
+    <string name="share_as_file">Compartir como archivo</string>
+    <string name="value_downloaded_of_mb">Descargando %1$.1f/%2$.1f MB</string>
+    <string name="skip_download">Omitir descarga</string>
+    <string name="determine_location">Permítenos determinar tu ubicación</string>
+    <string name="share_link">Compartir enlace</string>
 </resources>
