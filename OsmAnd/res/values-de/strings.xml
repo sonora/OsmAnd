@@ -798,11 +798,11 @@
     <!-- string name="search_tabs_location">Position</string -->
     <string name="context_menu_item_update_map">Karte aktualisieren</string>
     <string name="context_menu_item_create_poi">POI erstellen</string>
-    <string name="shared_string_yes">ja</string>
+    <string name="shared_string_yes">Ja</string>
     <string name="shared_string_cancel">Abbrechen</string>
     <string name="shared_string_apply">Anwenden</string>
     <string name="shared_string_add">Hinzufügen</string>
-    <string name="shared_string_no">nein</string>
+    <string name="shared_string_no">Nein</string>
     <string name="add_favorite_dialog_top_text">Favorit benennen</string>
     <string name="add_favorite_dialog_default_favourite_name">Favorit</string>
     <string name="add_favorite_dialog_favourite_added_template">Favorit \'\'{0}\'\' hinzugefügt.</string>
@@ -3651,7 +3651,7 @@
     <string name="clear_tiles_warning">Durch die Anwendung dieser Änderungen werden die zwischengespeicherten Daten für diese Kachelquelle gelöscht</string>
     <string name="vessel_height_warning_link">Schiffshöhe einstellen</string>
     <string name="vessel_height_warning">Stellen Sie die Schiffshöhe ein, um niedrige Brücken zu vermeiden. Wenn die Brücke beweglich ist, wird die Höhe im geöffneten Zustand verwendet.</string>
-    <string name="vessel_height_limit_description">Schiffshöhe einstellen, um niedrige Brücken zu vermeiden. Beachten Sie: Für beweglichen Brücken, wird deren Höhe im geöffneten Zustand verwendet.</string>
+    <string name="vessel_height_limit_description">Schiffshöhe einstellen, um niedrige Brücken zu vermeiden. Beachten Sie: Für bewegliche Brücken wird deren Höhe im geöffneten Zustand verwendet.</string>
     <string name="vessel_width_limit_description">Stellen Sie die Schiffsbreite ein, um schmale Brücken zu vermeiden</string>
     <string name="quick_action_showhide_mapillary_descr">Eine Schaltfläche zum Ein- oder Ausblenden des Mapillary-Layers auf der Karte.</string>
     <string name="uninstall_speed_cameras">Blitzer deinstallieren</string>
@@ -5035,12 +5035,12 @@
     <string name="skip_download">Download überspringen</string>
     <string name="determine_location">Erlauben Sie uns, Ihren Standort zu bestimmen</string>
     <string name="share_link">Link teilen</string>
-    <string name="sound_beep_simple">Signalton: Einfach</string>
-    <string name="sound_beep_minimal">Signalton: Minimal</string>
+    <string name="sound_beep_simple">Signalton: einfach</string>
+    <string name="sound_beep_minimal">Signalton: minimal</string>
     <string name="weight_limit_error">Der Mindestwert ist \"%1$s\" Tonnen. Verwenden Sie das Profil \"%2$s\", wenn das Fahrzeuggewicht unter dem Mindestwert liegt.</string>
-    <string name="sound_beep_complex_loud">Signalton: Komplex, laut</string>
-    <string name="sound_beep_simple_loud">Signalton: Einfach, laut</string>
-    <string name="sound_beep_complex">Signalton: Komplex</string>
+    <string name="sound_beep_complex_loud">Signalton: komplex, laut</string>
+    <string name="sound_beep_simple_loud">Signalton: einfach, laut</string>
+    <string name="sound_beep_complex">Signalton: komplex</string>
     <string name="last_synchronized">Zuletzt synchronisiert</string>
     <string name="display_position_automatic_descr">Abhängig von der Kartenorientierung: unten für Bewegungsrichtung, mittig für alles andere.</string>
     <string name="shared_string_apply_changes">Änderungen anwenden</string>
@@ -5051,7 +5051,7 @@
 \n
 \nSie werden auch als \"%1$s\" gespeichert, um von %2$s für alle anderen Spuren ohne implizites oder spezifisch eingestelltes Aussehen angewendet zu werden.</string>
     <string name="recently_visible">Kürzlich sichtbar %1$s</string>
-    <string name="empty_tracks_description">Sie können mit OsmAnd Track-Dateien importieren, erstellen oder aufzeichnen.</string>
+    <string name="empty_tracks_description">Sie können mit OsmAnd Trackdateien importieren, erstellen oder aufzeichnen.</string>
     <string name="default_tracks_appearance">Standarddarstellung des Tracks</string>
     <string name="no_visible_tracks_description">Wählen Sie Tracks, um sie auf der Karte anzuzeigen.</string>
     <string name="empty_tracks">Sie haben keine Trackdateien.</string>
@@ -5072,14 +5072,14 @@
     <string name="shared_string_in_progress">In Arbeit</string>
     <string name="shared_string_original">Original</string>
     <string name="movement_speed">Bewegungsgeschwindigkeit</string>
-    <string name="simulation_position_description">Wählen Sie eine Track-Datei aus, die als Bewegungsführung verwendet werden soll.</string>
+    <string name="simulation_position_description">Wählen Sie eine Trackdatei aus, die als Quelle für die Veränderung des Standorts verwendet werden soll.</string>
     <string name="release_4_4">- Verbessertes Menü \"Tracks\" in \"Karte konfigurieren\".
 \n
 \n - Kontextmenü zeigt jetzt lokalisierte Namen für POI an
 \n
 \n - Option zum Teilen der Route per Link hinzugefügt
 \n
-\n - Die Längeneinheit \"Nautische Meilen/Fuß\" wurde zugefügt
+\n - Längeneinheit \"Nautische Meilen/Fuß\" hinzugefügt
 \n
 \n - Die Kartenausrichtung wurde um einen festen Modus erweitert.
 \n
@@ -5102,4 +5102,5 @@
     <string name="sort_distance_ascending">Kürzeste Entfernung zuerst</string>
     <string name="selected_value">Ausgewählter Wert</string>
     <string name="shared_string_nearest">Am nächsten</string>
+    <string name="app_mode_moped">Moped</string>
 </resources>
