@@ -48,7 +48,8 @@ import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.widgets.popup.PopUpMenuHelper;
+import net.osmand.plus.widgets.popup.PopUpMenu;
+import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
 import net.osmand.plus.widgets.popup.PopUpMenuItem;
 import net.osmand.util.Algorithms;
 
@@ -60,9 +61,6 @@ import java.util.Set;
 public class TracksFragment extends BaseOsmAndDialogFragment implements LoadTracksListener, GpxImportListener {
 
 	public static final String TAG = TracksFragment.class.getSimpleName();
-
-	private OsmandApplication app;
-	private OsmandSettings settings;
 
 	private ImportHelper importHelper;
 	private SelectedTracksHelper selectedTracksHelper;
@@ -91,8 +89,6 @@ public class TracksFragment extends BaseOsmAndDialogFragment implements LoadTrac
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = getMyApplication();
-		settings = app.getSettings();
 		importHelper = new ImportHelper(requireActivity());
 		importHelper.setGpxImportListener(this);
 		selectedTracksHelper = new SelectedTracksHelper(app);
@@ -112,7 +108,7 @@ public class TracksFragment extends BaseOsmAndDialogFragment implements LoadTrac
 		};
 		Window window = dialog.getWindow();
 		if (window != null) {
-			if (!getSettings().DO_NOT_USE_ANIMATIONS.get()) {
+			if (!settings.DO_NOT_USE_ANIMATIONS.get()) {
 				window.getAttributes().windowAnimations = R.style.Animations_Alpha;
 			}
 			window.setStatusBarColor(ContextCompat.getColor(app, getStatusBarColorId()));
@@ -171,7 +167,13 @@ public class TracksFragment extends BaseOsmAndDialogFragment implements LoadTrac
 				.setTitleId(R.string.shared_string_import)
 				.setIcon(getContentIcon(R.drawable.ic_action_import_to))
 				.setOnClickListener(v -> importTracks()).create());
-		new PopUpMenuHelper.Builder(view, items, nightMode, R.layout.simple_popup_menu_item).show();
+
+		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+		displayData.anchorView = view;
+		displayData.menuItems = items;
+		displayData.nightMode = nightMode;
+		displayData.layoutId = R.layout.simple_popup_menu_item;
+		PopUpMenu.show(displayData);
 	}
 
 	private void setupTabLayout(@NonNull View view) {

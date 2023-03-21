@@ -60,6 +60,7 @@ public class OsmAndFormatter {
 	public static final float INCHES_IN_ONE_METER = FEET_IN_ONE_METER * 12;
 
 	public static final int KILOGRAMS_IN_ONE_TON = 1000;
+	public static final float POUNDS_IN_ONE_KILOGRAM = 2.2046f;
 
 	private static final int MIN_DURATION_FOR_DATE_FORMAT = 48 * 60 * 60;
 	private static final int MIN_DURATION_FOR_YESTERDAY_DATE_FORMAT = 24 * 60 * 60;
@@ -208,6 +209,32 @@ public class OsmAndFormatter {
 	public static String getFormattedDateTime(Context context, long milliseconds) {
 		return DateUtils.formatDateTime(context, milliseconds,
 				DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_ALL);
+	}
+
+	public static Date getStartOfToday() {
+		return getStartOfToday("GMT");
+	}
+
+	public static Date getStartOfToday(@NonNull String timeZoneStr) {
+		return getStartOfDayForDate(new Date(), timeZoneStr);
+	}
+
+	public static Date getStartOfDayForDate(@NonNull Date date, @NonNull String timeZoneStr) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(date.getTime());
+		calendar.set(Calendar.HOUR_OF_DAY, 0);
+		calendar.set(Calendar.MINUTE, 0);
+		calendar.set(Calendar.SECOND, 0);
+		calendar.set(Calendar.MILLISECOND, 0);
+		calendar.setTimeZone(TimeZone.getTimeZone(timeZoneStr));
+		return new Date(calendar.getTimeInMillis());
+	}
+
+	public static Date getTimeForTimeZone(long time, @NonNull String timeZone) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(time);
+		calendar.setTimeZone(TimeZone.getTimeZone(timeZone));
+		return new Date(calendar.getTimeInMillis());
 	}
 
 	public static String getFormattedTimeInterval(OsmandApplication app, double interval) {
