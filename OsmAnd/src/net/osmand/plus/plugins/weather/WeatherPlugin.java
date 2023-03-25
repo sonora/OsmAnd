@@ -44,6 +44,7 @@ import net.osmand.plus.chooseplan.OsmAndFeature;
 import net.osmand.plus.chooseplan.button.PurchasingUtils;
 import net.osmand.plus.dashboard.DashboardOnMap;
 import net.osmand.plus.dashboard.DashboardOnMap.DashboardType;
+import net.osmand.plus.download.DownloadOsmandIndexesHelper.IndexFileList;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.plugins.OsmandPlugin;
 import net.osmand.plus.plugins.weather.WeatherBand.WeatherBandType;
@@ -124,6 +125,8 @@ public class WeatherPlugin extends OsmandPlugin {
 				if (event == InitEvents.NATIVE_OPEN_GL_INITIALIZED) {
 					updateMapPresentationEnvironment();
 					updateLayers(app, null);
+				} else if (event == InitEvents.INDEX_REGION_BOUNDARIES) {
+					clearOutdatedCache();
 				}
 			}
 		});
@@ -151,6 +154,14 @@ public class WeatherPlugin extends OsmandPlugin {
 		MapRendererContext rendererContext = NativeCoreContext.getMapRendererContext();
 		if (weatherHelper.getWeatherResourcesManager() == null && rendererContext != null) {
 			weatherHelper.updateMapPresentationEnvironment(rendererContext);
+		}
+	}
+
+	private void clearOutdatedCache() {
+		if (weatherHelper.getWeatherResourcesManager() != null) {
+			weatherHelper.clearOutdatedCache();
+		} else {
+			log.error("Tile Resources Manager isn't initialized");
 		}
 	}
 
@@ -307,8 +318,8 @@ public class WeatherPlugin extends OsmandPlugin {
 			                                  @Nullable View view, @NotNull ContextMenuItem item,
 			                                  boolean isChecked) {
 				weatherSettings.weatherEnabled.set(isChecked);
-				item.setSelected(weatherSettings.weatherEnabled.get());
-				item.setColor(app, weatherSettings.weatherEnabled.get() ? R.color.osmand_orange : ContextMenuItem.INVALID_ID);
+				item.setSelected(isChecked);
+				item.setColor(app, isChecked ? R.color.osmand_orange : ContextMenuItem.INVALID_ID);
 				item.setDescription(isChecked ? getWeatherTypesSummary(weatherHelper.getVisibleBands()) : null);
 				if (uiAdapter != null) {
 					uiAdapter.onDataSetChanged();
@@ -529,5 +540,11 @@ public class WeatherPlugin extends OsmandPlugin {
 	@Override
 	protected boolean layerShouldBeDisabled(@NonNull OsmandMapLayer layer) {
 		return hasCustomForecast() && layer instanceof DownloadedRegionsLayer;
+	}
+
+	@Override
+	public void addPluginIndexItems(@NonNull IndexFileList indexes) {
+		OfflineForecastHelper offlineForecastHelper = weatherHelper.getOfflineForecastHelper();
+		offlineForecastHelper.addWeatherIndexItems(indexes);
 	}
 }

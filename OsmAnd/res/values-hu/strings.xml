@@ -5078,6 +5078,16 @@
 \n
 \n • Vegán helyek megjelenítésével kapcsolatos problémák javítása
 \n
+\n • Lehetőség „Fedvény” vagy „Háttér” térképként használt online csempék letöltésére
+\n
+\n • Angolszász mértékegységek támogatása a „Járműparaméterek\"-nél
+\n
+\n • Új Moped profil
+\n
+\n • „Kijelző pozíció”-nál hozzáadva egy új „Automatikus” opció
+\n
+\n • Gesztusok javítása a térkép döntéséhez, nagyításához elforgatásához
+\n
 \n</string>
     <string name="sort_duration_ascending">Először a rövidebb időtartam</string>
     <string name="sort_duration_descending">Először a leghosszabb időtartam</string>
@@ -5104,4 +5114,8 @@
     <string name="clear_online_cache">Online gyorsítótár törlése</string>
     <string name="weather_forecast_is_outdated">Az előrejelzés elavult.</string>
     <string name="offline_weather_forecast">Offline időjárás-előrejelzés</string>
+    <string name="metric_lbs">font</string>
+    <string name="shared_string_pounds">font</string>
+    <string name="common_weight_limit_error">A minimális érték „%1$s” %2$s. Használja a „%3$s” profilt, ha a jármű tömege kisebb, mint a minimális érték.</string>
+    <string name="free_maps_updates">Ingyenes frissítések (vészhelyzet)</string>
 </resources>
