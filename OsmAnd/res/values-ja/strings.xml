@@ -414,9 +414,9 @@ POIの更新は利用できません</string>
     <string name="choose_intersected_street">交差する通りを選択</string>
     <string name="Closest_Amenities">いちばん近い施設</string>
     <string name="app_mode_default">地図閲覧</string>
-    <string name="app_mode_car">車移動</string>
-    <string name="app_mode_bicycle">二輪車移動</string>
-    <string name="app_mode_pedestrian">徒歩移動</string>
+    <string name="app_mode_car">車移動等</string>
+    <string name="app_mode_bicycle">二輪車移動等</string>
+    <string name="app_mode_pedestrian">徒歩移動等</string>
     <string name="position_on_map_center">中央</string>
     <string name="position_on_map_bottom">下</string>
     <string name="navigate_point_top_text">選択した形式で緯度と経度を入力 (D - 度, M - 分, S - 秒)</string>
@@ -2275,14 +2275,13 @@ POIの更新は利用できません</string>
  • GPXレコーディングオプションを使用すると、経路を記録して共有することができます
  • 追加のプラグインを使用して、等高線と山陰を表示することができます
  "</string>
-    <string name="osmand_extended_description_part6">"
- ウォーキング、ハイキング、市内ツアー
- • 地図には、徒歩移動やハイキング向け道が表示されます
- • 親しんだ言語のウィキペディアは、市内ツアー中に多くの情報をもたらしてくれます
- • 公共交通機関の停留所や駅(バス、路面電車、電車)、路線名の表示は、初めて訪れた市街での移動に役立ちます
- • 歩行者モードでのGPSナビゲーションは、徒歩移動向け経路を使用してルートを構築します。
- • ルートや記録を含んだGPXファイルをアップロードしたり、フォローしたり、自分自身で共有することができます
- "</string>
+    <string name="osmand_extended_description_part6">ウォーキング、ハイキング、市内観光
+\n• 地図には、徒歩移動やハイキング向けの道が表示されます
+\n• 慣れ親しんだ言語でのWikipediaならば、観光中により多くの情報をもたらしてくれます
+\n• 公共交通機関の停留所や駅(バス、路面電車、電車)、路線名の表示は、初めて訪れた市街での移動に役立ちます
+\n• 歩行者モードでのGPSナビゲーションは、徒歩移動向け経路を使用してルートを構築します
+\n• ルートなどの記録を含んだGPXファイルをアップロードしたり、フォローしたり、自分自身で共有することができます
+\n</string>
     <string name="osmand_extended_description_part7">"
  OSMに寄与
  • データ、バグの報告ができます
@@ -3698,7 +3697,7 @@ POIの更新は利用できません</string>
     <string name="speed_cameras_alert">一部の国では、スピードカメラ有無の事前警告は法律で禁止されています。</string>
     <string name="screen_timeout_descr">\"%1$s\"がオンの場合、設定された動作時間はそちらに依存します。</string>
     <string name="default_screen_timeout">端末設定の画面スリープ時間に従う</string>
-    <string name="shared_string_tones">トーン</string>
+    <string name="shared_string_tones">トン</string>
     <string name="shared_string_meters">メートル</string>
     <string name="details_dialog_decr">追加マップの詳細を表示または非表示にします</string>
     <string name="shared_string_night_map">夜間マップ</string>
@@ -4055,7 +4054,7 @@ POIの更新は利用できません</string>
     <string name="navigate_point_format_mgrs">MGRS(Military Grid Reference System)</string>
     <string name="mgrs_format_descr">OsmAndは、UTM NATO形式類似のMGRSを使用します。</string>
     <string name="shared_string_legend">凡例</string>
-    <string name="n_items_of_z">%2$sの%1$s</string>
+    <string name="n_items_of_z">%1$s／%2$s</string>
     <string name="app_mode_wheelchair_forward">基本前進のみの車椅子</string>
     <string name="track_coloring_solid">通常色</string>
     <string name="in_case_of_reverse_direction">逆方向の場合</string>
@@ -4900,7 +4899,7 @@ POIの更新は利用できません</string>
     <string name="routing_attr_carriage_restrictions_name">馬車の制限</string>
     <string name="routing_attr_carriage_restrictions_description">馬車のアクセス許可を考慮する</string>
     <string name="rendering_attr_showTrainRoutes_name">鉄道路線</string>
-    <string name="shared_string_item">項目</string>
+    <string name="shared_string_item">アイテム</string>
     <string name="simulation_constant_mode_title">定速走行</string>
     <string name="change_default_tracks_appearance_confirmation_description">%1$s経路の外観を変更しますか？</string>
     <string name="no_visible_tracks_description">マップ上に表示する経路を選択します。</string>
@@ -5093,6 +5092,16 @@ POIの更新は利用できません</string>
 \n
 \n• ビーガン向けの場所表示に関する問題を修正
 \n
+\n• \"オーバーレイ\"または\"アンダーレイ\"マップとして使用されるオンラインタイルをダウンロードできるように
+\n
+\n• \"車両パラメータ \"で帝国単位(ヤード・ポンド法)をサポート
+\n
+\n• 新しくモペットのプロフィールを追加
+\n
+\n• \"表示位置 \"オプションに \"自動 \"を追加
+\n
+\n• マップの傾き、ズーム、回転のジェスチャーを修正
+\n
 \n</string>
     <string name="shared_string_delete_file">ファイルを削除</string>
     <string name="selected_value">選択した値</string>
@@ -5103,6 +5112,27 @@ POIの更新は利用できません</string>
     <string name="approximate_bearing">おおよその方位</string>
     <string name="simulation_position_description">場所を変更する際のもととなる経路ファイルを選択します。</string>
     <string name="approximate_bearing_descr">たどっているナビゲーションルートから方位を導き出します。</string>
-    <string name="shared_string_inches"/>
+    <string name="shared_string_inches">インチ</string>
     <string name="app_mode_climbing">クライミング</string>
+    <string name="shared_string_pounds">ポンド</string>
+    <string name="clear_online_cache">オンラインキャッシュを消去する</string>
+    <string name="free_maps_updates">無料アップデート(緊急)</string>
+    <string name="clear_online_cache_description">この操作により、オンライン天気予報タイルのキャッシュがすべて消去されます。</string>
+    <string name="shared_string_alt_name">代替名称</string>
+    <string name="offline_cache">オフラインキャッシュ</string>
+    <string name="token_is_not_valid">トークンが無効です</string>
+    <string name="generate_hillshade_from_3d_maps">3Dマップから2D化した陰影起伏図を生成する。</string>
+    <string name="generate_slope_from_3d_maps">3Dマップから2D化した勾配マップを生成する</string>
+    <string name="enable_3d_maps">3Dマップを有効にする</string>
+    <string name="disable_vertex_hillshade_3d">3Dでの頂点部の陰影を無効にする</string>
+    <string name="test_heightmap">標高マップのテスト</string>
+    <string name="weather_forecast_is_outdated">天気予報データが古くなっています。</string>
+    <string name="shared_string_all_world">世界中</string>
+    <string name="common_weight_limit_error">最小値は\"%1$s\"%2$sです。車両重量が最小値以下の場合は、プロファイル\"%3$s\"を使用してください。</string>
+    <string name="weather_forecast">天気予報</string>
+    <string name="metric_lbs">ポンド</string>
+    <string name="offline_weather_forecast">オフライン天気予報</string>
+    <string name="offline_weather_forecast_desc">7日分の天気予報をダウンロードすることができます。</string>
+    <string name="nautical_depth_points">水深点(最高深度)</string>
+    <string name="inch">インチ</string>
 </resources>
