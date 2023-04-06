@@ -179,16 +179,16 @@
 				<data android:scheme="file"/>
 				<data android:scheme="content"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.gpx.zip" />
 			</intent-filter>
 
 			<intent-filter
@@ -201,16 +201,16 @@
 				<data android:scheme="content"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx" />
-				<data android:pathPattern=".*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.gpx.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.gpx" />
+				<data android:pathPattern="/.*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.gpx.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.gpx.zip" />
 			</intent-filter>
 
 			<intent-filter
@@ -224,12 +224,12 @@
 				<data android:scheme="data"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern="*.kml"/>
-				<data android:pathPattern=".*\\.kml" />
-				<data android:pathPattern=".*\\..*\\.kml" />
-				<data android:pathPattern=".*\\..*\\..*\\.kml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.kml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kml" />
+				<data android:pathPattern="/*.kml"/>
+				<data android:pathPattern="/.*\\.kml" />
+				<data android:pathPattern="/.*\\..*\\.kml" />
+				<data android:pathPattern="/.*\\..*\\..*\\.kml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.kml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.kml" />
 			</intent-filter>
 
 			<intent-filter
@@ -243,11 +243,11 @@
 				<data android:scheme="data"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.kmz" />
 			</intent-filter>
 
 			<intent-filter
@@ -259,11 +259,11 @@
 				<data android:scheme="file"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.kmz" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.kmz" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.kmz" />
 			</intent-filter>
 
 			<intent-filter
@@ -275,16 +275,16 @@
 				<data android:scheme="content"/>
 				<data android:scheme="file"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.obf" />
-				<data android:pathPattern=".*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.obf.zip" />
 			</intent-filter>
 
 			<intent-filter
@@ -297,16 +297,16 @@
 				<data android:scheme="file"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.obf" />
-				<data android:pathPattern=".*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.obf" />
-				<data android:pathPattern=".*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.obf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.obf" />
+				<data android:pathPattern="/.*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.obf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.obf.zip" />
 			</intent-filter>
 
 			<intent-filter
@@ -317,11 +317,11 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="file"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sqlitedb" />
 			</intent-filter>
 
 			<intent-filter
@@ -335,12 +335,12 @@
 				<data android:scheme="data"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern="*.sqlitedb" />
-				<data android:pathPattern=".*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.sqlitedb" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/*.sqlitedb" />
+				<data android:pathPattern="/.*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sqlitedb" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sqlitedb" />
 			</intent-filter>
 
 			<intent-filter
@@ -351,50 +351,11 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="file"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.sqlite" />
-			</intent-filter>
-
-			<intent-filter
-				android:label="@string/app_name"
-				android:priority="50">
-				<action android:name="android.intent.action.VIEW" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<category android:name="android.intent.category.BROWSABLE" />
-				<data android:scheme="content"/>
-				<data android:scheme="file"/>
-				<data android:scheme="data"/>
-				<data android:host="*"/>
-				<data android:mimeType="*/*"/>
-				<data android:pathPattern="*.sqlite" />
-				<data android:pathPattern=".*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.sqlite" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.sqlite" />
-			</intent-filter>
-
-			<intent-filter
-				android:label="@string/app_name"
-				android:priority="50">
-				<action android:name="android.intent.action.VIEW" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<category android:name="android.intent.category.BROWSABLE" />
-				<data android:scheme="file"/>
-				<data android:host="*"/>
-				<data android:pathPattern=".*\\.osf" />
-				<data android:pathPattern=".*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sqlite" />
 			</intent-filter>
 
 			<intent-filter
@@ -408,16 +369,12 @@
 				<data android:scheme="data"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.osf" />
-				<data android:pathPattern=".*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.osf" />
-				<data android:pathPattern=".*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.osf.zip" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/*.sqlite" />
+				<data android:pathPattern="/.*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.sqlite" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.sqlite" />
 			</intent-filter>
 
 			<intent-filter
@@ -428,11 +385,16 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="file"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.xml" />
-				<data android:pathPattern=".*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.osf.zip" />
 			</intent-filter>
 
 			<intent-filter
@@ -446,11 +408,49 @@
 				<data android:scheme="data"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.xml" />
-				<data android:pathPattern=".*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.xml" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.osf" />
+				<data android:pathPattern="/.*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.osf.zip" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.osf.zip" />
+			</intent-filter>
+
+			<intent-filter
+				android:label="@string/app_name"
+				android:priority="50">
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="file"/>
+				<data android:host="*"/>
+				<data android:pathPattern="/.*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.xml" />
+			</intent-filter>
+
+			<intent-filter
+				android:label="@string/app_name"
+				android:priority="50">
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="content"/>
+				<data android:scheme="file"/>
+				<data android:scheme="data"/>
+				<data android:host="*"/>
+				<data android:mimeType="*/*"/>
+				<data android:pathPattern="/.*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.xml" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.xml" />
 			</intent-filter>
 
 			<intent-filter
@@ -462,11 +462,11 @@
 				<data android:scheme="file"/>
 				<data android:scheme="content"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.wpt.chart" />
 			</intent-filter>
 
 			<intent-filter
@@ -479,11 +479,11 @@
 				<data android:scheme="content"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.wpt.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.wpt.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.wpt.chart" />
 			</intent-filter>
 
 			<intent-filter
@@ -495,11 +495,11 @@
 				<data android:scheme="file"/>
 				<data android:scheme="content"/>
 				<data android:host="*"/>
-				<data android:pathPattern=".*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.3d.chart" />
 			</intent-filter>
 
 			<intent-filter
@@ -512,11 +512,11 @@
 				<data android:scheme="content"/>
 				<data android:host="*"/>
 				<data android:mimeType="*/*"/>
-				<data android:pathPattern=".*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\.3d.chart" />
-				<data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\.3d.chart" />
+				<data android:pathPattern="/.*\\..*\\..*\\..*\\..*\\.3d.chart" />
 			</intent-filter>
 
 			<!--trying to handle emails-->
