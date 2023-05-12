@@ -1,6 +1,5 @@
 package net.osmand.plus.track.helpers;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.AsyncTask;
 
@@ -20,7 +19,9 @@ import net.osmand.plus.helpers.SearchHistoryHelper;
 import net.osmand.plus.mapmarkers.MapMarkersGroup;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
 import net.osmand.plus.plugins.monitoring.SavingTrackHelper;
+import net.osmand.plus.settings.enums.HistorySource;
 import net.osmand.plus.track.GpxSelectionParams;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
 import net.osmand.plus.track.helpers.SelectGpxTask.SelectGpxTaskListener;
 import net.osmand.util.Algorithms;
@@ -115,6 +116,7 @@ public class GpxSelectionHelper {
 		return selectedGPXFiles;
 	}
 
+	@NonNull
 	public Map<GPXFile, Long> getSelectedGpxFilesBackUp() {
 		return selectedGpxFilesBackUp;
 	}
@@ -130,21 +132,20 @@ public class GpxSelectionHelper {
 						(gpxFile.path != null && helper.getSelectedFileByPath(gpxFile.path) != null));
 	}
 
-	@SuppressLint({"StringFormatInvalid", "StringFormatMatches"})
+	@Nullable
 	public String getGpxDescription() {
-		if (selectedGPXFiles.size() == 1) {
+		int size = selectedGPXFiles.size();
+		if (size == 1) {
 			GPXFile currentGPX = app.getSavingTrackHelper().getCurrentGpx();
 			if (selectedGPXFiles.get(0).getGpxFile() == currentGPX) {
 				return app.getString(R.string.shared_string_currently_recording_track);
 			}
-
 			File file = new File(selectedGPXFiles.get(0).getGpxFile().path);
 			return Algorithms.getFileNameWithoutExtension(file).replace('_', ' ');
-		} else if (selectedGPXFiles.size() == 0) {
+		} else if (size == 0) {
 			return null;
 		} else {
-			return app.getString(R.string.number_of_gpx_files_selected_pattern,
-					selectedGPXFiles.size());
+			return app.getString(R.string.number_of_gpx_files_selected_pattern, String.valueOf(size));
 		}
 	}
 
@@ -296,7 +297,7 @@ public class GpxSelectionHelper {
 		String relativePath = GpxUiHelper.getGpxFileRelativePath(app, gpx.path);
 		GPXInfo gpxInfo = GpxUiHelper.getGpxInfoByFileName(app, relativePath);
 		if (gpxInfo != null) {
-			SearchHistoryHelper.getInstance(app).addNewItemToHistory(gpxInfo);
+			SearchHistoryHelper.getInstance(app).addNewItemToHistory(gpxInfo, HistorySource.SEARCH);
 		}
 	}
 

@@ -4,6 +4,7 @@ import static net.osmand.plus.configmap.tracks.TracksAdapter.TYPE_NO_TRACKS;
 import static net.osmand.plus.configmap.tracks.TracksAdapter.TYPE_NO_VISIBLE_TRACKS;
 import static net.osmand.plus.configmap.tracks.TracksAdapter.TYPE_RECENTLY_VISIBLE_TRACKS;
 import static net.osmand.plus.configmap.tracks.TracksAdapter.TYPE_SORT_TRACKS;
+import static net.osmand.plus.track.helpers.GpxSelectionHelper.CURRENT_TRACK;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,8 +12,12 @@ import androidx.annotation.Nullable;
 import net.osmand.data.LatLon;
 import net.osmand.gpx.GPXFile;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.TracksSortMode;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
+import net.osmand.plus.track.helpers.SelectGpxTask;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.util.Algorithms;
 
@@ -76,7 +81,7 @@ public class SelectedTracksHelper {
 		allTrackItems.clear();
 		allTrackItems.addAll(trackItems);
 
-		if (settings.SAVE_GLOBAL_TRACK_TO_GPX.get()) {
+		if (settings.SAVE_GLOBAL_TRACK_TO_GPX.get() || selectionHelper.getSelectedCurrentRecordingTrack() != null) {
 			SelectedGpxFile selectedGpxFile = app.getSavingTrackHelper().getCurrentTrack();
 			TrackItem trackItem = new TrackItem(app, selectedGpxFile.getGpxFile());
 			allTrackItems.add(trackItem);
@@ -107,6 +112,12 @@ public class SelectedTracksHelper {
 		TrackTab trackTab = new TrackTab(TrackTabType.ON_MAP);
 		trackTab.items.addAll(getOnMapTabItems());
 		return trackTab;
+	}
+
+	public void updateTracksOnMap(){
+		TrackTab onMapTab = getTracksOnMapTab();
+		trackTabs.put(TrackTabType.ON_MAP.name(), onMapTab);
+		sortTrackTab(onMapTab);
 	}
 
 	@NonNull
@@ -161,15 +172,19 @@ public class SelectedTracksHelper {
 	}
 
 	private void processRecentlyVisibleTracks() {
+		recentlyVisibleTrackItem.clear();
+		boolean monitoringActive = PluginsHelper.isActive(OsmandMonitoringPlugin.class);
 		for (GPXFile gpxFile : selectionHelper.getSelectedGpxFilesBackUp().keySet()) {
 			SelectedGpxFile selectedGpxFile = selectionHelper.getSelectedFileByPath(gpxFile.path);
-			if (selectedGpxFile == null) {
+			if (selectedGpxFile == null && (!gpxFile.showCurrentTrack || monitoringActive)) {
 				recentlyVisibleTrackItem.add(new TrackItem(app, gpxFile));
 			}
 		}
 	}
 
 	private void processVisibleTracks() {
+		selectedTrackItems.clear();
+		originalSelectedTrackItems.clear();
 		if (selectionHelper.isAnyGpxFileSelected()) {
 			for (TrackItem info : allTrackItems) {
 				SelectedGpxFile selectedGpxFile = selectionHelper.getSelectedFileByPath(info.getPath());
@@ -224,9 +239,12 @@ public class SelectedTracksHelper {
 
 		Map<String, Boolean> selectedFileNames = new HashMap<>();
 		for (TrackItem trackItem : selectedTrackItems) {
-			selectedFileNames.put(trackItem.getPath(), true);
+			String path = trackItem.isShowCurrentTrack() ? CURRENT_TRACK : trackItem.getPath();
+			selectedFileNames.put(path, true);
 		}
 		selectionHelper.runSelection(selectedFileNames, null);
+		processVisibleTracks();
+		processRecentlyVisibleTracks();
 	}
 
 	private void sortTrackTabs() {

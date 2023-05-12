@@ -669,7 +669,7 @@
     <string name="poi_craft_jeweller">Jubiler</string>
     <string name="poi_transport_construction">Roboty drogowe</string>
     <string name="poi_base">Skoki spadochronowe</string>
-    <string name="poi_ice_stock">Ice stock</string>
+    <string name="poi_ice_stock">Curling bawarski</string>
     <string name="poi_artwork">Dzieło sztuki</string>
     <string name="poi_attraction_amusement_ride">Karuzela</string>
     <string name="poi_attraction_animal">Zwierzę (atrakcja)</string>
@@ -4538,4 +4538,10 @@
     <string name="poi_waste_drugs">Leki</string>
     <string name="poi_waste_dog_excrement">Psie odchody</string>
     <string name="poi_waste_cigarettes">Papierosy</string>
+    <string name="poi_toy_library">Biblioteka zabawek</string>
+    <string name="poi_spikes">Kolce</string>
+    <string name="poi_sump_buster">Pogromca miski olejowej</string>
+    <string name="poi_barrier_board">Tablica barierowa</string>
+    <string name="poi_barrier_tyres">Opony</string>
+    <string name="poi_tank_trap">Bariera przeciwpancerna</string>
 </resources>
