@@ -1032,8 +1032,6 @@
     <string name="track_recording_will_be_continued">Perekaman akan dilanjutkan.</string>
     <string name="copy_poi_name">Salin nama POI</string>
     <string name="quick_action_show_hide_title">Tampilkan/sembunyikan</string>
-    <string name="rendering_attr_noNatureReserveBoundaries_description">Sembunyikan batasan cagar alam, kawasan lindung, dan taman nasional.</string>
-    <string name="rendering_attr_noNatureReserveBoundaries_name">Batasan alam</string>
     <string name="trip_recording_save_and_continue">Simpan dan lanjut</string>
     <string name="lost_data_warning">Seluruh data yang tidak disimpan akan hilang.</string>
     <string name="trip_recording_show_start_dialog_setting">Jika dinonaktifkan, perekaman akan dimulai tepat setelah mengetuk widget atau item menu, tanpa dialog konfirmasi.</string>
@@ -1331,7 +1329,6 @@
     <string name="global_app_settings">Pengaturan global aplikasi</string>
     <string name="general_settings_descr">Siapkan tampilan dan pengaturan umum untuk aplikasi.</string>
     <string name="general_settings">Umum</string>
-    <string name="index_settings">Kelola berkas-berkas peta</string>
     <string name="global_settings">Pengaturan Global</string>
     <string name="routing_settings_descr">Tetapkan pilihan untuk navigasi.</string>
     <string name="routing_settings">Navigasi</string>
@@ -4164,8 +4161,6 @@
     <string name="time_to_destination_widget_desc">Widget menampilkan \"Waktu tiba\" atau \"Waktu tersisa untuk bepergian\" ke titik tujuan terakhir. Waktu selalu diperbarui saat navigasi dan sama dengan waktu rute dari lokasi saat ini.</string>
     <string name="time_to_intermediate_widget_desc">Widget menampilkan \"Waktu tiba\" atau \"Waktu tersisa untuk bepergian\" ke titik tujuan terakhir. Waktu selalu diperbarui saat navigasi, ketika titik perantara dilewati, waktunya akan diperbarui ke titik perantara berikut.</string>
     <string name="rendering_attr_depthContourWidth_description">Lebar garis kontur</string>
-    <string name="accessibility_2d_view_off">Tampilan 2.5D nonaktif</string>
-    <string name="accessibility_2d_view_on">Tampilan 2.5D aktif</string>
     <string name="download_complete">Unduhan selesai</string>
     <string name="clear_markers_history_q">Hapus semua riwayat penanda peta\?</string>
     <string name="osn_close_dialog_error">Tidak dapat menutup catatan.</string>
@@ -4491,7 +4486,6 @@
     <string name="osmand_accessibility_description">Membuat fitur aksesibilitas perangkat tersedia langsung di OsmAnd. Ini memfasilitasi mis. menyesuaikan kecepatan bicara untuk suara teks kesuara, mengatur navigasi D-pad, menggunakan trackball untuk kontrol perbesaran, atau umpan balik teks ke suara, misalnya untuk mengumumkan posisi Anda secara otomatis.</string>
     <string name="map_markers_desc">Widget menampilkan jarak atau perkiraan waktu tiba (PWT) untuk dua penanda pertama di daftar penanda peta.</string>
     <string name="routing_attr_no_new_routing_name">TIdak ada aturan perutean v1.9</string>
-    <string name="shared_string_2_5_d_view">Tampilan 2.5D</string>
     <string name="unknown_location">Posisi belum diketahui.</string>
     <string name="keep_informing_never">Hanya secara manual (ketuk panah)</string>
     <string name="auto_follow_route_navigation_descr">Tengahkan tampilan peta secara otomatis hanya pada saat navigasi.</string>
@@ -4973,8 +4967,6 @@
 \n
 \nSilakan mendukung peningkatan dengan menyediakan catatan kesalahan Anda.</string>
     <string name="rendering_attr_showMtbScale_description">Tampilkan trek berdasarkan skala MTB.</string>
-    <string name="rendering_attr_showMtbScaleUphill_name">Tampilkan skala naik MTB</string>
-    <string name="rendering_attr_showMtbScaleUphill_description">Tampilkan jalur menurut skala naik MTB.</string>
     <string name="rendering_attr_showMtbScale_name">Tampilkan skala MTB</string>
     <string name="mtb_scale">Skala MTB</string>
     <string name="mtb_imba">iMBA</string>
@@ -5220,4 +5212,6 @@
     <string name="beats_per_minute_short">bpm</string>
     <string name="shared_string_chest">Dada</string>
     <string name="external_device_blood_pressure">Tekanan darah</string>
+    <string name="poi_categories">Kategori POI</string>
+    <string name="no_poi_for_category">POI tidak ditemukan</string>
 </resources>
