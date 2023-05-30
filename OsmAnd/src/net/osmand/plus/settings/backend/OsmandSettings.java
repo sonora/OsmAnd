@@ -3027,9 +3027,14 @@ public class OsmandSettings {
 		TRANSPARENT_MAP_THEME.setModeDefaultValue(ApplicationMode.PEDESTRIAN, true);
 	}
 
-	public static final int OSMAND_DARK_THEME = 0;
-	public static final int OSMAND_LIGHT_THEME = 1;
-	public static final int SYSTEM_DEFAULT_THEME = 2;
+	public final CommonPreference<Boolean> SHOW_STREET_NAME = new BooleanPreference(this, "show_street_name", false).makeProfile();
+
+	{
+		SHOW_STREET_NAME.setModeDefaultValue(ApplicationMode.DEFAULT, false);
+		SHOW_STREET_NAME.setModeDefaultValue(ApplicationMode.CAR, true);
+		SHOW_STREET_NAME.setModeDefaultValue(ApplicationMode.BICYCLE, false);
+		SHOW_STREET_NAME.setModeDefaultValue(ApplicationMode.PEDESTRIAN, false);
+	}
 
 	public final CommonPreference<Integer> SEARCH_TAB =
 			new IntPreference(this, "SEARCH_TAB", 0).makeGlobal().cache();
@@ -3037,12 +3042,16 @@ public class OsmandSettings {
 	public final CommonPreference<Integer> FAVORITES_TAB =
 			new IntPreference(this, "FAVORITES_TAB", 0).makeGlobal().cache();
 
+	public static final int OSMAND_DARK_THEME = 0;
+	public static final int OSMAND_LIGHT_THEME = 1;
+	public static final int SYSTEM_DEFAULT_THEME = 2;
+
 	public final CommonPreference<Integer> OSMAND_THEME =
-			new IntPreference(this, "osmand_theme", isSupportSystemDefaultTheme() ? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME) {
+			new IntPreference(this, "osmand_theme", isSupportSystemTheme() ? SYSTEM_DEFAULT_THEME : OSMAND_LIGHT_THEME) {
 				@Override
 				public void readFromJson(JSONObject json, ApplicationMode appMode) throws JSONException {
 					Integer theme = parseString(json.getString(getId()));
-					if (theme == SYSTEM_DEFAULT_THEME && !isSupportSystemDefaultTheme()) {
+					if (theme == SYSTEM_DEFAULT_THEME && !isSupportSystemTheme()) {
 						theme = OSMAND_LIGHT_THEME;
 					}
 					setModeValue(appMode, theme);
@@ -3052,36 +3061,38 @@ public class OsmandSettings {
 	public final OsmandPreference<Boolean> OPEN_ONLY_HEADER_STATE_ROUTE_CALCULATED =
 			new BooleanPreference(this, "open_only_header_route_calculated", false).makeProfile();
 
-	public boolean isLightActionBar() {
-		return isLightContent();
-	}
-
 	public boolean isLightContent() {
 		return isLightContentForMode(APPLICATION_MODE.get());
 	}
 
-	public boolean isLightContentForMode(ApplicationMode mode) {
-		if (isSupportSystemDefaultTheme() && OSMAND_THEME.getModeValue(mode) == SYSTEM_DEFAULT_THEME) {
-			return isLightSystemDefaultTheme();
+	public boolean isLightContentForMode(ApplicationMode appMode) {
+		if (isSystemThemeUsed(appMode)) {
+			return isLightSystemTheme();
 		}
-		return OSMAND_THEME.getModeValue(mode) != OSMAND_DARK_THEME;
+		return OSMAND_THEME.getModeValue(appMode) != OSMAND_DARK_THEME;
 	}
 
-	public boolean isLightSystemDefaultTheme() {
-		Configuration config = ctx.getResources().getConfiguration();
-		int systemNightModeState = config.uiMode & Configuration.UI_MODE_NIGHT_MASK;
-		return systemNightModeState != Configuration.UI_MODE_NIGHT_YES;
+	public boolean isLightSystemTheme() {
+		return !getNightMode(ctx.getResources().getConfiguration());
 	}
 
-	public boolean isSystemDefaultThemeUsed() {
-		return isSystemDefaultThemeUsedForMode(APPLICATION_MODE.get());
+	private boolean getNightMode(@NonNull Configuration config) {
+		int currentNightMode = config.uiMode & Configuration.UI_MODE_NIGHT_MASK;
+		switch (currentNightMode) {
+			case Configuration.UI_MODE_NIGHT_NO:
+				return false;
+			case Configuration.UI_MODE_NIGHT_YES:
+				return true;
+		}
+		LOG.info("Undefined night mode" + config);
+		return false;
 	}
 
-	public boolean isSystemDefaultThemeUsedForMode(ApplicationMode mode) {
-		return isSupportSystemDefaultTheme() && OSMAND_THEME.getModeValue(mode) == SYSTEM_DEFAULT_THEME;
+	public boolean isSystemThemeUsed(@NonNull ApplicationMode appMode) {
+		return isSupportSystemTheme() && OSMAND_THEME.getModeValue(appMode) == SYSTEM_DEFAULT_THEME;
 	}
 
-	public boolean isSupportSystemDefaultTheme() {
+	public boolean isSupportSystemTheme() {
 		return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
 	}
 
@@ -3131,4 +3142,5 @@ public class OsmandSettings {
 			setPreference(QUICK_ACTION.getId(), actionState, mode);
 		}
 	}
+
 }

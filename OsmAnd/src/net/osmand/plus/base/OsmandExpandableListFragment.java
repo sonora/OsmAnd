@@ -27,6 +27,7 @@ public abstract class OsmandExpandableListFragment extends BaseOsmAndFragment im
 
 	@Override
 	public View onCreateView(@NonNull android.view.LayoutInflater inflater, android.view.ViewGroup container, Bundle savedInstanceState) {
+		updateNightMode();
 		View v = createView(inflater, container);
 		listView = v.findViewById(android.R.id.list);
 		listView.setOnChildClickListener(this);
@@ -102,7 +103,7 @@ public abstract class OsmandExpandableListFragment extends BaseOsmAndFragment im
 
 	public boolean isLightActionBar() {
 		Activity activity = getActivity();
-		return activity == null || ((OsmandApplication) activity.getApplication()).getSettings().isLightActionBar();
+		return activity == null || ((OsmandApplication) activity.getApplication()).getSettings().isLightContent();
 	}
 
 	public void collapseTrees(int count) {
