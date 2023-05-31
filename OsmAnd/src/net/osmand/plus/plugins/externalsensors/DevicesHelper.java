@@ -1,6 +1,5 @@
 package net.osmand.plus.plugins.externalsensors;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -17,16 +16,12 @@ import android.bluetooth.le.ScanSettings;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.ParcelUuid;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.preference.PreferenceManager;
 
 import com.dsi.ant.plugins.antplus.pcc.AntPlusHeartRatePcc;
 import com.dsi.ant.plugins.antplus.pccbase.AntPluginPcc;
@@ -73,16 +68,10 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 
 	public static final int ENABLE_BLUETOOTH_REQUEST_CODE = 400;
 
-	public final static String SCAN_MODE_PREFERENCE = "SCAN_MODE";
-	public final static String MATCH_MODE_PREFERENCE = "MATCH_MODE";
-	public final static String CALLBACK_TYPE_PREFERENCE = "CALLBACK_TYPE";
-	public final static String MATCH_NUM_PREFERENCE = "MATCH_NUM";
-
 	private static final Log LOG = PlatformUtil.getLog(DevicesHelper.class);
 
 	private final static List<UUID> SUPPORTED_BLE_SERVICE_UUIDS = Arrays.asList(
 			BLEBikeSCDDevice.getServiceUUID(),
-			BLEBPICPDevice.getServiceUUID(),
 			BLEHeartRateDevice.getServiceUUID(),
 			BLERunningSCDDevice.getServiceUUID(),
 			BLETemperatureDevice.getServiceUUID());
@@ -132,13 +121,17 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 	void deinitBLE() {
 		try {
 			if (bluetoothAdapter != null) {
+				if (bleScanner != null && bluetoothAdapter.isEnabled()) {
+					try {
+						bleScanner.stopScan(bleScanCallback);
+					} catch (Throwable error) {
+						LOG.error("Stop ble scan error. " + error);
+					}
+				}
 				bluetoothAdapter.cancelDiscovery();
 				bluetoothAdapter = null;
 			}
-			if (bleScanner != null) {
-				bleScanner.stopScan(bleScanCallback);
-				bleScanner = null;
-			}
+			bleScanner = null;
 		} catch (SecurityException error) {
 			LOG.debug("No permission on disable BLE");
 		}
@@ -192,12 +185,19 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 	}
 
 	private final ScanCallback bleScanCallback = new ScanCallback() {
+		@SuppressLint("MissingPermission")
 		@Override
 		public void onScanResult(int callbackType, ScanResult result) {
 			super.onScanResult(callbackType, result);
 			BluetoothDevice device = result.getDevice();
-			if (device.getName() != null) {
-				addScanResult(result);
+			ScanRecord record = result.getScanRecord();
+			if (AndroidUtils.hasBLEPermission(activity)) {
+				LOG.debug("BLE scan result " + device.getAddress() + "; name " + device.getName() + "; " + record.getServiceUuids());
+				if (device.getName() != null) {
+					addScanResult(result);
+				}
+			} else {
+				LOG.error("Try to add ble device while no permission");
 			}
 		}
 
@@ -209,7 +209,12 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 			}
 		}
 
+		@SuppressLint("MissingPermission")
 		private void addScanResult(ScanResult result) {
+			if (!AndroidUtils.hasBLEPermission(activity)) {
+				LOG.error("Try to addScanResult while no permission");
+				return;
+			}
 			ScanRecord scanRecord = result.getScanRecord();
 			if (isSupportedBleDevice(scanRecord)) {
 				String deviceName = result.getDevice().getName();
@@ -231,6 +236,7 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 		@Override
 		public void onScanFailed(int errorCode) {
 			super.onScanFailed(errorCode);
+			LOG.error("BLE scan failed. Error " + errorCode);
 		}
 	};
 
@@ -323,6 +329,16 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 			}
 		}
 		return res;
+	}
+
+	@Nullable
+	AbstractDevice<?> getPairedDeviceById(@NonNull String deviceId) {
+		for (AbstractDevice<?> device : getDevices()) {
+			if (isDevicePaired(device) && deviceId.equals(device.getDeviceId())) {
+				return device;
+			}
+		}
+		return null;
 	}
 
 	@NonNull
@@ -436,7 +452,7 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 		} else {
 			if (settings == null) {
 				if (!Algorithms.isEmpty(deviceId)) {
-					settings = new DeviceSettings(deviceId, device.getDeviceType(), device.getName(), true, false);
+					settings = new DeviceSettings(deviceId, device.getDeviceType(), device.getName(), true);
 					devicesSettings.setDeviceSettings(deviceId, settings);
 				}
 			}
@@ -460,7 +476,7 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 		DeviceSettings settings = devicesSettings.getDeviceSettings(deviceId);
 		if (settings == null) {
 			if (!Algorithms.isEmpty(deviceId)) {
-				settings = new DeviceSettings(deviceId, device.getDeviceType(), device.getName(), enabled, false);
+				settings = new DeviceSettings(deviceId, device.getDeviceType(), device.getName(), enabled);
 				devicesSettings.setDeviceSettings(deviceId, settings);
 			}
 		} else {
@@ -481,30 +497,11 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 		DeviceSettings settings = devicesSettings.getDeviceSettings(deviceId);
 		if (settings == null) {
 			if (!Algorithms.isEmpty(deviceId)) {
-				settings = new DeviceSettings(deviceId, device.getDeviceType(), name, false, false);
+				settings = new DeviceSettings(deviceId, device.getDeviceType(), name, false);
 				devicesSettings.setDeviceSettings(deviceId, settings);
 			}
 		} else {
 			settings.deviceName = name;
-			devicesSettings.setDeviceSettings(deviceId, settings);
-		}
-	}
-
-	public boolean shouldDeviceWriteGpx(@NonNull AbstractDevice<?> device) {
-		DeviceSettings settings = devicesSettings.getDeviceSettings(device.getDeviceId());
-		return settings != null && settings.deviceWriteGpx;
-	}
-
-	public void setDeviceWriteGpx(@NonNull AbstractDevice<?> device, boolean writeGpx) {
-		String deviceId = device.getDeviceId();
-		DeviceSettings settings = devicesSettings.getDeviceSettings(deviceId);
-		if (settings == null) {
-			if (!Algorithms.isEmpty(deviceId)) {
-				settings = new DeviceSettings(deviceId, device.getDeviceType(), device.getName(), false, writeGpx);
-				devicesSettings.setDeviceSettings(deviceId, settings);
-			}
-		} else {
-			settings.deviceWriteGpx = writeGpx;
 			devicesSettings.setDeviceSettings(deviceId, settings);
 		}
 	}
@@ -544,11 +541,13 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 	public void scanBLEDevices(boolean enable) {
 		if (!enable) {
 			if (bleScanner != null) {
-				bleScanner.stopScan(bleScanCallback);
+				if (AndroidUtils.hasBLEPermission(activity)) {
+					bleScanner.stopScan(bleScanCallback);
+				}
 				bleScanning = false;
 			}
 		} else {
-			if (!requestBLEPermissions()) {
+			if (!AndroidUtils.requestBLEPermissions(activity)) {
 				app.showShortToastMessage("Permissions not granted");
 				return;
 			}
@@ -557,65 +556,33 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 				return;
 			}
 
-			List<ScanFilter> filters = null;
-			/*
-			ArrayList<UUID> serviceUUIDs = new ArrayList<>();
-			// TODO: filterList always empty?
-			for (DeviceType type : filterList) {
-				serviceUUIDs.add(UUID.fromString(type.getUUIDService()));
+			if (bleScanner == null) {
+				initBLE();
 			}
-			if (!serviceUUIDs.isEmpty()) {
-				filters = new ArrayList<>();
-				for (UUID serviceUUID : serviceUUIDs) {
-					ScanFilter filter = new ScanFilter.Builder()
-							.setServiceUuid(new ParcelUuid(serviceUUID))
-							.build();
-					filters.add(filter);
-				}
-			}
-			 */
 
-			SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
-			// TODO: Are preferences needed? Will constants be enough?
+			if (bleScanner == null) {
+				app.showShortToastMessage("Can't initialize ble");
+				return;
+			}
+
+			ArrayList<ScanFilter> filters = new ArrayList<>();
+			for (UUID serviceUUID : SUPPORTED_BLE_SERVICE_UUIDS) {
+				ScanFilter filter = new ScanFilter.Builder()
+						.setServiceUuid(new ParcelUuid(serviceUUID))
+						.build();
+				filters.add(filter);
+			}
 			ScanSettings scanSettings = new ScanSettings.Builder()
-					.setScanMode(Integer.parseInt(preferences.getString(SCAN_MODE_PREFERENCE, "1")))
-					.setCallbackType(Integer.parseInt(preferences.getString(CALLBACK_TYPE_PREFERENCE, "1")))
-					.setMatchMode(Integer.parseInt(preferences.getString(MATCH_MODE_PREFERENCE, "2")))
-					.setNumOfMatches(Integer.parseInt(preferences.getString(MATCH_NUM_PREFERENCE, "1")))
+					.setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+					.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+					.setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+					.setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
 					.setReportDelay(0L)
 					.build();
 
 			bleScanner.startScan(filters, scanSettings, bleScanCallback);
 			bleScanning = true;
 		}
-	}
-
-	private boolean requestBLEPermissions() {
-		boolean hasNeededPermissions = true;
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-			if (!AndroidUtils.hasPermission(activity, Manifest.permission.BLUETOOTH_SCAN)) {
-				hasNeededPermissions = false;
-				ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.BLUETOOTH_SCAN}, 4);
-			}
-			if (!AndroidUtils.hasPermission(activity, Manifest.permission.BLUETOOTH_CONNECT)) {
-				hasNeededPermissions = false;
-				ActivityCompat.requestPermissions(
-						activity,
-						new String[]{Manifest.permission.BLUETOOTH_CONNECT},
-						5
-				);
-			}
-		} else {
-			if (!AndroidUtils.hasPermission(activity, Manifest.permission.BLUETOOTH)) {
-				hasNeededPermissions = false;
-				ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.BLUETOOTH}, 2);
-			}
-			if (!AndroidUtils.hasPermission(activity, Manifest.permission.BLUETOOTH_ADMIN)) {
-				hasNeededPermissions = false;
-				ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.BLUETOOTH_ADMIN}, 3);
-			}
-		}
-		return hasNeededPermissions;
 	}
 
 	public boolean isBLEEnabled() {
@@ -658,8 +625,9 @@ public class DevicesHelper implements DeviceListener, DevicePreferencesListener 
 		}
 	}
 
+	@SuppressLint("MissingPermission")
 	public boolean isBLEDeviceConnected(@NonNull String address) {
-		if (isBLEEnabled()) {
+		if (isBLEEnabled() && AndroidUtils.hasBLEPermission(activity)) {
 			BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
 			BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
 			return bluetoothManager.getConnectionState(device, BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED;

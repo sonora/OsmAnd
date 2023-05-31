@@ -81,7 +81,7 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 
 		enable3DMapsListener = change -> {
 			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
-			if (mapContext != null && mapContext.isVectorLayerEnabled()) {
+			if (mapContext != null) {
 				mapContext.recreateHeightmapProvider();
 			}
 		};
@@ -197,7 +197,7 @@ public class OsmandDevelopmentPlugin extends OsmandPlugin {
 	}
 
 	@Override
-	protected MapWidget createMapWidgetForParams(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType) {
+	protected MapWidget createMapWidgetForParams(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType, @Nullable String customId) {
 		switch (widgetType) {
 			case DEV_FPS:
 				return new FPSTextInfoWidget(mapActivity);

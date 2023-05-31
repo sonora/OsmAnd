@@ -127,6 +127,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -482,10 +483,15 @@ public class OsmandApplication extends MultiDexApplication {
 
 	@Override
 	public void onConfigurationChanged(@NonNull Configuration newConfig) {
+		Resources resources = getResources();
+		resources.updateConfiguration(newConfig, resources.getDisplayMetrics());
+
+		resources = getBaseContext().getResources();
+		resources.updateConfiguration(newConfig, resources.getDisplayMetrics());
+
 		Locale preferredLocale = localeHelper.getPreferredLocale();
-		if (preferredLocale != null && !newConfig.locale.getLanguage().equals(preferredLocale.getLanguage())) {
+		if (preferredLocale != null && !Objects.equals(newConfig.locale.getLanguage(), preferredLocale.getLanguage())) {
 			super.onConfigurationChanged(newConfig);
-			getBaseContext().getResources().updateConfiguration(newConfig, getBaseContext().getResources().getDisplayMetrics());
 			Locale.setDefault(preferredLocale);
 		} else {
 			super.onConfigurationChanged(newConfig);
@@ -681,8 +687,9 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public void stopNavigation() {
-		if (locationProvider.getLocationSimulation().isRouteAnimating()) {
-			locationProvider.getLocationSimulation().stop();
+		OsmAndLocationSimulation locationSimulation = locationProvider.getLocationSimulation();
+		if (locationSimulation.isRouteAnimating() || locationSimulation.isLoadingRouteLocations()) {
+			locationSimulation.stop();
 		}
 		routingHelper.getVoiceRouter().interruptRouteCommands();
 		routingHelper.clearCurrentRoute(null, new ArrayList<LatLon>());
@@ -795,23 +802,15 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public void applyTheme(@NonNull Context context) {
-		int themeResId;
-		boolean doNotUseAnimations = settings.DO_NOT_USE_ANIMATIONS.get();
+		int themeId;
+		boolean noAnimation = settings.DO_NOT_USE_ANIMATIONS.get();
 		if (!settings.isLightContent()) {
-			if (doNotUseAnimations) {
-				themeResId = R.style.OsmandDarkTheme_NoAnimation;
-			} else {
-				themeResId = R.style.OsmandDarkTheme;
-			}
+			themeId = noAnimation ? R.style.OsmandDarkTheme_NoAnimation : R.style.OsmandDarkTheme;
 		} else {
-			if (doNotUseAnimations) {
-				themeResId = R.style.OsmandLightTheme_NoAnimation;
-			} else {
-				themeResId = R.style.OsmandLightTheme;
-			}
+			themeId = noAnimation ? R.style.OsmandLightTheme_NoAnimation : R.style.OsmandLightTheme;
 		}
 		localeHelper.setLanguage(context);
-		context.setTheme(themeResId);
+		context.setTheme(themeId);
 	}
 
 	IBRouterService reconnectToBRouter() {
@@ -838,7 +837,12 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public String getLanguage() {
-		return localeHelper.getLanguage();
+		String appLang = localeHelper.getLanguage();
+		// assume english is default though it's not correct
+		if (Algorithms.isEmpty(appLang)) {
+			appLang = "en";
+		}
+		return appLang;
 	}
 
 	@Override
