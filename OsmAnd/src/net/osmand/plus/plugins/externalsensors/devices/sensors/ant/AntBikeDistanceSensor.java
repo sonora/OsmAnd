@@ -1,6 +1,7 @@
 package net.osmand.plus.plugins.externalsensors.devices.sensors.ant;
 
 import static net.osmand.gpx.GPXUtilities.DECIMAL_FORMAT;
+import static net.osmand.plus.plugins.externalsensors.SensorAttributesUtils.SENSOR_TAG_DISTANCE;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -9,7 +10,6 @@ import com.dsi.ant.plugins.antplus.pcc.AntPlusBikeSpeedDistancePcc;
 import com.dsi.ant.plugins.antplus.pcc.AntPlusBikeSpeedDistancePcc.CalculatedAccumulatedDistanceReceiver;
 import com.dsi.ant.plugins.antplus.pcc.defines.EventFlag;
 
-import net.osmand.gpx.GPXUtilities;
 import net.osmand.plus.R;
 import net.osmand.plus.plugins.externalsensors.devices.ant.AntBikeSpeedDistanceDevice;
 import net.osmand.plus.plugins.externalsensors.devices.sensors.SensorData;
@@ -58,7 +58,7 @@ public class AntBikeDistanceSensor extends AntAbstractSensor<AntPlusBikeSpeedDis
 		@Override
 		public List<SensorDataField> getDataFields() {
 			return Collections.singletonList(
-					new SensorDataField(R.string.map_widget_ant_bicycle_dist, -1, accumulatedDistance));
+					new SensorDistanceWidgetDataField(R.string.map_widget_ant_bicycle_dist, -1, accumulatedDistance));
 		}
 
 		@NonNull
@@ -123,18 +123,11 @@ public class AntBikeDistanceSensor extends AntAbstractSensor<AntPlusBikeSpeedDis
 	}
 
 	@Override
-	public void writeSensorDataToJson(@NonNull JSONObject json) throws JSONException {
+	public void writeSensorDataToJson(@NonNull JSONObject json, @NonNull SensorWidgetDataFieldType widgetDataFieldType) throws JSONException {
 		BikeDistanceData data = lastBikeDistanceData;
 		double accumulatedDistance = data != null ? data.getAccumulatedDistance() : 0;
 		if (accumulatedDistance > 0) {
-			json.put(getGpxTagName(), DECIMAL_FORMAT.format(accumulatedDistance));
+			json.put(SENSOR_TAG_DISTANCE, DECIMAL_FORMAT.format(accumulatedDistance));
 		}
 	}
-
-	@NonNull
-	@Override
-	protected String getGpxTagName() {
-		return GPXUtilities.SENSOR_TAG_DISTANCE;
-	}
-
 }
