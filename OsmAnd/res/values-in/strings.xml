@@ -1878,7 +1878,7 @@
     <string name="osmand_cloud_help_descr">Butuh bantuan\? Silakan hubungi kami di %1$s</string>
     <string name="osmand_cloud_create_account_descr">Mohon masukkan alamat surel Anda, sebuah kode verifikasi akan dikirim,
 \ndan semua data akan ditautkan ke alamat surel.</string>
-    <string name="osmand_cloud_login_descr">Mohon masukkan alamat surel yang Anda daftarkan. Sebuah kata sandi sekali pakai untuk langkah berikutnya akan dikirim.</string>
+    <string name="osmand_cloud_login_descr">Mohon masukkan alamat surel yang Anda daftarkan. Sebuah kata sandi sekali pakai akan dikirim.</string>
     <string name="verify_email_address">Verifikasi alamat surel</string>
     <string name="verify_email_address_descr">Kode verifikasi terkirim ke %1$s, mohon masukkan di bidang di bawah ini.</string>
     <string name="cloud_email_not_registered">Alamat surel ini belum terdaftar di OsmAnd Cloud</string>
@@ -4148,7 +4148,7 @@
     <string name="widget_with_dot">Widget.</string>
     <string name="compass_always_hidden">Selalu tersembunyi</string>
     <string name="compass_always_visible">Selalu terlihat</string>
-    <string name="compass_click_desc">Kiat: Ketuk pada widget kompas untuk mengubah mode orientasi peta.</string>
+    <string name="compass_click_desc">Kiat: Ketuk tombol kompas untuk mengubah mode orientasi peta.</string>
     <string name="compass_desc">Menampilkan arah ke utara.</string>
     <string name="rendering_attr_depthContourColorScheme_description">Skema warna garis kontur</string>
     <string name="add_points_to_map_markers_q">Tambahkan semua titik sebagai penanda peta\?</string>
@@ -5217,8 +5217,32 @@
     <string name="map_2d_mode_action">Mode 2D</string>
     <string name="visible_in_3d_mode">Terlihat dalam mode 3D</string>
     <string name="map_3d_mode_action">Mode 3D</string>
-    <string name="map_3d_mode_hint">Ketuk lama pada tombol memungkinkan mengubah posisi tombol.</string>
+    <string name="map_3d_mode_hint">Ketuk tombol dengan lama memungkinkan mengubah posisi tombol.</string>
     <string name="map_3d_mode_description">Sentuh peta dengan dua jari dan gerakkan ke atas dan bawah untuk mengatur kemiringan peta.</string>
     <string name="rendering_value_sacScale_name">Skala SAC</string>
     <string name="rendering_value_caiScale_name">Skala CAI</string>
+    <string name="external_sensors_source_of_data">Sumber data</string>
+    <string name="save_track_external_sensors_data">Data</string>
+    <string name="write_data_from_sensor_to_track">Tulis data dari sensor eksternal ke GPX saat perekaman perjalanan.</string>
+    <string name="there_are_no_connected_sensors_of_this_type">Tidak ada sensor dengan jenis ini yang terhubung</string>
+    <string name="external_sensors_not_found">Sensor tidak ditemukan</string>
+    <string name="delete_track_folder_dialog_message">Ini akan menghapus folder</string>
+    <string name="tracks_empty_folder_description">Folder ini belum memiliki trek apa pun.</string>
+    <string name="delete_folder">Hapus folder</string>
+    <string name="rssi_widget_desc">Menampilkan tingkat RSSI dari perangkat eksternal Anda.</string>
+    <string name="shared_string_new_track">Trek baru</string>
+    <string name="delete_folder_question">Hapus folder\?</string>
+    <string name="map_widget_rssi">RSSI</string>
+    <string name="show_all_tracks_on_the_map">Tampilkan semua trek di peta</string>
+    <string name="shared_string_visible_on_map">Terlihat pada peta</string>
+    <string name="track_not_recorded">Tidak direkam</string>
+    <string name="tracks_empty_folder">Folder kosong</string>
+    <string name="error_calculate">Hasil kalkulasi kosong</string>
+    <string name="calculate_offline">Kalkulasi secara luring</string>
+    <string name="calculate_offline_altitude_descr">Kalkulasi ketinggian secara luring, berdasarkan data peta ketinggian. Perbedaan antara ketinggian yang direkam oleh perangkat mungkin digunakan sebagai koreksi ketinggian.</string>
+    <string name="routing_attr_allow_via_ferrata_description">Izinkan melalui jalur ferrata.</string>
+    <string name="power_watts_unit">Watt</string>
+    <string name="revolutions_per_minute_unit">RPM</string>
+    <string name="routing_attr_allow_via_ferrata_name">Izinkan melalui ferrata</string>
+    <string name="shared_string_close_the_dialog">Tutup dialog</string>
 </resources>

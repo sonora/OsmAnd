@@ -2,7 +2,6 @@ package net.osmand.plus.mapsource;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -31,6 +30,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.textfield.TextInputEditText;
@@ -43,17 +43,18 @@ import net.osmand.map.TileSourceManager.TileSourceTemplate;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
-import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.plus.helpers.FontCache;
 import net.osmand.plus.mapsource.ExpireTimeBottomSheet.OnExpireValueSetListener;
 import net.osmand.plus.mapsource.InputZoomLevelsBottomSheet.OnZoomSetListener;
 import net.osmand.plus.mapsource.MercatorProjectionBottomSheet.OnMercatorSelectedListener;
 import net.osmand.plus.mapsource.TileStorageFormatBottomSheet.OnTileStorageFormatSelectedListener;
 import net.osmand.plus.resources.SQLiteTileSource;
+import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FileUtils;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.util.Algorithms;
 
 import org.apache.commons.logging.Log;
@@ -66,8 +67,8 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 		OnTileStorageFormatSelectedListener {
 
 	public static final String TAG = EditMapSourceDialogFragment.class.getName();
-	static final int EXPIRE_TIME_NEVER = -1;
 	private static final Log LOG = PlatformUtil.getLog(EditMapSourceDialogFragment.class);
+	static final int EXPIRE_TIME_NEVER = -1;
 	private static final String PNG_EXT = "png";
 	private static final int MAX_ZOOM = 17;
 	private static final int MIN_ZOOM = 5;
@@ -100,13 +101,14 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 	private boolean fromTemplate;
 	private boolean wasChanged;
 
-	public static void showInstance(@NonNull FragmentManager fragmentManager,
+	public static void showInstance(@NonNull FragmentActivity activity,
 	                                @Nullable Fragment targetFragment,
-	                                @Nullable String editedLayerName) {
+	                                @Nullable String editedFileName) {
+		FragmentManager fragmentManager = activity.getSupportFragmentManager();
 		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
 			EditMapSourceDialogFragment fragment = new EditMapSourceDialogFragment();
 			fragment.setTargetFragment(targetFragment, 0);
-			fragment.setEditedLayerName(editedLayerName);
+			fragment.setEditedLayerName(editedFileName);
 			fragment.show(fragmentManager, TAG);
 		}
 	}
@@ -259,21 +261,18 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 		super.onResume();
 		Dialog dialog = getDialog();
 		if (dialog != null) {
-			dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
-				@Override
-				public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-					if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
-						if (event.getAction() == KeyEvent.ACTION_DOWN) {
-							return true;
-						} else if (wasChanged || fromTemplate) {
-							showExitDialog();
-						} else {
-							dismiss();
-						}
+			dialog.setOnKeyListener((_dialog, keyCode, event) -> {
+				if (keyCode == KeyEvent.KEYCODE_BACK) {
+					if (event.getAction() == KeyEvent.ACTION_DOWN) {
 						return true;
+					} else if (wasChanged || fromTemplate) {
+						showExitDialog();
+					} else {
+						dismiss();
 					}
-					return false;
+					return true;
 				}
+				return false;
 			});
 		}
 	}
@@ -362,12 +361,20 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 					sqLiteTileSource.couldBeDownloadedFromInternet();
 					sqLiteTileSource.updateFromTileSourceTemplate(template);
 				} else {
-					SQLiteTileSource sqLiteTileSource =
-							new SQLiteTileSource(app, newName, minZoom,
-									maxZoom, urlToLoad, "",
-									elliptic, false, "", "", expireTimeMinutes > 0,
-									expireTimeMinutes * 60 * 1000L, false, ""
-							);
+					String rule = "";
+					String refer = "";
+					String randoms = "";
+					String userAgent = "";
+					boolean invertedY = false;
+					boolean inversiveZoom = false;
+					boolean timeSupported = expireTimeMinutes > 0;
+					long expirationTimeMillis = expireTimeMinutes * 60 * 1000L;
+
+					SQLiteTileSource sqLiteTileSource = new SQLiteTileSource(
+							app, newName, minZoom, maxZoom, urlToLoad, randoms,
+							elliptic, invertedY, refer, userAgent, timeSupported,
+							expirationTimeMillis, inversiveZoom, rule
+					);
 					sqLiteTileSource.createDataBase();
 					storageChanged = f.exists();
 				}
@@ -388,7 +395,7 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 	}
 
 	private void updateUi() {
-		nameEditText.setText(editedLayerName != null ? editedLayerName.replace(IndexConstants.SQLITE_EXT, "") : "");
+		nameEditText.setText(getTitle());
 		urlEditText.setText(urlToLoad);
 		nameEditText.addTextChangedListener(new MapSourceTextWatcher(nameInputLayout));
 		urlEditText.addTextChangedListener(new MapSourceTextWatcher(urlInputLayout));
@@ -407,13 +414,13 @@ public class EditMapSourceDialogFragment extends BaseOsmAndDialogFragment
 		dismissDialog.setTitle(getString(R.string.shared_string_dismiss));
 		dismissDialog.setMessage(getString(R.string.exit_without_saving));
 		dismissDialog.setNegativeButton(R.string.shared_string_cancel, null);
-		dismissDialog.setPositiveButton(R.string.shared_string_exit, new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dismiss();
-			}
-		});
+		dismissDialog.setPositiveButton(R.string.shared_string_exit, (dialog, which) -> dismiss());
 		dismissDialog.show();
+	}
+
+	@NonNull
+	private String getTitle() {
+		return editedLayerName != null ? settings.getTileSourceTitle(editedLayerName) : "";
 	}
 
 	private String getDescription(ConfigurationItem item) {
