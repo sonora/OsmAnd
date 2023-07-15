@@ -5242,7 +5242,6 @@
     <string name="revolutions_per_minute_unit">U/min</string>
     <string name="shared_string_close_the_dialog">Dialogfeld schließen</string>
     <string name="rendering_attr_lightDetail_description">Standard: Seezeichenname (Leuchtfeuer.Gruppe.Periode), Auswahl zusätzlicher Informationen zu den Sektoren 1 bis 3 oder Sektor 1,2,3,4,5 Leuchtfeuer</string>
-    <string name="free_mode">Freier Modus</string>
     <string name="terrain_map">Geländekarte</string>
     <string name="relief_3d">3D-Relief</string>
     <string name="relief_3d_description">Besitzen und beobachten Sie das maßstabsgetreue Modell Ihrer Nachbarschaft oder des ganzen Kontinents.</string>
@@ -5271,4 +5270,14 @@
     <string name="verify_account">Konto bestätigen</string>
     <string name="slope_legend_description">Hangneigung verwendet Farben, um den Neigungsgrad des Geländes zu visualisieren. Weitere Informationen über Hangneigung finden Sie unter %1$s.</string>
     <string name="terrain_category_description">Höhenlinien, Reliefkarte mit Schattierungen und Hangneigungskarten mit Farben zur Darstellung von Erhebungen und Niederungen.</string>
+    <string name="free_favorites_backup_description">Registrieren Sie sich in OsmAnd Cloud, um ein kostenloses Backup Ihrer Favoriten und Einstellungen zu erhalten.</string>
+    <string name="free_favorites_backup">Kostenloses Favoriten-Backup</string>
+    <string name="shared_string_avoid">Meiden</string>
+    <string name="may_be_used_if_there_is_shortcut">Kann verwendet werden, wenn es eine Abkürzung gibt</string>
+    <string name="routing_attr_allow_via_ferrata_description">Eine Bergroute, die mit Fixseilen, Stemmeisen, Leitern und Brücken ausgestattet ist.</string>
+    <string name="get_osmand_cloud">Holen Sie sich OsmAnd Cloud</string>
+    <string name="free_account">Kostenloses Konto</string>
+    <string name="folder_export_empty_error">Nichts zu exportieren, Ordner ist leer</string>
+    <string name="free_settings_backup">Kostenlose Sicherung der Einstellungen</string>
+    <string name="cache_size">Cachegröße</string>
 </resources>

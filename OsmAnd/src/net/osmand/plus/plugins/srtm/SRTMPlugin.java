@@ -6,6 +6,7 @@ import static net.osmand.aidlapi.OsmAndCustomizationConstants.PLUGIN_SRTM;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_CATEGORY_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_DESCRIPTION_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_ID;
+import static net.osmand.plus.download.DownloadActivityType.GEOTIFF_FILE;
 import static net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem.INVALID_ID;
 
 import android.app.Activity;
@@ -90,6 +91,8 @@ public class SRTMPlugin extends OsmandPlugin {
 	public final CommonPreference<String> CONTOUR_LINES_ZOOM;
 
 	private final StateChangedListener<Boolean> enable3DMapsListener;
+	private final StateChangedListener<Boolean> terrainListener;
+	private final StateChangedListener<TerrainMode> terrainModeListener;
 
 	private TerrainLayer terrainLayer;
 
@@ -121,6 +124,22 @@ public class SRTMPlugin extends OsmandPlugin {
 			}
 		});
 		settings.ENABLE_3D_MAPS.addListener(enable3DMapsListener);
+
+		terrainListener = change -> app.runInUIThread(() -> {
+			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
+			if (mapContext != null) {
+				mapContext.updateElevationConfiguration();
+			}
+		});
+		TERRAIN.addListener(terrainListener);
+
+		terrainModeListener = change -> app.runInUIThread(() -> {
+			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
+			if (mapContext != null) {
+				mapContext.updateElevationConfiguration();
+			}
+		});
+		TERRAIN_MODE.addListener(terrainModeListener);
 	}
 
 	@Override
@@ -449,7 +468,7 @@ public class SRTMPlugin extends OsmandPlugin {
 						}
 					});
 				} else if (itemId == R.string.shared_string_terrain) {
-					toggleTerrain(mapActivity, isChecked, () -> {
+					toggleTerrain(isChecked, () -> {
 						boolean selected = TERRAIN.get();
 						SRTMPlugin plugin = PluginsHelper.getPlugin(SRTMPlugin.class);
 						if (selected) {
@@ -555,9 +574,7 @@ public class SRTMPlugin extends OsmandPlugin {
 		return suggestedMaps;
 	}
 
-	public void toggleContourLines(MapActivity activity,
-	                               boolean isChecked,
-	                               Runnable callback) {
+	public void toggleContourLines(MapActivity activity, boolean isChecked, Runnable callback) {
 		RenderingRuleProperty contourLinesProp = app.getRendererRegistry().getCustomRenderingRuleProperty(CONTOUR_LINES_ATTR);
 		if (contourLinesProp != null) {
 			CommonPreference<String> pref = settings.getCustomRenderProperty(contourLinesProp.getAttrName());
@@ -579,9 +596,7 @@ public class SRTMPlugin extends OsmandPlugin {
 		}
 	}
 
-	public void toggleTerrain(MapActivity activity,
-	                          boolean isChecked,
-	                          Runnable callback) {
+	public void toggleTerrain(boolean isChecked, Runnable callback) {
 		TERRAIN.set(isChecked);
 		if (callback != null) {
 			callback.run();
@@ -596,10 +611,8 @@ public class SRTMPlugin extends OsmandPlugin {
 		}
 	}
 
-	public void selectPropertyValue(
-			MapActivity activity, RenderingRuleProperty p,
-			CommonPreference<String> pref, Runnable callback
-	) {
+	public void selectPropertyValue(MapActivity activity, RenderingRuleProperty p,
+	                                CommonPreference<String> pref, Runnable callback) {
 		boolean nightMode = isNightMode(activity, app);
 		String title = AndroidUtils.getRenderingStringPropertyDescription(activity, p.getAttrName(), p.getName());
 		List<String> possibleValuesList = new ArrayList<>(Arrays.asList(p.getPossibleValues()));
@@ -663,5 +676,22 @@ public class SRTMPlugin extends OsmandPlugin {
 		String attrName = property.getAttrName();
 		String defValue = CONTOUR_LINES_ATTR.equals(attrName) ? CONTOUR_LINES_DISABLED_VALUE : "";
 		return registerRenderingPreference(attrName, defValue);
+	}
+
+	public void onIndexItemDownloaded(@NonNull IndexItem item, boolean updatingFile) {
+		if (item.getType() == GEOTIFF_FILE) {
+			updateHeightmap(updatingFile, item.getTargetFile(app).getAbsolutePath());
+		}
+	}
+
+	private void updateHeightmap(boolean overwriteExistingFile, @NonNull String filePath) {
+		MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+		if (mapRendererContext != null) {
+			if (overwriteExistingFile) {
+				mapRendererContext.removeCachedHeightmapTiles(filePath);
+			} else {
+				mapRendererContext.updateCachedHeightmapTiles();
+			}
+		}
 	}
 }
