@@ -706,6 +706,10 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 		return currentViewport.getZoom();
 	}
 
+	public boolean isPinchZoomingOrRotating() {
+		return multiTouchSupport != null && multiTouchSupport.isInZoomAndRotationMode();
+	}
+
 	public float getElevationAngle() {
 		return elevationAngle;
 	}
@@ -1097,7 +1101,7 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 		WeatherPlugin plugin = PluginsHelper.getActivePlugin(WeatherPlugin.class);
 		if (showMapPosition || animatedDraggingThread.isAnimatingMapZoom() || (plugin != null && plugin.hasCustomForecast())) {
 			drawMapPosition(canvas, c.x, c.y);
-		} else if (multiTouchSupport != null && multiTouchSupport.isInZoomMode()) {
+		} else if (multiTouchSupport != null && multiTouchSupport.isInZoomAndRotationMode()) {
 			drawMapPosition(canvas, multiTouchSupport.getCenterPoint().x, multiTouchSupport.getCenterPoint().y);
 		} else if (doubleTapScaleDetector != null && doubleTapScaleDetector.isInZoomMode()) {
 			drawMapPosition(canvas, doubleTapScaleDetector.getCenterX(), doubleTapScaleDetector.getCenterY());
@@ -2032,7 +2036,7 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 			QuadPoint cp = initialViewport.getCenterPixelPoint();
 			int multiTouchCenterX;
 			int multiTouchCenterY;
-			if (multiTouchSupport != null && multiTouchSupport.isInZoomMode()) {
+			if (multiTouchSupport != null && multiTouchSupport.isInZoomAndRotationMode()) {
 				multiTouchCenterX = (int) multiTouchSupport.getCenterPoint().x;
 				multiTouchCenterY = (int) multiTouchSupport.getCenterPoint().y;
 			} else {
@@ -2122,7 +2126,7 @@ public class OsmandMapTileView implements IMapDownloaderCallback {
 
 		@Override
 		public void onLongPress(MotionEvent e) {
-			if (multiTouchSupport != null && multiTouchSupport.isInZoomMode()
+			if (multiTouchSupport != null && multiTouchSupport.isInZoomAndRotationMode()
 					|| doubleTapScaleDetector != null && doubleTapScaleDetector.isInZoomMode()
 					|| doubleTapScaleDetector != null && doubleTapScaleDetector.isDoubleTapping()) {
 				//	|| afterTwoFingersTap) {
