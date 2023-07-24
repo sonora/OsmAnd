@@ -514,7 +514,7 @@
     <string name="gpx_option_from_start_point">Пройти весь путь</string>
     <string name="switch_to_vector_map_to_see">Для этого региона есть локальные векторные карты.
 \n\t
-\n\tДля использования выберите их в качестве источника (Меню → Настройка карты → Источник карты → Локальные векторные карты).</string>
+\n\tДля использования выберите их в качестве источника (Меню → Настройки карты → Источник карты → Локальные векторные карты).</string>
     <string name="choose_audio_stream">Аудиоканал голосовой навигации</string>
     <string name="choose_audio_stream_descr">Выберите канал вывода голосовых инструкций.</string>
     <string name="voice_stream_voice_call">Голосовые звонки (для прерывания автомобильной стереосистемы Bluetooth)</string>
@@ -607,11 +607,11 @@
     <string name="osmand_net_previously_installed">Локальные данные вашей версии приложения поддерживаются в новой, но перед обновлением вам нужно экспортировать избранные точки и после импортировать их.</string>
     <string name="build_installed">Сборка {0} установлена ({1}).</string>
     <string name="downloading_build">Загрузка сборки…</string>
-    <string name="install_selected_build">Установить сборку\? 
-\n
-\n{0}
+    <string name="install_selected_build">[{0}]
 \nот {1}
-\n{2} МБ</string>
+\n{2} МБ
+\n
+\nУстановить сборку\?</string>
     <string name="loading_builds_failed">Не удалось получить список сборок OsmAnd</string>
     <string name="loading_builds">Загрузка сборок OsmAnd…</string>
     <string name="select_build_to_install">Выберите версию для установки</string>
@@ -990,7 +990,7 @@
     <string name="city_type_hamlet">Деревня</string>
     <string name="city_type_village">Село</string>
     <string name="city_type_town">Город</string>
-    <string name="city_type_city">Крупный город</string>
+    <string name="city_type_city">Город</string>
     <string name="animate_route_off">Закончить моделирование</string>
     <string name="animate_route">Начать моделирование</string>
     <string name="file_can_not_be_renamed">Не удалось переименовать файл.</string>
@@ -1090,7 +1090,7 @@
     <string name="avoid_unpaved">Без грунтовых дорог</string>
     <string name="avoid_ferries">Без паромов</string>
     <string name="avoid_in_routing_title">Избегать…</string>
-    <string name="show_warnings_descr">Установка оповещений дорожного движения (ограничения скорости, вынужденные остановки, искусственные неровности, туннели), камер скорости, информации о полосах.</string>
+    <string name="show_warnings_descr">Настройка предупреждений о дорожной обстановке (ограничения скорости, вынужденные остановки, искусственные неровности, туннели), камерах скорости и полосах движения.</string>
     <string name="map_widget_fluorescent">Флуоресцентные маршруты</string>
     <string name="show_warnings_title">Показывать сигналы…</string>
     <string name="map_widget_show_ruler">Линейка</string>
@@ -2599,7 +2599,7 @@
     <string name="shared_string_edited">Отредактировано</string>
     <string name="shared_string_added">Добавлено</string>
     <string name="marker_activated">Маркер %s активирован.</string>
-    <string name="one_tap_active_descr">Нажатие на маркер на карте переместит его в начало списка активных маркеров, не используя контекстное меню.</string>
+    <string name="one_tap_active_descr">Нажатие на маркер на карте переместит его в начало списка активных маркеров, минуя контекстное меню.</string>
     <string name="one_tap_active">Активация одним нажатием</string>
     <string name="empty_state_av_notes">Делайте заметки!</string>
     <string name="empty_state_av_notes_desc">Добавьте аудио-, видео- или фотозаметки в любую точку на карте, используя виджет или контекстное меню.</string>
@@ -2792,7 +2792,7 @@
     <string name="rendering_value_black_name">Чёрный</string>
     <string name="search_street">Поиск улицы</string>
     <string name="start_search_from_city">Сначала укажите населённый пункт</string>
-    <string name="shared_string_restore">Восстановление</string>
+    <string name="shared_string_restore">Восстановить</string>
     <string name="keep_passed_markers_descr">Маркеры, добавленные как группа избранных или путевых точек GPX и отмеченные как пройденные, останутся на карте. Если группа не активна, маркеры исчезнут с карты.</string>
     <string name="keep_passed_markers">Оставить пройденные маркеры на карте</string>
     <string name="more_transport_on_stop_hint">Больше транспорта доступно от этой остановки.</string>
@@ -3009,7 +3009,7 @@
     <string name="shared_string_icon">Значок</string>
     <string name="collected_data">Собранные данные</string>
     <string name="press_again_to_change_the_map_orientation">Нажмите ещё раз для смены ориентации карты</string>
-    <string name="last_launch_crashed">Последний запуск OsmAnd завершился ошибкой. Помогите сделать OsmAnd лучше, отправив нам отчёт об ошибке.</string>
+    <string name="last_launch_crashed">Прошлый запуск OsmAnd завершился сбоем. Помогите нам, отправив отчёт об ошибке на электронную почту.</string>
     <string name="settings_routing_mode_string">Режим: %s</string>
     <string name="settings_derived_routing_mode_string">Режим пользователя, полученный из: %s</string>
     <string name="profile_alert_duplicate_name_title">Повторяющееся имя</string>
@@ -3139,8 +3139,8 @@
     <string name="map_during_navigation_info">Карта во время навигации</string>
     <string name="map_during_navigation">Карта во время навигации</string>
     <string name="vehicle_parameters_descr">Скорость движения, размеры, масса транспортного средства</string>
-    <string name="vehicle_parameters">Параметры транспортного средства</string>
-    <string name="voice_announces_info">Голосовые оповещения работают только при навигации.</string>
+    <string name="vehicle_parameters">Физические параметры</string>
+    <string name="voice_announces_info">Настройка голосовых оповещений (работают только при навигации).</string>
     <string name="voice_announces_descr">Навигационные инструкции и оповещения</string>
     <string name="voice_announces">Голосовая навигация</string>
     <string name="screen_alerts">Экранные оповещения</string>
@@ -3494,11 +3494,11 @@
     <string name="shared_string_language">Язык</string>
     <string name="shared_string_all_languages">Все языки</string>
     <string name="wiki_menu_download_descr">Для POI Википедии требуются дополнительные карты.</string>
-    <string name="ui_customization_description">Настройка элементов в разделах «Боковая панель», «Настройки карты» и «Действия контекстного меню».
+    <string name="ui_customization_description">Настройка главного, контекстного меню и раздела «Настройки карты».
 \n
-\nОтключите неиспользуемые плагины, чтобы скрыть их элементы управления. %1$s.</string>
-    <string name="ui_customization_short_descr">Элементы панели, контекстное меню</string>
-    <string name="shared_string_drawer">Боковое меню</string>
+\nОтключите ненужные плагины, чтобы скрыть их элементы управления. %1$s.</string>
+    <string name="ui_customization_short_descr">Элементы главного и контекстного меню</string>
+    <string name="shared_string_drawer">Главное меню</string>
     <string name="divider_descr">Элементы ниже разделённые делителем.</string>
     <string name="shared_string_items">Элементы</string>
     <string name="ui_customization">Настройки интерфейса</string>
@@ -4778,7 +4778,7 @@
     <string name="favorite_delete_group">Удалить группу</string>
     <string name="download_heightmap_maps">Карта высот</string>
     <string name="display_position">Позиция на экране</string>
-    <string name="current_location_widget">Координаты: текущее местоположение</string>
+    <string name="current_location_widget">Координаты: текущая позиция</string>
     <string name="external_sensors_plugin_name">Внешние датчики</string>
     <string name="map_center_widget">Координаты: центр карты</string>
     <string name="map_widget_altitude_map_center">Высота: центр карты</string>
@@ -4805,8 +4805,8 @@
     <string name="map_widget_target_distance">Расстояние от камеры до цели</string>
     <string name="map_widget_zoom_level">Уровень масштабирования</string>
     <string name="ant_missing_dependency">Отсутствует зависимость</string>
-    <string name="speak_gps_signal_status">Оповещать о потере и восстановлении GPS-сигнала</string>
-    <string name="speak_route_recalculation">Оповещать о пересчёте маршрута</string>
+    <string name="speak_gps_signal_status">Потеря связи с GPS</string>
+    <string name="speak_route_recalculation">Пересчёт маршрута</string>
     <string name="map_widget_altitude_current_location_desc">Виджет показывает высоту над уровнем моря для текущего местоположения.</string>
     <string name="simulate_location_by_gpx">Моделирование местоположения по GPX</string>
     <string name="location_simulation_speedup">Ускорение моделирования</string>
@@ -4851,7 +4851,7 @@
     <string name="shared_string_shows">Показывать</string>
     <string name="coordinates_widget_current_location_desc">Виджет показывает географические координаты текущего местоположения</string>
     <string name="coordinates_widget_map_center">Координаты: центр карты</string>
-    <string name="coordinates_widget_current_location">Координаты: текущее местоположение</string>
+    <string name="coordinates_widget_current_location">Координаты: текущая позиция</string>
     <string name="distance_by_tap_use_description">Нажмите на карту, чтобы увидеть расстояние между точкой и текущим местоположением.
 \nНажмите двумя пальцами, чтобы увидеть расстояние между двумя точками.</string>
     <string name="quick_action_map_center_widget_descr">Переключатель для отображения или скрытия виджета координат центра карты.</string>
@@ -5050,7 +5050,7 @@
     <string name="switch_folder">Переключить папку</string>
     <string name="show_all_tracks">Показать все треки</string>
     <string name="shared_string_on_map">На карте</string>
-    <string name="display_position_automatic_descr">Зависит от ориентации карты: для «по направлению движения» — внизу, для всех остальных — по центру.</string>
+    <string name="display_position_automatic_descr">Зависит от ориентации карты: в режиме «по направлению движения» внизу, в остальных — по центру.</string>
     <string name="weight_limit_error">Минимальное значение - %1$s тонн. Используйте профиль «%2$s», если масса автомобиля меньше минимального значения.</string>
     <string name="sound_beep_complex_loud">Beep: complex loud</string>
     <string name="sound_beep_minimal">Beep: minimal</string>
@@ -5116,7 +5116,7 @@
     <string name="offline_weather_forecast_desc">Вы можете скачать прогноз погоды на 7 дней.</string>
     <string name="clear_online_cache_description">Это очистит весь кеш онлайн-тайлов погоды.</string>
     <string name="free_maps_updates">Бесплатные обновления (экстренные)</string>
-    <string name="speak_route_deviation">Оповещать об отклонении от маршрута</string>
+    <string name="speak_route_deviation">Отклонение от маршрута</string>
     <string name="select_layer">Выбрать слой</string>
     <string name="rendering_value_defaultMedium_name">По умолчанию (средний)</string>
     <string name="shutter_sound">Звук затвора</string>
