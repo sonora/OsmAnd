@@ -426,7 +426,7 @@ public class SRTMPlugin extends OsmandPlugin {
 				PurchasingUtils.createPromoItem(adapter, mapActivity, OsmAndFeature.TERRAIN,
 						TERRAIN_ID,
 						R.string.shared_string_terrain,
-						R.string.contour_lines_hillshades_slope);
+						R.string.contour_lines_hillshade_slope);
 			} else {
 				createContextMenuItems(adapter, mapActivity);
 			}
@@ -443,7 +443,7 @@ public class SRTMPlugin extends OsmandPlugin {
 				if (itemId == R.string.srtm_plugin_name) {
 					mapActivity.getDashboard().setDashboardVisibility(true, DashboardOnMap.DashboardType.CONTOUR_LINES, viewCoordinates);
 					return false;
-				} else if (itemId == R.string.shared_string_terrain) {
+				} else if (itemId == R.string.shared_string_hillshade_slope) {
 					mapActivity.getDashboard().setDashboardVisibility(true, DashboardOnMap.DashboardType.TERRAIN, viewCoordinates);
 					return false;
 				}
@@ -471,7 +471,7 @@ public class SRTMPlugin extends OsmandPlugin {
 							mapActivity.refreshMapComplete();
 						}
 					});
-				} else if (itemId == R.string.shared_string_terrain) {
+				} else if (itemId == R.string.shared_string_hillshade_slope) {
 					toggleTerrain(isChecked, () -> {
 						boolean selected = TERRAIN.get();
 						SRTMPlugin plugin = PluginsHelper.getPlugin(SRTMPlugin.class);
@@ -507,7 +507,7 @@ public class SRTMPlugin extends OsmandPlugin {
 		boolean terrainEnabled = TERRAIN.get();
 		TerrainMode terrainMode = TERRAIN_MODE.get();
 		adapter.addItem(new ContextMenuItem(TERRAIN_ID)
-				.setTitleId(R.string.shared_string_terrain, mapActivity)
+				.setTitleId(R.string.shared_string_hillshade_slope, mapActivity)
 				.setDescription(app.getString(terrainMode == TerrainMode.HILLSHADE
 						? R.string.shared_string_hillshade
 						: R.string.download_slope_maps))
