@@ -56,7 +56,9 @@ import net.osmand.plus.R;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.widgets.TextViewEx;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
+import net.osmand.plus.widgets.style.CustomURLSpan;
 
 import org.apache.commons.logging.Log;
 
@@ -73,16 +75,6 @@ public class UiUtilities {
 	private final TLongObjectHashMap<Drawable> drawableCache = new TLongObjectHashMap<>();
 	private final OsmandApplication app;
 	private static final int INVALID_ID = -1;
-
-	public enum DialogButtonType {
-		PRIMARY,
-		PRIMARY_HARMFUL,
-		SECONDARY,
-		SECONDARY_HARMFUL,
-		SECONDARY_ACTIVE,
-		STROKED,
-		TERTIARY
-	}
 
 	public enum CompoundButtonType {
 		GLOBAL,
@@ -221,7 +213,11 @@ public class UiUtilities {
 	}
 
 	public int getScreenOrientation() {
-		int screenOrientation = ((WindowManager) app.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+		return getScreenOrientation(app);
+	}
+
+	public int getScreenOrientation(@NonNull Context context) {
+		int screenOrientation = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
 		switch (screenOrientation) {
 			case ORIENTATION_0:   // Device default (normally portrait)
 				screenOrientation = 0;
@@ -585,61 +581,42 @@ public class UiUtilities {
 	}
 
 	public static void setupDialogButton(boolean nightMode, View buttonView, DialogButtonType buttonType, CharSequence buttonText, int iconResId) {
+		// Base background
 		Context ctx = buttonView.getContext();
-		TextViewEx buttonTextView = buttonView.findViewById(R.id.button_text);
-		View buttonContainer = buttonView.findViewById(R.id.button_container);
-		ColorStateList colorStateList = null;
-		int textAndIconColorResId = INVALID_ID;
-		switch (buttonType) {
-			case PRIMARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_primary_light, R.drawable.dlg_btn_primary_dark);
-				textAndIconColorResId = nightMode ? R.color.dlg_btn_primary_text_dark : R.color.dlg_btn_primary_text_light;
-				break;
-			case PRIMARY_HARMFUL:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(buttonView, AppCompatResources.getDrawable(ctx, R.drawable.dlg_btn_primary_harmfull));
-				textAndIconColorResId = nightMode ? R.color.dlg_btn_primary_text_dark : R.color.dlg_btn_primary_text_light;
-				break;
-			case SECONDARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_secondary_light, R.drawable.dlg_btn_secondary_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case SECONDARY_HARMFUL:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_secondary_light, R.drawable.dlg_btn_secondary_dark);
-				textAndIconColorResId = R.color.color_osm_edit_delete;
-				break;
-			case SECONDARY_ACTIVE:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_transparent_light, R.drawable.dlg_btn_transparent_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case STROKED:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_light, R.drawable.ripple_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_stroked_light, R.drawable.dlg_btn_stroked_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case TERTIARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_tetriary_light, R.drawable.ripple_dark);
-				textAndIconColorResId = nightMode ? R.color.active_color_primary_dark : R.color.button_color_active_light;
-				int disabledColor = ColorUtilities.getSecondaryTextColorId(nightMode);
-				colorStateList = AndroidUtils.createEnabledColorStateList(ctx, disabledColor, textAndIconColorResId);
-				break;
+		int backgroundAttr = buttonType.getBackgroundAttr();
+		if (backgroundAttr != INVALID_ID) {
+			int backgroundResId = AndroidUtils.resolveAttribute(ctx, buttonType.getBackgroundAttr());
+			AndroidUtils.setBackground(ctx, buttonView, backgroundResId);
 		}
-		if (textAndIconColorResId != INVALID_ID) {
-			if (colorStateList == null) {
-				colorStateList = ContextCompat.getColorStateList(ctx, textAndIconColorResId);
-			}
-			buttonTextView.setText(buttonText);
-			buttonTextView.setTextColor(colorStateList);
-			buttonTextView.setEnabled(buttonView.isEnabled());
-			if (iconResId != INVALID_ID) {
-				Drawable icon = tintDrawable(AppCompatResources.getDrawable(ctx, iconResId), ContextCompat.getColor(ctx, textAndIconColorResId));
-				buttonTextView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
-				buttonTextView.setCompoundDrawablePadding(AndroidUtils.dpToPx(ctx, ctx.getResources().getDimension(R.dimen.content_padding_half)));
-			}
+
+		// Ripple background
+		View buttonContainer = buttonView.findViewById(R.id.button_container);
+		int rippleResId = AndroidUtils.resolveAttribute(ctx, buttonType.getRippleAttr());
+		AndroidUtils.setBackground(ctx, buttonContainer, rippleResId);
+
+		// Content colors
+		ColorStateList colorStateList;
+		int contentColorId = AndroidUtils.resolveAttribute(ctx, buttonType.getContentColorAttr());
+		if (buttonType == DialogButtonType.TERTIARY) {
+			int disabledColor = ColorUtilities.getSecondaryTextColorId(nightMode);
+			colorStateList = AndroidUtils.createEnabledColorStateList(ctx, disabledColor, contentColorId);
+		} else {
+			colorStateList = ContextCompat.getColorStateList(ctx, contentColorId);
+		}
+
+		// Button title
+		TextViewEx tvTitle = buttonView.findViewById(R.id.button_text);
+		tvTitle.setText(buttonText);
+		tvTitle.setTextColor(colorStateList);
+		tvTitle.setEnabled(buttonView.isEnabled());
+
+		// Button icon
+		if (iconResId != INVALID_ID) {
+			int contentColor = ColorUtilities.getColor(ctx, contentColorId);
+			Drawable icon = AppCompatResources.getDrawable(ctx, iconResId);
+			icon = tintDrawable(icon, contentColor);
+			tvTitle.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+			tvTitle.setCompoundDrawablePadding(AndroidUtils.dpToPx(ctx, ctx.getResources().getDimension(R.dimen.content_padding_half)));
 		}
 	}
 
@@ -671,27 +648,30 @@ public class UiUtilities {
 		return spannable;
 	}
 
-	private static void setSpan(@NonNull SpannableString spannable,
-	                            @NonNull Object styleSpan,
-	                            @NonNull String text, @NonNull String t) {
-		try {
-			int startIndex = text.indexOf(t);
-			spannable.setSpan(
-					styleSpan,
-					startIndex,
-					startIndex + t.length(),
-					Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-		} catch (RuntimeException e) {
-			LOG.error("Error trying to find index of " + t + " " + e);
-		}
-	}
-
 	public static SpannableString createCustomFontSpannable(@NonNull Typeface typeface, @NonNull String text, @NonNull String... textToStyle) {
 		SpannableString spannable = new SpannableString(text);
 		for (String s : textToStyle) {
 			setSpan(spannable, new CustomTypefaceSpan(typeface), text, s);
 		}
 		return spannable;
+	}
+
+	public static SpannableString createUrlSpannable(@NonNull String text, @NonNull String url) {
+		SpannableString spannable = new SpannableString(text);
+		setSpan(spannable, new CustomURLSpan(url), text, url);
+		return spannable;
+	}
+
+	private static void setSpan(@NonNull SpannableString spannable,
+	                            @NonNull Object styleSpan,
+	                            @NonNull String text, @NonNull String textToSpan) {
+		try {
+			int start = text.indexOf(textToSpan);
+			int end = start + textToSpan.length();
+			spannable.setSpan(styleSpan, start, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+		} catch (RuntimeException e) {
+			LOG.error("Error trying to find index of " + textToSpan + " " + e);
+		}
 	}
 
 	public static void setupClickableText(OsmandApplication app,

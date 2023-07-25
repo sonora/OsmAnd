@@ -1,17 +1,29 @@
 package net.osmand.plus.plugins.srtm;
 
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTOUR_LINES;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.MAP_ENABLE_3D_MAPS_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.PLUGIN_SRTM;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_CATEGORY_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_DESCRIPTION_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_ID;
+import static net.osmand.plus.download.DownloadActivityType.GEOTIFF_FILE;
+import static net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem.INVALID_ID;
+
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnDismissListener;
 import android.graphics.drawable.Drawable;
-import android.view.ContextThemeWrapper;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import net.osmand.StateChangedListener;
+import net.osmand.core.android.MapRendererContext;
 import net.osmand.data.LatLon;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.chooseplan.ChoosePlanFragment;
 import net.osmand.plus.chooseplan.OsmAndFeature;
 import net.osmand.plus.chooseplan.button.PurchasingUtils;
 import net.osmand.plus.dashboard.DashboardOnMap;
@@ -21,13 +33,17 @@ import net.osmand.plus.download.IndexItem;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.plugins.OsmandPlugin;
 import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
+import net.osmand.plus.plugins.openseamaps.NauticalMapsPlugin;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
+import net.osmand.plus.views.corenative.NativeCoreContext;
 import net.osmand.plus.widgets.alert.AlertDialogData;
 import net.osmand.plus.widgets.alert.CustomAlert;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
@@ -43,14 +59,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTOUR_LINES;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.PLUGIN_SRTM;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.TERRAIN_ID;
 
 public class SRTMPlugin extends OsmandPlugin {
 
@@ -84,7 +92,9 @@ public class SRTMPlugin extends OsmandPlugin {
 
 	public final CommonPreference<String> CONTOUR_LINES_ZOOM;
 
-	private final OsmandSettings settings;
+	private final StateChangedListener<Boolean> enable3DMapsListener;
+	private final StateChangedListener<Boolean> terrainListener;
+	private final StateChangedListener<TerrainMode> terrainModeListener;
 
 	private TerrainLayer terrainLayer;
 
@@ -95,7 +105,6 @@ public class SRTMPlugin extends OsmandPlugin {
 
 	public SRTMPlugin(OsmandApplication app) {
 		super(app);
-		settings = app.getSettings();
 
 		HILLSHADE_MIN_ZOOM = registerIntPreference("hillshade_min_zoom", 3).makeProfile();
 		HILLSHADE_MAX_ZOOM = registerIntPreference("hillshade_max_zoom", 17).makeProfile();
@@ -109,6 +118,30 @@ public class SRTMPlugin extends OsmandPlugin {
 		TERRAIN_MODE = registerEnumStringPreference("terrain_mode", TerrainMode.HILLSHADE, TerrainMode.values(), TerrainMode.class).makeProfile();
 
 		CONTOUR_LINES_ZOOM = registerStringPreference("contour_lines_zoom", null).makeProfile().cache();
+
+		enable3DMapsListener = change -> app.runInUIThread(() -> {
+			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
+			if (mapContext != null) {
+				mapContext.recreateHeightmapProvider();
+			}
+		});
+		settings.ENABLE_3D_MAPS.addListener(enable3DMapsListener);
+
+		terrainListener = change -> app.runInUIThread(() -> {
+			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
+			if (mapContext != null) {
+				mapContext.updateElevationConfiguration();
+			}
+		});
+		TERRAIN.addListener(terrainListener);
+
+		terrainModeListener = change -> app.runInUIThread(() -> {
+			MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
+			if (mapContext != null) {
+				mapContext.updateElevationConfiguration();
+			}
+		});
+		TERRAIN_MODE.addListener(terrainModeListener);
 	}
 
 	@Override
@@ -159,8 +192,10 @@ public class SRTMPlugin extends OsmandPlugin {
 	}
 
 	@Override
-	public CharSequence getDescription() {
-		return app.getString(R.string.srtm_plugin_description);
+	public CharSequence getDescription(boolean linksEnabled) {
+		String docsUrl = app.getString(R.string.docs_plugin_srtm);
+		String description = app.getString(R.string.srtm_plugin_description, docsUrl);
+		return linksEnabled ? UiUtilities.createUrlSpannable(description, docsUrl) : description;
 	}
 
 	@Override
@@ -263,6 +298,30 @@ public class SRTMPlugin extends OsmandPlugin {
 		return 100;
 	}
 
+	public void resetZoomLevelsToDefault() {
+		switch (getTerrainMode()) {
+			case HILLSHADE:
+				HILLSHADE_MIN_ZOOM.resetToDefault();
+				HILLSHADE_MAX_ZOOM.resetToDefault();
+				break;
+			case SLOPE:
+				SLOPE_MIN_ZOOM.resetToDefault();
+				SLOPE_MAX_ZOOM.resetToDefault();
+				break;
+		}
+	}
+
+	public void resetTransparencyToDefault() {
+		switch (getTerrainMode()) {
+			case HILLSHADE:
+				HILLSHADE_TRANSPARENCY.resetToDefault();
+				break;
+			case SLOPE:
+				SLOPE_TRANSPARENCY.resetToDefault();
+				break;
+		}
+	}
+
 	public int getTerrainMinZoom() {
 		int minSupportedZoom = TERRAIN_MIN_SUPPORTED_ZOOM;
 		int minZoom = minSupportedZoom;
@@ -326,8 +385,43 @@ public class SRTMPlugin extends OsmandPlugin {
 	}
 
 	@Override
+	protected void registerConfigureMapCategoryActions(@NonNull ContextMenuAdapter adapter,
+	                                                   @NonNull MapActivity mapActivity,
+	                                                   @NonNull List<RenderingRuleProperty> customRules) {
+		if (isEnabled() && app.useOpenGlRenderer()) {
+			adapter.addItem(new ContextMenuItem(TERRAIN_CATEGORY_ID)
+					.setCategory(true)
+					.setTitle(app.getString(R.string.shared_string_terrain))
+					.setLayout(R.layout.list_group_title_with_switch));
+
+			if (isLocked()) {
+				addTerrainDescriptionItem(adapter, mapActivity);
+			} else {
+				createContextMenuItems(adapter, mapActivity);
+				add3DReliefItem(adapter, mapActivity);
+			}
+			NauticalMapsPlugin nauticalPlugin = PluginsHelper.getPlugin(NauticalMapsPlugin.class);
+			if (nauticalPlugin != null) {
+				nauticalPlugin.createAdapterItem(adapter, mapActivity, customRules);
+			}
+		}
+	}
+
+	private void addTerrainDescriptionItem(@NonNull ContextMenuAdapter adapter,
+	                                       @NonNull MapActivity activity) {
+		adapter.addItem(new ContextMenuItem(TERRAIN_DESCRIPTION_ID)
+				.setLayout(R.layout.list_item_terrain_description)
+				.setTitleId(TERRAIN_DESCRIPTION_ID.hashCode(), null)
+				.setClickable(false)
+				.setListener((uiAdapter, view, item, isChecked) -> {
+					ChoosePlanFragment.showInstance(activity, OsmAndFeature.TERRAIN);
+					return true;
+				}));
+	}
+
+	@Override
 	protected void registerLayerContextMenuActions(@NonNull ContextMenuAdapter adapter, @NonNull MapActivity mapActivity, @NonNull List<RenderingRuleProperty> customRules) {
-		if (isEnabled()) {
+		if (isEnabled() && !app.useOpenGlRenderer()) {
 			if (isLocked()) {
 				PurchasingUtils.createPromoItem(adapter, mapActivity, OsmAndFeature.TERRAIN,
 						TERRAIN_ID,
@@ -378,7 +472,7 @@ public class SRTMPlugin extends OsmandPlugin {
 						}
 					});
 				} else if (itemId == R.string.shared_string_terrain) {
-					toggleTerrain(mapActivity, isChecked, () -> {
+					toggleTerrain(isChecked, () -> {
 						boolean selected = TERRAIN.get();
 						SRTMPlugin plugin = PluginsHelper.getPlugin(SRTMPlugin.class);
 						if (selected) {
@@ -427,6 +521,38 @@ public class SRTMPlugin extends OsmandPlugin {
 		);
 	}
 
+	private void add3DReliefItem(@NonNull ContextMenuAdapter adapter, @NonNull MapActivity activity) {
+		ContextMenuItem item = new ContextMenuItem(MAP_ENABLE_3D_MAPS_ID)
+				.setTitleId(R.string.relief_3d, app)
+				.setIcon(R.drawable.ic_action_3d_relief)
+				.setListener((uiAdapter, view, contextItem, isChecked) -> {
+					if (InAppPurchaseHelper.isOsmAndProAvailable(app)) {
+						settings.ENABLE_3D_MAPS.set(isChecked);
+						contextItem.setColor(app, isChecked ? R.color.osmand_orange : ContextMenuItem.INVALID_ID);
+						contextItem.setSelected(isChecked);
+						contextItem.setDescription(app.getString(isChecked ? R.string.shared_string_on : R.string.shared_string_off));
+						uiAdapter.onDataSetChanged();
+
+						app.runInUIThread(() -> app.getOsmandMap().getMapLayers().getMapInfoLayer().recreateAllControls(activity));
+					} else {
+						ChoosePlanFragment.showInstance(activity, OsmAndFeature.RELIEF_3D);
+					}
+					return false;
+				});
+
+		boolean enabled3DMode = settings.ENABLE_3D_MAPS.get();
+		if (!InAppPurchaseHelper.isOsmAndProAvailable(app)) {
+			boolean nightMode = isNightMode(activity, app);
+			item.setUseNaturalSecondIconColor(true);
+			item.setSecondaryIcon(nightMode ? R.drawable.img_button_pro_night : R.drawable.img_button_pro_day);
+		} else {
+			item.setColor(app, enabled3DMode ? R.color.osmand_orange : INVALID_ID);
+			item.setSelected(enabled3DMode);
+			item.setDescription(app.getString(enabled3DMode ? R.string.shared_string_on : R.string.shared_string_off));
+		}
+		adapter.addItem(item);
+	}
+
 	@Nullable
 	@Override
 	protected String getRenderPropertyPrefix() {
@@ -445,16 +571,20 @@ public class SRTMPlugin extends OsmandPlugin {
 		if (!downloadThread.shouldDownloadIndexes()) {
 			LatLon latLon = app.getMapViewTrackingUtilities().getMapLocation();
 			suggestedMaps.addAll(getMapsForType(latLon, DownloadActivityType.SRTM_COUNTRY_FILE));
-			suggestedMaps.addAll(getMapsForType(latLon, DownloadActivityType.HILLSHADE_FILE));
-			suggestedMaps.addAll(getMapsForType(latLon, DownloadActivityType.SLOPE_FILE));
+
+			OsmandDevelopmentPlugin plugin = PluginsHelper.getPlugin(OsmandDevelopmentPlugin.class);
+			if (!app.useOpenGlRenderer() || plugin != null && plugin.USE_RASTER_SQLITEDB.get()) {
+				suggestedMaps.addAll(getMapsForType(latLon, DownloadActivityType.HILLSHADE_FILE));
+				suggestedMaps.addAll(getMapsForType(latLon, DownloadActivityType.SLOPE_FILE));
+			} else {
+				suggestedMaps.addAll(getMapsForType(latLon, GEOTIFF_FILE));
+			}
 		}
 
 		return suggestedMaps;
 	}
 
-	public void toggleContourLines(MapActivity activity,
-	                               boolean isChecked,
-	                               Runnable callback) {
+	public void toggleContourLines(MapActivity activity, boolean isChecked, Runnable callback) {
 		RenderingRuleProperty contourLinesProp = app.getRendererRegistry().getCustomRenderingRuleProperty(CONTOUR_LINES_ATTR);
 		if (contourLinesProp != null) {
 			CommonPreference<String> pref = settings.getCustomRenderProperty(contourLinesProp.getAttrName());
@@ -476,9 +606,7 @@ public class SRTMPlugin extends OsmandPlugin {
 		}
 	}
 
-	public void toggleTerrain(MapActivity activity,
-	                          boolean isChecked,
-	                          Runnable callback) {
+	public void toggleTerrain(boolean isChecked, Runnable callback) {
 		TERRAIN.set(isChecked);
 		if (callback != null) {
 			callback.run();
@@ -493,10 +621,8 @@ public class SRTMPlugin extends OsmandPlugin {
 		}
 	}
 
-	public void selectPropertyValue(
-			MapActivity activity, RenderingRuleProperty p,
-			CommonPreference<String> pref, Runnable callback
-	) {
+	public void selectPropertyValue(MapActivity activity, RenderingRuleProperty p,
+	                                CommonPreference<String> pref, Runnable callback) {
 		boolean nightMode = isNightMode(activity, app);
 		String title = AndroidUtils.getRenderingStringPropertyDescription(activity, p.getAttrName(), p.getName());
 		List<String> possibleValuesList = new ArrayList<>(Arrays.asList(p.getPossibleValues()));
@@ -560,5 +686,22 @@ public class SRTMPlugin extends OsmandPlugin {
 		String attrName = property.getAttrName();
 		String defValue = CONTOUR_LINES_ATTR.equals(attrName) ? CONTOUR_LINES_DISABLED_VALUE : "";
 		return registerRenderingPreference(attrName, defValue);
+	}
+
+	public void onIndexItemDownloaded(@NonNull IndexItem item, boolean updatingFile) {
+		if (item.getType() == GEOTIFF_FILE) {
+			updateHeightmap(updatingFile, item.getTargetFile(app).getAbsolutePath());
+		}
+	}
+
+	private void updateHeightmap(boolean overwriteExistingFile, @NonNull String filePath) {
+		MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+		if (mapRendererContext != null) {
+			if (overwriteExistingFile) {
+				mapRendererContext.removeCachedHeightmapTiles(filePath);
+			} else {
+				mapRendererContext.updateCachedHeightmapTiles();
+			}
+		}
 	}
 }

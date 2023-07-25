@@ -13,8 +13,7 @@ import net.osmand.plus.utils.AndroidUtils
 
 class POICategoriesScreen(
     carContext: CarContext,
-    private val settingsAction: Action,
-    private val surfaceRenderer: SurfaceRenderer) : BaseOsmAndAndroidAutoScreen(carContext) {
+    private val settingsAction: Action) : BaseOsmAndAndroidAutoScreen(carContext) {
 
     private var selectedPOIGroup: PoiUIFilter? = null
 
@@ -24,13 +23,17 @@ class POICategoriesScreen(
         return PlaceListNavigationTemplate.Builder()
             .setItemList(listBuilder.build())
             .setTitle(app.getString(R.string.poi_categories))
-            .setActionStrip(ActionStrip.Builder().addAction(settingsAction).build())
+            .setActionStrip(ActionStrip.Builder().addAction(createSearchAction()).build())
             .setHeaderAction(Action.BACK)
             .build()
     }
 
     private fun setupPOICategories(listBuilder: ItemList.Builder) {
-        for (poiFilter in app.poiFilters.getSortedPoiFilters(false)) {
+        val poiFilters = app.poiFilters.getSortedPoiFilters(false)
+        val poiFiltersSize = poiFilters.size
+        val limitedPOIFilters = app.poiFilters.getSortedPoiFilters(false)
+            .subList(0, poiFiltersSize.coerceAtMost(contentLimit - 1))
+        for (poiFilter in limitedPOIFilters) {
             val title = poiFilter.name
             var groupIcon = RenderingIcons.getBigIcon(app, poiFilter.iconId)
             if (groupIcon == null) {
@@ -55,7 +58,6 @@ class POICategoriesScreen(
                 POIScreen(
                     carContext,
                     settingsAction,
-                    surfaceRenderer,
                     group))
         }
     }

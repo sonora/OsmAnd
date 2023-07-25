@@ -19,8 +19,7 @@ import net.osmand.plus.utils.FileUtils
 
 class TracksFoldersScreen(
     carContext: CarContext,
-    private val settingsAction: Action,
-    private val surfaceRenderer: SurfaceRenderer) : BaseOsmAndAndroidAutoScreen(carContext),
+    private val settingsAction: Action) : BaseOsmAndAndroidAutoScreen(carContext),
     TrackFolderLoaderTask.LoadTracksListener {
     private var asyncLoader: TrackFolderLoaderTask? = null
     private val selectedTracksHelper: SelectedTracksHelper = SelectedTracksHelper(app)
@@ -111,9 +110,7 @@ class TracksFoldersScreen(
             TracksScreen(
                 carContext,
                 settingsAction,
-                surfaceRenderer,
                 trackTab)) { }
-        finish()
     }
 
     override fun loadTracksFinished(folder: TrackFolder) {
@@ -125,8 +122,7 @@ class TracksFoldersScreen(
         screenManager.pushForResult(
             SearchScreen(
                 carContext,
-                settingsAction,
-                surfaceRenderer)) { }
+                settingsAction)) { }
     }
 
 }

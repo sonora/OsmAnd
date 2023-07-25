@@ -11,8 +11,7 @@ import net.osmand.plus.utils.AndroidUtils
 
 class FavoriteGroupsScreen(
     carContext: CarContext,
-    private val settingsAction: Action,
-    private val surfaceRenderer: SurfaceRenderer) : BaseOsmAndAndroidAutoScreen(carContext) {
+    private val settingsAction: Action) : BaseOsmAndAndroidAutoScreen(carContext) {
 
     override fun onGetTemplate(): Template {
         val listBuilder = ItemList.Builder()
@@ -20,7 +19,7 @@ class FavoriteGroupsScreen(
         return PlaceListNavigationTemplate.Builder()
             .setItemList(listBuilder.build())
             .setTitle(app.getString(R.string.shared_string_favorites))
-            .setActionStrip(ActionStrip.Builder().addAction(settingsAction).build())
+            .setActionStrip(ActionStrip.Builder().addAction(createSearchAction()).build())
             .setHeaderAction(Action.BACK)
             .build()
     }
@@ -44,11 +43,13 @@ class FavoriteGroupsScreen(
                 .setBrowsable(true)
                 .setOnClickListener { onClickFavoriteGroup(null) }
                 .build())
-        var collectionSize = 1
-        for (group in favoriteGroups) {
-            if (collectionSize == contentLimit) {
-                break
-            }
+        if (contentLimit < 2) {
+            return
+        }
+        val favoriteGroupsSize = favoriteGroups.size
+        val limitedFavoriteGroups =
+            favoriteGroups.subList(0, favoriteGroupsSize.coerceAtMost(contentLimit - 2))
+        for (group in limitedFavoriteGroups) {
             val title = group.getDisplayName(app)
             val groupIcon = app.favoritesHelper.getColoredIconForGroup(group.name);
             val icon = CarIcon.Builder(
@@ -60,7 +61,6 @@ class FavoriteGroupsScreen(
                     .setBrowsable(true)
                     .setOnClickListener { onClickFavoriteGroup(group) }
                     .build())
-            collectionSize++
         }
     }
 
@@ -69,7 +69,6 @@ class FavoriteGroupsScreen(
             FavoritesScreen(
                 carContext,
                 settingsAction,
-                surfaceRenderer,
                 group))
     }
 

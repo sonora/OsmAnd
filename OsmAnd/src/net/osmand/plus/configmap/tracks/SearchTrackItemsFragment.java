@@ -1,6 +1,6 @@
 package net.osmand.plus.configmap.tracks;
 
-import static net.osmand.plus.utils.UiUtilities.DialogButtonType.TERTIARY;
+import static net.osmand.plus.track.fragments.TrackMenuFragment.TrackMenuTab.OVERVIEW;
 
 import android.os.Bundle;
 import android.text.Editable;
@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,23 +28,25 @@ import net.osmand.plus.OsmAndLocationProvider.OsmAndCompassListener;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndLocationListener;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
-import net.osmand.plus.myplaces.tracks.dialogs.BaseTrackFolderFragment;
-import net.osmand.plus.myplaces.tracks.dialogs.TracksSelectionFragment;
-import net.osmand.plus.track.data.TrackFolder;
-import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.plus.configmap.tracks.viewholders.EmptyTracksViewHolder.EmptyTracksListener;
 import net.osmand.plus.configmap.tracks.viewholders.SortTracksViewHolder.SortTracksListener;
 import net.osmand.plus.configmap.tracks.viewholders.TrackViewHolder.TrackSelectionListener;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.myplaces.tracks.ItemsSelectionHelper;
 import net.osmand.plus.myplaces.tracks.ItemsSelectionHelper.SelectionHelperProvider;
-import net.osmand.plus.myplaces.tracks.dialogs.AvailableTracksFragment;
+import net.osmand.plus.myplaces.tracks.TrackFoldersHelper;
+import net.osmand.plus.myplaces.tracks.dialogs.BaseTrackFolderFragment;
+import net.osmand.plus.myplaces.tracks.dialogs.TracksSelectionFragment;
 import net.osmand.plus.settings.enums.TracksSortMode;
+import net.osmand.plus.track.data.TrackFolder;
+import net.osmand.plus.track.fragments.TrackMenuFragment;
 import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.util.MapUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -56,9 +59,9 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 
 	private SearchTracksAdapter adapter;
 
-	private View applyButton;
+	private DialogButton applyButton;
 	private View buttonsContainer;
-	private View selectionButton;
+	private DialogButton selectionButton;
 	private View clearSearchQuery;
 	private EditText searchEditText;
 
@@ -67,9 +70,12 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 	private boolean locationUpdateStarted;
 	private boolean compassUpdateAllowed = true;
 
+	private boolean usedOnMap;
+	private boolean selectionMode;
+
 	@Override
 	protected boolean isUsedOnMap() {
-		return true;
+		return usedOnMap;
 	}
 
 	@Override
@@ -90,7 +96,7 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 
 		Fragment fragment = getTargetFragment();
 		List<TrackItem> trackItems = new ArrayList<>(selectionHelper.getAllItems());
-		adapter = new SearchTracksAdapter(app, trackItems, nightMode);
+		adapter = new SearchTracksAdapter(app, trackItems, nightMode, selectionMode);
 		adapter.setTracksSortMode(getTracksSortMode());
 		adapter.setSortTracksListener(this);
 		adapter.setSelectionListener(getTrackSelectionListener());
@@ -157,18 +163,10 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 
 	private void saveChanges() {
 		Fragment fragment = getTargetFragment();
-		if (fragment instanceof SelectionHelperProvider) {
-			SelectionHelperProvider<TrackItem> helperProvider = (SelectionHelperProvider<TrackItem>) fragment;
-			ItemsSelectionHelper<TrackItem> itemsSelectionHelper = helperProvider.getSelectionHelper();
-			itemsSelectionHelper.setSelectedItems(selectionHelper.getSelectedItems());
-		}
 		if (fragment instanceof TracksFragment) {
 			TracksFragment tracksFragment = (TracksFragment) fragment;
 			tracksFragment.saveChanges();
 			tracksFragment.updateTabsContent();
-		}
-		if (fragment instanceof AvailableTracksFragment) {
-			((AvailableTracksFragment) fragment).saveTracksVisibility();
 		}
 		dismiss();
 	}
@@ -178,15 +176,13 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 	}
 
 	private void updateButtonsState() {
-		String apply = getString(R.string.shared_string_apply).toUpperCase();
-		String select = getString(!areAllTracksSelected() ? R.string.shared_string_select_all : R.string.shared_string_deselect_all).toUpperCase();
+		String select = getString(!areAllTracksSelected() ? R.string.shared_string_select_all : R.string.shared_string_deselect_all);
 		String count = "(" + adapter.getFilteredItems().size() + ")";
 		select = getString(R.string.ltr_or_rtl_combine_via_space, select, count);
-		applyButton.setEnabled(selectionHelper.hasItemsToApply());
-		UiUtilities.setupDialogButton(nightMode, applyButton, TERTIARY, apply);
-		UiUtilities.setupDialogButton(nightMode, selectionButton, TERTIARY, select);
+		selectionButton.setTitle(select);
 
-		boolean visible = adapter.getFilteredItems().size() > 0;
+		applyButton.setEnabled(selectionHelper.hasItemsToApply());
+		boolean visible = selectionMode && adapter.getFilteredItems().size() > 0;
 		AndroidUiHelper.updateVisibility(buttonsContainer, visible);
 	}
 
@@ -311,7 +307,7 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 	public void showSortByDialog() {
 		FragmentManager manager = getFragmentManager();
 		if (manager != null) {
-			SortByBottomSheet.showInstance(manager, this);
+			SortByBottomSheet.showInstance(manager, getTracksSortMode(), this, isUsedOnMap());
 		}
 	}
 
@@ -337,29 +333,68 @@ public class SearchTrackItemsFragment extends BaseOsmAndDialogFragment implement
 
 			@Override
 			public void onTrackItemsSelected(@NonNull Set<TrackItem> trackItems, boolean selected) {
-				selectionHelper.onItemsSelected(trackItems, selected);
-				adapter.onItemsSelected(trackItems);
-				updateButtonsState();
+				if (selectionMode) {
+					selectionHelper.onItemsSelected(trackItems, selected);
+					adapter.onItemsSelected(trackItems);
+					updateButtonsState();
+				} else if (!trackItems.isEmpty()) {
+					showTrackOnMap(trackItems.iterator().next());
+				}
 			}
 
 			@Override
 			public void onTrackItemLongClick(@NonNull View view, @NonNull TrackItem trackItem) {
+				if (!selectionMode) {
+//					showTracksSelection(trackItem);
+				}
+			}
+
+			@Override
+			public void onTrackItemOptionsSelected(@NonNull View view, @NonNull TrackItem trackItem) {
+				showItemOptionsMenu(view, trackItem);
+			}
+
+			private void showItemOptionsMenu(@NonNull View view, @NonNull TrackItem trackItem) {
+				Fragment targetFragment = getTargetFragment();
+				if (targetFragment instanceof BaseTrackFolderFragment) {
+					BaseTrackFolderFragment fragment = (BaseTrackFolderFragment) targetFragment;
+
+					TrackFoldersHelper foldersHelper = fragment.getTrackFoldersHelper();
+					if (foldersHelper != null) {
+						foldersHelper.showItemOptionsMenu(trackItem, view, fragment);
+					}
+				}
+			}
+
+			private void showTracksSelection(@NonNull TrackItem trackItem) {
 				Fragment target = getTargetFragment();
 				FragmentManager manager = getFragmentManager();
 				if (target instanceof BaseTrackFolderFragment && manager != null) {
 					BaseTrackFolderFragment fragment = (BaseTrackFolderFragment) target;
 					TrackFolder trackFolder = fragment.getSelectedFolder();
-					TracksSelectionFragment.showInstance(manager, trackFolder, fragment);
+					TracksSelectionFragment.showInstance(manager, trackFolder, fragment, Collections.singleton(trackItem), null);
 
 					app.runInUIThread(() -> dismissAllowingStateLoss());
+				}
+			}
+
+			private void showTrackOnMap(@NonNull TrackItem trackItem) {
+				FragmentActivity activity = getActivity();
+				if (activity != null) {
+					String screenName = getString(R.string.shared_string_tracks);
+					boolean temporary = app.getSelectedGpxHelper().getSelectedFileByPath(trackItem.getPath()) == null;
+					TrackMenuFragment.openTrack(activity, trackItem.getFile(), null, screenName, OVERVIEW, temporary);
 				}
 			}
 		};
 	}
 
-	public static void showInstance(@NonNull FragmentManager manager, @Nullable Fragment target) {
+	public static void showInstance(@NonNull FragmentManager manager, @Nullable Fragment target,
+	                                boolean selectionMode, boolean usedOnMap) {
 		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
 			SearchTrackItemsFragment fragment = new SearchTrackItemsFragment();
+			fragment.usedOnMap = usedOnMap;
+			fragment.selectionMode = selectionMode;
 			fragment.setRetainInstance(true);
 			fragment.setTargetFragment(target, 0);
 			fragment.show(manager, TAG);

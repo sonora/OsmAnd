@@ -144,6 +144,11 @@ public class ColorUtilities {
 	}
 
 	@ColorRes
+	public static int getSecondaryTextColorId() {
+		return R.color.text_color_secondary_dark;
+	}
+
+	@ColorRes
 	public static int getSecondaryTextColorId(boolean nightMode) {
 		return nightMode ? R.color.text_color_secondary_dark : R.color.text_color_secondary_light;
 	}
@@ -186,6 +191,16 @@ public class ColorUtilities {
 	@ColorRes
 	public static int getSecondaryIconColorId(boolean nightMode) {
 		return nightMode ? R.color.icon_color_secondary_dark : R.color.icon_color_secondary_light;
+	}
+
+	@ColorInt
+	public static int getPrimaryIconColor(@NonNull Context ctx, boolean nightMode) {
+		return getColor(ctx, getPrimaryIconColorId(nightMode));
+	}
+
+	@ColorRes
+	public static int getPrimaryIconColorId(boolean nightMode) {
+		return nightMode ? R.color.icon_color_primary_dark : R.color.icon_color_primary_light;
 	}
 
 	@ColorInt
@@ -318,5 +333,15 @@ public class ColorUtilities {
 	@ColorRes
 	public static int getStatusBarActiveColorId(boolean nightMode) {
 		return nightMode ? R.color.status_bar_active_color_dark : R.color.status_bar_active_color_light;
+	}
+
+	@ColorInt
+	public static int getLinksColor(@NonNull Context ctx, boolean nightMode) {
+		return getColor(ctx, getLinksColorId(nightMode));
+	}
+
+	@ColorRes
+	public static int getLinksColorId(boolean nightMode) {
+		return nightMode ? R.color.ctx_menu_bottom_view_url_color_dark : R.color.ctx_menu_bottom_view_url_color_light;
 	}
 }

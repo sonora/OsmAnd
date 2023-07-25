@@ -104,7 +104,6 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		setupSaveTrackMinSpeedPref();
 		setupAutoSplitRecordingPref();
 		setupDisableRecordingOnceAppKilledPref();
-		setupSaveHeadingToGpxPref();
 
 		setupTrackStorageDirectoryPref();
 		setupExternalSensorsPref();
@@ -241,11 +240,6 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		disableRecordingOnceAppKilled.setDescription(getString(R.string.disable_recording_once_app_killed_descrp));
 	}
 
-	private void setupSaveHeadingToGpxPref() {
-		SwitchPreferenceEx saveHeadingToGpx = findPreference(settings.SAVE_HEADING_TO_GPX.getId());
-		saveHeadingToGpx.setDescription(getString(R.string.save_heading_descr));
-	}
-
 	private void setupShowTripRecNotificationPref() {
 		SwitchPreferenceEx showTripRecNotification = findPreference(settings.SHOW_TRIP_REC_NOTIFICATION.getId());
 		showTripRecNotification.setDescription(getString(R.string.trip_rec_notification_settings_desc));
@@ -307,7 +301,8 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		if (sensorsPlugin != null) {
 			for (WriteToGpxWidgetType widgetType : WriteToGpxWidgetType.values()) {
 				CommonPreference<String> preference = sensorsPlugin.getPrefSettingsForWidgetType(widgetType);
-				if (!Algorithms.isEmpty(preference.getModeValue(selectedAppMode))) {
+				String deviceId = preference.getModeValue(selectedAppMode);
+				if (!Algorithms.isEmpty(deviceId) && sensorsPlugin.getDevice(deviceId) != null) {
 					linkedSensors.add(app.getString(widgetType.getTitleId()));
 				}
 			}
@@ -384,12 +379,12 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		} else if (COPY_PLUGIN_SETTINGS.equals(prefId)) {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
-				SelectCopyAppModeBottomSheet.showInstance(fragmentManager, this, false, getSelectedAppMode());
+				SelectCopyAppModeBottomSheet.showInstance(fragmentManager, this, getSelectedAppMode());
 			}
 		} else if (RESET_TO_DEFAULT.equals(prefId)) {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
-				ResetProfilePrefsBottomSheet.showInstance(fragmentManager, getSelectedAppMode(), this, false);
+				ResetProfilePrefsBottomSheet.showInstance(fragmentManager, getSelectedAppMode(), this);
 			}
 		}
 		return super.onPreferenceClick(preference);

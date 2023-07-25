@@ -1,5 +1,7 @@
 package net.osmand.plus.widgets.ctxmenu;
 
+import static net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem.INVALID_ID;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
@@ -14,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,11 +30,14 @@ import net.osmand.plus.R;
 import net.osmand.plus.activities.actions.AppModeDialog;
 import net.osmand.plus.dialogs.HelpArticleDialogFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.openseamaps.NauticalMapsPlugin;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.plus.widgets.ctxmenu.callback.ItemClickListener;
 import net.osmand.plus.widgets.ctxmenu.callback.OnDataChangeUiAdapter;
 import net.osmand.plus.widgets.ctxmenu.callback.OnIntegerValueChangedListener;
@@ -42,8 +46,6 @@ import net.osmand.util.Algorithms;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem.INVALID_ID;
 
 public class ViewCreator {
 
@@ -120,7 +122,7 @@ public class ViewCreator {
 
 		ImageView secondaryIcon = convertView.findViewById(R.id.secondary_icon);
 		if (secondaryIcon != null) {
-			setupSecondaryIcon(secondaryIcon, item.getSecondaryIcon());
+			setupSecondaryIcon(secondaryIcon, item);
 		}
 
 		CompoundButton toggle = convertView.findViewById(R.id.toggle_item);
@@ -181,6 +183,8 @@ public class ViewCreator {
 			return getHelpToImproveItemView(convertView);
 		} else if (layoutId == R.layout.main_menu_drawer_osmand_version) {
 			return getOsmAndVersionView(convertView, item);
+		} else if (layoutId == R.layout.list_item_terrain_description) {
+			return getTerrainDescriptionView(convertView, item);
 		}
 		return null;
 	}
@@ -279,9 +283,23 @@ public class ViewCreator {
 		contactUsButton.setOnClickListener(v -> {
 			Intent intent = new Intent(Intent.ACTION_SENDTO);
 			intent.setData(Uri.parse("mailto:"));
-			intent.putExtra(Intent.EXTRA_EMAIL, new String[]{email});
+			intent.putExtra(Intent.EXTRA_EMAIL, new String[] {email});
 			AndroidUtils.startActivityIfSafe(ctx, intent);
 		});
+		return view;
+	}
+
+	@NonNull
+	private View getTerrainDescriptionView(@NonNull View view, @NonNull ContextMenuItem item) {
+		View button = view.findViewById(R.id.button_get);
+		button.setOnClickListener(v -> {
+			ItemClickListener listener = item.getItemClickListener();
+			if (listener != null) {
+				listener.onContextMenuClick(uiAdapter, view, item, false);
+			}
+		});
+		UiUtilities.setupDialogButton(nightMode, button, DialogButtonType.SECONDARY_ACTIVE, R.string.shared_string_get);
+		AndroidUiHelper.updateVisibility(view.findViewById(R.id.bottom_divider), PluginsHelper.isEnabled(NauticalMapsPlugin.class));
 		return view;
 	}
 
@@ -335,9 +353,11 @@ public class ViewCreator {
 		}
 	}
 
-	private void setupSecondaryIcon(@NonNull ImageView secondaryIcon, @DrawableRes int secondaryIconId) {
+	private void setupSecondaryIcon(@NonNull ImageView secondaryIcon, @NonNull ContextMenuItem item) {
+		int secondaryIconId = item.getSecondaryIcon();
 		if (secondaryIconId != INVALID_ID) {
 			int colorId = ColorUtilities.getDefaultIconColorId(nightMode);
+			colorId = item.useNaturalSecondIconColor() ? 0 : colorId;
 			Drawable drawable = iconsCache.getIcon(secondaryIconId, colorId);
 			secondaryIcon.setImageDrawable(drawable);
 			if (secondaryIconId == R.drawable.ic_action_additional_option) {
