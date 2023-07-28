@@ -43,6 +43,9 @@ class MapMarkersScreen(
                     app.mapViewTrackingUtilities.switchCompassModeTo(it)
                 }
             }
+            override fun onStart(owner: LifecycleOwner) {
+                recenterMap()
+            }
         })
     }
 
@@ -51,7 +54,7 @@ class MapMarkersScreen(
         val markersSize = app.mapMarkersHelper.mapMarkers.size
         val markers =
             app.mapMarkersHelper.mapMarkers.subList(0, markersSize.coerceAtMost(contentLimit - 1))
-        val location = app.settings.lastKnownMapLocation
+        val location = app.mapViewTrackingUtilities.defaultLocation
         app.osmandMap.mapLayers.mapMarkersLayer.setCustomMapObjects(markers)
         val mapRect = QuadRect()
         if (!Algorithms.isEmpty(markers)) {
