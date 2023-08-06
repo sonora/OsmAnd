@@ -5233,7 +5233,7 @@
     <string name="external_sensors_not_found">Sensoren nicht gefunden</string>
     <string name="calculate_offline">Offline berechnen</string>
     <string name="error_calculate">Berechnungsergebnis ist leer</string>
-    <string name="calculate_offline_altitude_descr">Höhe offline berechnen, basierend auf Daten der Höhenkarte. Unterschiede zur vom Gerät aufgezeichneten Höhe können als Höhenkorrektur verwendet werden.</string>
+    <string name="calculate_offline_altitude_descr">Höhe offline berechnen, basierend auf (3D) Daten der Höhenkarte. Unterschiede zur vom Gerät aufgezeichneten Höhe können als Höhenkorrektur verwendet werden.</string>
     <string name="power_watts_unit">Watt</string>
     <string name="revolutions_per_minute_unit">U/min</string>
     <string name="shared_string_close_the_dialog">Dialogfeld schließen</string>
@@ -5349,4 +5349,13 @@
     <string name="write_bearing_description">Peilung zu jedem Trackpunkt bei Aufnahme speichern</string>
     <string name="feature_available_as_part_of_plan">%1$s verfügbar als Teil des %2$s-Plans</string>
     <string name="shared_string_included">Inbegriffen</string>
+    <string name="local_indexes_category_terrain">Geländekarten (3D)</string>
+    <string name="ltr_or_rtl_combine_via_colon_with_space">%1$s : %2$s</string>
+    <string name="map_widget_group_glide_desc">Widgets zur Anzeige der Gleitzahl zum Ziel oder mittlere Gleitzahl der aktuellen Reise.</string>
+    <string name="map_widget_glide_average_desc">Zeigt die mittlere Gleitzahl für das eingestellte Interval.</string>
+    <string name="glide_ratio_to_target">Gleitzahl zum Zielpunkt</string>
+    <string name="map_widget_group_glide_ratio">Gleitzahl</string>
+    <string name="map_widget_glide_target_desc">Zeigt die erforderliche Gleitzahl zum Erreichen des Zielpunkts.</string>
+    <string name="average_glide_time_interval_desc">Zeitintervall eingeben um mittlere Gleitzahl zu ermitteln.</string>
+    <string name="average_glide_ratio">Mittlere Gleitzahl</string>
 </resources>

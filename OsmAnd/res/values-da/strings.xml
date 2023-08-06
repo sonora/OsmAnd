@@ -5218,7 +5218,7 @@
     <string name="map_2d_mode_action">2D-tilstand</string>
     <string name="visible_in_3d_mode">Synlig i 3D-tilstand</string>
     <string name="rssi_widget_desc">Viser RSSI-niveauet for din eksterne enhed.</string>
-    <string name="map_widget_rssi">Rssi</string>
+    <string name="map_widget_rssi">RSSI</string>
     <string name="tracks_empty_folder_description">Denne mappe indeholder endnu ingen spor.</string>
     <string name="delete_folder">Slet mappe</string>
     <string name="show_all_tracks_on_the_map">Vis alle spor på kortet</string>
@@ -5234,7 +5234,7 @@
     <string name="external_sensors_not_found">Sensorer ikke fundet</string>
     <string name="external_sensors_source_of_data">Datakilde</string>
     <string name="calculate_offline">Beregn offline</string>
-    <string name="calculate_offline_altitude_descr">Beregn højde offline, baseret på højdekortdata. Forskelle i forhold til enhedens registrerede højde kan bruges som højdekorrektion.</string>
+    <string name="calculate_offline_altitude_descr">Beregn højde offline, baseret på data fra terrænkort (3D). Forskelle i forhold til enhedens registrerede højde kan bruges som højdekorrektion.</string>
     <string name="error_calculate">Beregningsresultatet er tomt</string>
     <string name="power_watts_unit">Watt</string>
     <string name="revolutions_per_minute_unit">OPM</string>
@@ -5350,4 +5350,14 @@
     <string name="write_bearing_description">Gem pejling for hvert sporpunkt under optagelse</string>
     <string name="feature_available_as_part_of_plan">%1$s tilgængelig som en del af %2$s-abonnementet</string>
     <string name="shared_string_included">Inkluderet</string>
+    <string name="hillshade_slope">Terrænskygge, hældning</string>
+    <string name="local_indexes_category_terrain">Terrænkort (3D)</string>
+    <string name="map_widget_glide_average_desc">Viser det gennemsnitlige glidetal for det indstillede interval.</string>
+    <string name="average_glide_time_interval_desc">Angiv tidsintervallet for glide-gennemsnit.</string>
+    <string name="ltr_or_rtl_combine_via_colon_with_space">%1$s : %2$s</string>
+    <string name="average_glide_ratio">Gennemsnitligt glidetal</string>
+    <string name="glide_ratio_to_target">Glidetal til mål</string>
+    <string name="map_widget_group_glide_ratio">Glidetal</string>
+    <string name="map_widget_group_glide_desc">Moduler viser glidetal til målet eller gennemsnitlig glidetal for den aktuelle tur.</string>
+    <string name="map_widget_glide_target_desc">Viser det nødvendige glidetal for at nå målpunktet.</string>
 </resources>

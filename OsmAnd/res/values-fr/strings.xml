@@ -5220,7 +5220,7 @@
     <string name="external_sensors_not_found">Capteurs non trouvés</string>
     <string name="write_data_from_sensor_to_track">Ajouter les données des capteurs externes dans le fichier GPX lors de l\'enregistrement d\'un trajet.</string>
     <string name="error_calculate">Le résultat du calcul est vide</string>
-    <string name="calculate_offline_altitude_descr">Calculer l\'altitude hors ligne sur la base des données de la carte altimétrique. Les différences par rapport à l\'altitude fournie par l\'appareil peuvent être utilisées pour corriger l\'altitude.</string>
+    <string name="calculate_offline_altitude_descr">Calculer l\'altitude hors ligne sur la base des données de la carte de terrain 3D. Les différences par rapport à l\'altitude fournie par l\'appareil peuvent être utilisées pour corriger l\'altitude.</string>
     <string name="calculate_offline">Calculer hors ligne</string>
     <string name="power_watts_unit">Watts</string>
     <string name="revolutions_per_minute_unit">RPM</string>
@@ -5307,7 +5307,7 @@
     <string name="may_be_used_if_there_is_shortcut">Peut être utilisé si un raccourci existe</string>
     <string name="use_raster_sqlitedb_for_slope_hillshade">Utiliser raster sqltiedb pour l\'ombrage du relief et les pentes</string>
     <string name="routing_attr_allow_via_ferrata_name">Itinéraire à flanc de montagne (Via ferrata)</string>
-    <string name="free_settings_backup">Paramètres pour la sauvegarde gratuite</string>
+    <string name="free_settings_backup">Sauvegarde gratuite des paramètres</string>
     <string name="free_ride">Freeride</string>
     <string name="ltr_or_rtl_triple_combine_via_bold_point">%1$s • %2$s • %3$s</string>
     <string name="routing_attr_hazmat_category_usa_1_name">Explosifs</string>
@@ -5336,4 +5336,14 @@
     <string name="write_bearing_description">Sauvegarder le relèvement vers chaque point de passage lors de l\'enregistrement</string>
     <string name="shared_string_included">Inclus</string>
     <string name="feature_available_as_part_of_plan">%1$s disponible dans le cadre de l\'abonnement %2$s</string>
+    <string name="local_indexes_category_terrain">Cartes de terrain (3D)</string>
+    <string name="hillshade_slope">Ombrage du relief, pente</string>
+    <string name="ltr_or_rtl_combine_via_colon_with_space">%1$s : %2$s</string>
+    <string name="average_glide_ratio">Dérive moyenne</string>
+    <string name="map_widget_glide_average_desc">Affiche la dérive moyenne sur la durée définie.</string>
+    <string name="map_widget_group_glide_ratio">Dérive</string>
+    <string name="glide_ratio_to_target">Dérive par rapport à la destination</string>
+    <string name="average_glide_time_interval_desc">Définir la fréquence de calcul de la dérive moyenne.</string>
+    <string name="map_widget_group_glide_desc">Les Widgets affichent la dérive par rapport à la destination ou la dérive moyenne pour l\'itinéraire en cours.</string>
+    <string name="map_widget_glide_target_desc">Affiche la dérive à compenser pour atteindre la destination.</string>
 </resources>
