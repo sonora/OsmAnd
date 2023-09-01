@@ -45,10 +45,10 @@
     <string name="sorted_by_distance">Отсортировано по расстоянию</string>
     <string name="search_favorites">Поиск в избранных</string>
     <string name="hillshade_menu_download_descr">Загрузите карту «Наложение затенения рельефа» для отображения вертикального затенения (отмывки) рельефа.</string>
-    <string name="hillshade_purchase_header">Установите плагин «Контурные линии» для отображения градуированных вертикальных областей.</string>
+    <string name="hillshade_purchase_header">Установите плагин «Ландшафт» для отображения градуированных вертикальных областей.</string>
     <string name="srtm_menu_download_descr">Скачайте карту «Контурные линии» для использования в этом регионе.</string>
     <string name="shared_string_plugin">Плагин</string>
-    <string name="srtm_purchase_header">Приобретите и установите плагин «Контурные линии» для отображения градуированных вертикальных областей.</string>
+    <string name="srtm_purchase_header">Приобретите и установите плагин «Ландшафт» для отображения градуированных вертикальных областей.</string>
     <string name="srtm_color_scheme">Цветовая схема</string>
     <string name="show_from_zoom_level">Показывать начиная с масштаба</string>
     <string name="animate_my_location">Анимация моего положения</string>
@@ -291,8 +291,8 @@
     <string name="srtm_plugin_description">Наложение контурных линий и слоя затенения рельефа (отмывки) поверх стандартных карт OsmAnd. Эту функцию оценят спортсмены, туристы, путешественники и все, кому важна рельефная структура ландшафта.
 \n
 \nГлобальные данные (между 70° на севере и 70° на юге) основаны на измерениях SRTM (Shuttle Radar Topography Mission) и ASTER (Advanced Spaceborne Thermal Emission and Reflection Radiometer) — инструменте визуализации Terra, флагманского спутника Системы наблюдения Земли NASA. ASTER является результатом совместных усилий NASA, министерства экономики Японии, торговли и промышленности (METI), а также Космических систем Японии (J-spacesystems).</string>
-    <string name="srtm_paid_version_msg">Рассмотрите возможность покупки плагина «Линии высот» в Google Play, чтобы поддержать последующую разработку.</string>
-    <string name="srtm_paid_version_title">Линии высот</string>
+    <string name="srtm_paid_version_msg">Рассмотрите возможность покупки плагина «Ландшафт» в Google Play, чтобы поддержать последующую разработку.</string>
+    <string name="srtm_paid_version_title">Ландшафт</string>
     <string name="av_def_action_video">Записать видео</string>
     <string name="av_def_action_audio">Записать аудио</string>
     <string name="av_widget_action_descr">Действие по умолчанию для виджета:</string>
@@ -326,7 +326,7 @@
     <string name="audionotes_plugin_name">Аудио/видеозаметки</string>
     <string name="index_srtm_parts">частей</string>
     <string name="index_srtm_ele">Линии высот</string>
-    <string name="srtm_plugin_name">Контурные линии</string>
+    <string name="srtm_plugin_name">Ландшафт</string>
     <string name="rendering_attr_noAdminboundaries_name">Границы</string>
     <string name="rendering_attr_noAdminboundaries_description">Скрыть региональные границы (admin levels 5-9).</string>
     <string name="no_buildings_found">Здания не найдены.</string>
@@ -1187,7 +1187,7 @@
     <string name="incomplete_locale">неполный</string>
     <string name="map_widget_max_speed">Ограничение скорости</string>
     <string name="download_select_map_types">Прочие карты</string>
-    <string name="download_srtm_maps">Карты SRTM</string>
+    <string name="download_srtm_maps">Контурные линии</string>
     <string name="av_settings">Настройки аудио и видео </string>
     <string name="intermediate_points_change_order">Изменить порядок</string>
     <string name="recording_context_menu_show">Просмотр</string>
@@ -1956,7 +1956,7 @@
     <string name="roads">Дороги</string>
     <string name="buy">Купить</string>
     <string name="activate_seamarks_plugin">Активируйте плагин «Морские карты»</string>
-    <string name="activate_srtm_plugin">Активируйте плагин «Линии высот»</string>
+    <string name="activate_srtm_plugin">Активируйте плагин «Ландшафт»</string>
     <string name="later">Позже</string>
     <string name="get_full_version">Полная версия</string>
     <string name="downloads">Загрузки</string>
@@ -3790,7 +3790,7 @@
     <string name="sort_name_descending">По имени: Я–А</string>
     <string name="sort_name_ascending">По имени: А–Я</string>
     <string name="start_finish_icons">Значки старта и финиша</string>
-    <string name="contour_lines_thanks">Спасибо за покупку «Контурных линий»</string>
+    <string name="contour_lines_thanks">Спасибо за покупку плагина «Ландшафт»</string>
     <string name="routing_attr_avoid_footways_description">Избегать пешеходных дорожек</string>
     <string name="routing_attr_avoid_footways_name">Без пешеходных дорожек</string>
     <string name="osm_live_payment_desc_hw">Подписка оплачивается за выбранный период. Отмените её в AppGallery в любое время.</string>
@@ -3957,7 +3957,7 @@
     <string name="uploading_count">Отправка %1$d из %2$d</string>
     <string name="uploaded_count">Отправлено %1$d из %2$d</string>
     <string name="toast_select_edits_for_upload">Выберите правки для отправки</string>
-    <string name="hillshade_slope_contour_lines">Рельеф / Уклон/ Контурные линии</string>
+    <string name="hillshade_slope_contour_lines">Контурные линии/Затенение рельефа/ Уклон</string>
     <string name="shared_string_vehicle">Транспортное средство</string>
     <string name="routing_engine_vehicle_type_bike">Велосипед</string>
     <string name="routing_engine_vehicle_type_cycling_electric">Электрический велосипед</string>
