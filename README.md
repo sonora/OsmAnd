@@ -4,13 +4,18 @@ This project aims at providing comfortable map viewing and navigation (routing) 
 To get started, continue with the basic description below, then find more detail on our Welcome Wiki Pages, the Project Homepage, or the OpenStreetMap OsmAnd Wiki Page.
 You are welcome to discuss any question regarding the project at the Google group OsmAnd. Please do not use comments on wiki pages because it is rather difficult to find them.
 
-<a href="https://play.google.com/store/apps/details?id=net.osmand" target="_blank">
-<img src="https://github.com/osmandapp/osmandapp.github.io/blob/master/website/images/help/badge_store_google_play.png" alt="Get it on Google Play" height="60"/></a>
-<a href="https://www.amazon.com/OsmAnd-Maps-Navigation/dp/B00D0SA8I8" target="_blank">
-<img src="https://github.com/osmandapp/osmandapp.github.io/blob/master/website/images/help/badge_store_amazon.png" alt="Get it on Amazon" height="60"/></a>
-<a href="https://apps.apple.com/app/apple-store/id934850257" target="_blank">
-<img src="https://github.com/osmandapp/osmandapp.github.io/blob/master/website/images/help/badge_store_appstore.png" alt="Get it on AppStore" height="60"/></a>
 
+
+|Android markets|
+|---------------|
+|<a href="https://play.google.com/store/apps/dev?id=8483587772816822023" rel="Get it on Google Play">![Google Play](https://github.com/osmandapp/OsmAnd-misc/blob/master/logo/stores/googleplay.png)</a>|
+|<a href="https://appgallery.huawei.com/#/app/C101486545" rel="Explore it on AppGallery">![Huawei AppGallery](https://github.com/osmandapp/OsmAnd-misc/blob/master/logo/stores/appgallery.png)</a>|
+|<a href="https://www.amazon.com/s?i=mobile-apps&rh=p_4%3AOsmAnd&search-type=ss" rel="Get it on Amazon">![Amazon](https://github.com/osmandapp/OsmAnd-misc/blob/master/logo/stores/amazon.png)</a>|
+|<a href="https://f-droid.org/packages/net.osmand.plus/" rel="Get it on F-Droid">![F-droid](https://github.com/osmandapp/OsmAnd-misc/blob/master/logo/stores/fdroid.png)</a>|
+
+|App Store - Apple|
+|---------------|
+|<a href="https://apps.apple.com/app/apple-store/id934850257" rel="Get it on AppStore">![App Store Apple](https://github.com/osmandapp/OsmAnd-misc/blob/master/logo/stores/appstore.png)</a>|
 
 <p>
 <a href="https://hosted.weblate.org/engage/osmand/">
@@ -82,8 +87,7 @@ OsmAnd is open-source and actively being developed.
 Everyone can contribute to the application by reporting bugs, [improving translations](https://hosted.weblate.org/projects/osmand/), or coding new features.
 The project experiences continuous improvement by all such forms of developer and user interaction.
 The project progress also relies on financial contributions to fund the development, coding, and testing of new functionality.
-By buying OsmAnd+ and subscribing to OsmAnd Live, you help the application become even more awesome!
-It is also possible to make a general donation (see https://osmand.net/help-online#buy_app).
+By buying OsmAnd+ and subscribing to OsmAnd Pro (see https://osmand.net/docs/user/purchases/), you help the application become even more awesome!
 
 
 #### Map Coverage and Quality - How Good is OSM Data?

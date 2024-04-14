@@ -1,207 +1,256 @@
 package net.osmand.plus.track.helpers;
 
-import android.annotation.SuppressLint;
+import static net.osmand.gpx.GpxParameter.SPLIT_TYPE;
+
 import android.os.AsyncTask;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.IndexConstants;
-import net.osmand.gpx.GPXFile;
-import net.osmand.gpx.GPXTrackAnalysis;
-import net.osmand.gpx.GPXUtilities;
+import net.osmand.PlatformUtil;
+import net.osmand.gpx.GpxParameter;
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.api.SQLiteAPI.SQLiteConnection;
-import net.osmand.plus.track.GpxSplitType;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
+import net.osmand.plus.configmap.tracks.TrackItem;
+import net.osmand.plus.track.helpers.GpxReaderTask.GpxDbReaderCallback;
+import net.osmand.util.Algorithms;
+
+import org.apache.commons.logging.Log;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class GpxDbHelper {
-
-	private static final int MAX_ITEMS_CACHE_SIZE = 5000;
-
+public class GpxDbHelper implements GpxDbReaderCallback {
+	private static final Log LOG = PlatformUtil.getLog(GpxDbHelper.class);
 	private final OsmandApplication app;
-	private final GPXDatabase db;
-	private final Map<File, GpxDataItem> itemsCache = new ConcurrentHashMap<>();
+	private final GPXDatabase database;
+
+	private final Map<File, GpxDirItem> dirItems = new ConcurrentHashMap<>();
+	private final Map<File, GpxDataItem> dataItems = new ConcurrentHashMap<>();
 
 	private final ConcurrentLinkedQueue<File> readingItems = new ConcurrentLinkedQueue<>();
 	private final Map<File, GpxDataItem> readingItemsMap = new ConcurrentHashMap<>();
 	private final Map<File, GpxDataItemCallback> readingItemsCallbacks = new ConcurrentHashMap<>();
+
 	private GpxReaderTask readerTask;
 
 	public interface GpxDataItemCallback {
 
-		boolean isCancelled();
+		default boolean isCancelled() {
+			return false;
+		}
 
-		void onGpxDataItemReady(GpxDataItem item);
+		void onGpxDataItemReady(@NonNull GpxDataItem item);
 	}
 
 	public GpxDbHelper(@NonNull OsmandApplication app) {
 		this.app = app;
-		db = new GPXDatabase(app);
+		database = new GPXDatabase(app);
+	}
+
+	public void loadItems() {
+		loadGpxItems();
+		loadGpxDirItems();
 	}
 
 	public void loadGpxItems() {
+		long start = System.currentTimeMillis();
+		long batchTime = System.currentTimeMillis();
 		List<GpxDataItem> items = getItems();
-		for (GpxDataItem item : items) {
-			putToCache(item);
-		}
-		loadNewGpxItems();
-	}
 
-	private void loadNewGpxItems() {
-		File gpxDir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
-		List<GPXInfo> gpxInfos = GpxUiHelper.getGPXFiles(gpxDir, true);
-		for (GPXInfo gpxInfo : gpxInfos) {
-			File file = new File(gpxInfo.getFileName());
-			if (file.exists() && !file.isDirectory() && !hasItem(file)) {
-				add(new GpxDataItem(file));
+		int counter = 0;
+		for (GpxDataItem item : items) {
+			File file = item.getFile();
+			if (file.exists()) {
+				putToCache(item);
+			} else {
+				remove(file);
+			}
+			counter++;
+			if (counter % 100 == 0) {
+				long endTime = System.currentTimeMillis();
+				LOG.info("Loading tracks batch. took " + (endTime - batchTime) + "ms");
+				batchTime = endTime;
 			}
 		}
+		LOG.info("Time to loadGpxItems " + (System.currentTimeMillis() - start) + " ms items count " + items.size());
 	}
 
-	private void updateItemsCacheSize() {
-		if (itemsCache.size() > MAX_ITEMS_CACHE_SIZE) {
-			itemsCache.clear();
+	public void loadGpxDirItems() {
+		long start = System.currentTimeMillis();
+		List<GpxDirItem> items = getDirItems();
+		for (GpxDirItem item : items) {
+			File file = item.getFile();
+			if (file.exists()) {
+				putToCache(item);
+			} else {
+				remove(file);
+			}
+		}
+		LOG.info("Time to loadGpxDirItems " + (System.currentTimeMillis() - start) + " ms items count " + dataItems.size());
+	}
+
+	private void putToCache(@NonNull DataItem item) {
+		File file = item.getFile();
+		if (item instanceof GpxDataItem) {
+			dataItems.put(file, (GpxDataItem) item);
+		} else if (item instanceof GpxDirItem) {
+			dirItems.put(file, (GpxDirItem) item);
 		}
 	}
 
-	private GpxDataItem putToCache(GpxDataItem item) {
-		updateItemsCacheSize();
-		return itemsCache.put(item.getFile(), item);
+	private void removeFromCache(@NonNull File file) {
+		if (GpxUiHelper.isGpxFile(file)) {
+			dataItems.remove(file);
+		} else {
+			dirItems.remove(file);
+		}
 	}
 
-	private void removeFromCache(GpxDataItem item) {
-		itemsCache.remove(item.getFile());
+	public boolean rename(@NonNull File currentFile, @NonNull File newFile) {
+		boolean success = database.rename(currentFile, newFile);
+		if (success) {
+			GpxDataItem newItem = new GpxDataItem(app, newFile);
+			GpxDataItem oldItem = dataItems.get(currentFile);
+			if (oldItem != null) {
+				newItem.copyData(oldItem);
+			}
+			putToCache(newItem);
+			removeFromCache(currentFile);
+		}
+		return success;
 	}
 
-	public boolean rename(File currentFile, File newFile) {
-		GpxDataItem item = itemsCache.get(currentFile);
-		return db.rename(item, currentFile, newFile);
-	}
-
-	public boolean updateColor(GpxDataItem item, int color) {
-		boolean res = db.updateColor(item, color);
+	public boolean updateDataItem(@NonNull DataItem item) {
+		boolean res = database.updateDataItem(item);
 		putToCache(item);
 		return res;
 	}
 
-	public boolean updateLastUploadedTime(GpxDataItem item, long fileLastUploadedTime) {
-		boolean res = db.updateLastUploadedTime(item, fileLastUploadedTime);
+	public boolean remove(@NonNull File file) {
+		boolean res = database.remove(file);
+		removeFromCache(file);
+		return res;
+	}
+
+	public boolean remove(@NonNull DataItem item) {
+		File file = item.getFile();
+		boolean res = database.remove(file);
+		removeFromCache(file);
+		return res;
+	}
+
+	public boolean add(@NonNull GpxDataItem item) {
+		checkDefaultAppearance(item);
+		boolean res = database.add(item);
 		putToCache(item);
 		return res;
 	}
 
-	public boolean updateColoringType(@NonNull GpxDataItem item, @Nullable String coloringType) {
-		boolean res = db.updateColoringType(item, coloringType);
+	public boolean add(@NonNull GpxDirItem item) {
+		boolean res = database.add(item);
 		putToCache(item);
 		return res;
 	}
 
-	public boolean updateShowAsMarkers(GpxDataItem item, boolean showAsMarkers) {
-		boolean res = db.updateShowAsMarkers(item, showAsMarkers);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateShowArrows(GpxDataItem item, boolean showArrows) {
-		boolean res = db.updateShowArrows(item, showArrows);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateShowStartFinish(GpxDataItem item, boolean showStartFinish) {
-		boolean res = db.updateShowStartFinish(item, showStartFinish);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateWidth(GpxDataItem item, String width) {
-		boolean res = db.updateWidth(item, width);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateSplit(@NonNull GpxDataItem item, @NonNull GpxSplitType splitType, double splitInterval) {
-		boolean res = db.updateSplit(item, splitType.getType(), splitInterval);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateJoinSegments(@NonNull GpxDataItem item, boolean joinSegments) {
-		boolean res = db.updateJoinSegments(item, joinSegments);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateGpsFilters(@NonNull GpxDataItem item, @NonNull FilteredSelectedGpxFile selectedGpxFile) {
-		boolean res = db.updateGpsFiltersConfig(item, selectedGpxFile);
-		putToCache(item);
-		return res;
-	}
-
-	public void resetGpsFilters(@NonNull GpxDataItem item) {
-		db.resetGpsFilters(item);
-		putToCache(item);
-	}
-
-	public boolean remove(File file) {
-		boolean res = db.remove(file);
-		itemsCache.remove(file);
-		return res;
-	}
-
-	public boolean remove(GpxDataItem item) {
-		boolean res = db.remove(item);
-		itemsCache.remove(item.getFile());
-		return res;
-	}
-
-	public boolean add(GpxDataItem item) {
-		boolean res = db.add(item);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean updateAnalysis(GpxDataItem item, GPXTrackAnalysis a) {
-		boolean res = db.updateAnalysis(item, a);
-		putToCache(item);
-		return res;
-	}
-
-	public boolean clearAnalysis(GpxDataItem item) {
-		boolean res = db.clearAnalysis(item);
-		itemsCache.remove(item.getFile());
-		return res;
-	}
-
+	@NonNull
 	public List<GpxDataItem> getItems() {
-		return db.getItems();
+		return database.getGpxDataItems();
 	}
 
+	@NonNull
+	public List<GpxDirItem> getDirItems() {
+		return database.getGpxDirItems();
+	}
+
+	@NonNull
+	public List<Pair<String, Integer>> getStringIntItemsCollection(@NonNull String columnName,
+	                                                               boolean includeEmptyValues,
+	                                                               boolean sortByName,
+	                                                               boolean sortDescending) {
+
+		return database.getStringIntItemsCollection(columnName,
+				includeEmptyValues,
+				sortByName,
+				sortDescending);
+	}
+
+	public long getTracksMinCreateDate() {
+		return database.getTracksMinCreateDate();
+	}
+
+	public String getMaxParameterValue(GpxParameter parameter) {
+		return database.getColumnMaxValue(parameter);
+	}
+
+	@Nullable
 	public GpxDataItem getItem(@NonNull File file) {
 		return getItem(file, null);
 	}
 
+	@NonNull
+	public GpxDirItem getGpxDirItem(@NonNull File file) {
+		GpxDirItem item = dirItems.get(file);
+		if (item == null) {
+			item = database.getGpxDirItem(file);
+		}
+		if (item == null) {
+			item = new GpxDirItem(app, file);
+			add(item);
+		}
+		return item;
+	}
+
+	@Nullable
 	public GpxDataItem getItem(@NonNull File file, @Nullable GpxDataItemCallback callback) {
-		GpxDataItem item = itemsCache.get(file);
-		if (isAnalyseNeeded(file, item) && !isGpxReading(file)) {
+		if (file.getPath().isEmpty()) {
+			return null;
+		}
+		GpxDataItem item = dataItems.get(file);
+		if (GpxDbUtils.isAnalyseNeeded(item) && !isGpxReading(file)) {
 			readGpxItem(file, item, callback);
 		}
 		return item;
 	}
 
-	public boolean hasItem(@NonNull File file) {
-		return itemsCache.containsKey(file);
+	public boolean hasGpxDataItem(@NonNull File file) {
+		return dataItems.containsKey(file);
 	}
 
+	public boolean hasGpxDirItem(@NonNull File file) {
+		return dirItems.containsKey(file);
+	}
+
+	@NonNull
 	public List<GpxDataItem> getSplitItems() {
-		return db.getSplitItems();
+		GpxAppearanceHelper appearanceHelper = new GpxAppearanceHelper(app);
+		List<GpxDataItem> items = new ArrayList<>();
+		for (GpxDataItem item : getItems()) {
+			int splitType = appearanceHelper.getParameter(item, SPLIT_TYPE);
+			if (splitType != 0) {
+				items.add(item);
+			}
+		}
+		return items;
+	}
+
+	private void checkDefaultAppearance(@NonNull GpxDataItem item) {
+		File file = item.getFile();
+		File dir = file.getParentFile();
+		if (dir != null) {
+			GpxDirItem dirItem = getGpxDirItem(dir);
+
+			for (GpxParameter parameter : GpxParameter.getAppearanceParameters()) {
+				Object value = dirItem.getParameter(parameter);
+				if (value != null) {
+					item.setParameter(parameter, value);
+				}
+			}
+		}
 	}
 
 	public boolean isRead() {
@@ -209,25 +258,24 @@ public class GpxDbHelper {
 		return readerTask == null || !readerTask.isReading();
 	}
 
-	private boolean isGpxReading(@NonNull File gpxFile) {
+	private boolean isGpxReading(@NonNull File file) {
 		GpxReaderTask analyser = this.readerTask;
-		return readingItems.contains(gpxFile)
-				|| (analyser != null && gpxFile.equals(analyser.getGpxFile()));
+		return readingItems.contains(file) || (analyser != null && file.equals(analyser.getFile()));
 	}
 
-	private void readGpxItem(@NonNull File gpxFile, @Nullable GpxDataItem item, @Nullable GpxDataItemCallback callback) {
-		readingItemsMap.put(gpxFile, item != null ? item : new GpxDataItem(null, (GPXTrackAnalysis) null));
+	private void readGpxItem(@NonNull File file, @Nullable GpxDataItem item, @Nullable GpxDataItemCallback callback) {
+		readingItemsMap.put(file, item != null ? item : new GpxDataItem(app, file));
 		if (callback != null) {
-			readingItemsCallbacks.put(gpxFile, callback);
+			readingItemsCallbacks.put(file, callback);
 		}
-		readingItems.add(gpxFile);
+		readingItems.add(file);
 		if (readerTask == null) {
 			startReading();
 		}
 	}
 
 	private void startReading() {
-		readerTask = new GpxReaderTask();
+		readerTask = new GpxReaderTask(app, readingItems, readingItemsMap, this);
 		readerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 	}
 
@@ -238,93 +286,50 @@ public class GpxDbHelper {
 		}
 	}
 
-	private boolean isAnalyseNeeded(@NonNull File gpxFile, @Nullable GpxDataItem item) {
-		return item == null
-				|| item.getFileLastModifiedTime() != gpxFile.lastModified()
-				|| item.getAnalysis() == null
-				|| item.getAnalysis().wptCategoryNames == null;
+	@NonNull
+	protected GPXDatabase getGPXDatabase() {
+		return database;
 	}
 
-	@SuppressLint("StaticFieldLeak")
-	private class GpxReaderTask extends AsyncTask<Void, GpxDataItem, Void> {
+	@Override
+	public void onGpxDataItemRead(@NonNull GpxDataItem item) {
+		putToCache(item);
+		putGpxDataItemToSmartFolder(item);
+	}
 
-		private File gpxFile;
+	private void putGpxDataItemToSmartFolder(@NonNull GpxDataItem item) {
+		TrackItem trackItem = new TrackItem(item.getFile());
+		trackItem.setDataItem(item);
+		app.getSmartFolderHelper().addTrackItemToSmartFolder(trackItem);
+	}
 
-		public File getGpxFile() {
-			return gpxFile;
-		}
-
-		public boolean isReading() {
-			return readingItems.size() > 0 || gpxFile != null;
-		}
-
-		@Override
-		protected Void doInBackground(Void... voids) {
-			SQLiteConnection conn = db.openConnection(false);
-			if (conn != null) {
-				try {
-					gpxFile = readingItems.poll();
-					while (gpxFile != null && !isCancelled()) {
-						GpxDataItem item = readingItemsMap.remove(gpxFile);
-						if (item != null && item.getFile() == null) {
-							item = db.getItem(gpxFile, conn);
-						}
-						if (isAnalyseNeeded(gpxFile, item)) {
-							GPXFile f = GPXUtilities.loadGPXFile(gpxFile);
-							GPXTrackAnalysis analysis = f.getAnalysis(gpxFile.lastModified());
-							if (item == null || item.getFile() == null) {
-								item = new GpxDataItem(gpxFile, analysis);
-								db.insert(item, conn);
-							} else {
-								db.updateAnalysis(item, analysis, conn);
-							}
-							putToCache(item);
-						} else {
-							putToCache(item);
-						}
-
-						if (!isCancelled()) {
-							publishProgress(item);
-						}
-						gpxFile = readingItems.poll();
-					}
-				} finally {
-					conn.close();
-				}
-			} else {
-				cancel(false);
-			}
-			return null;
-		}
-
-		@Override
-		protected void onCancelled(Void aVoid) {
-			readingItems.clear();
-			readingItemsMap.clear();
-			readingItemsCallbacks.clear();
-		}
-
-		@Override
-		protected void onProgressUpdate(GpxDataItem... values) {
-			for (GpxDataItem item : values) {
-				GpxDataItemCallback callback = readingItemsCallbacks.remove(item.getFile());
-				if (callback != null) {
-					if (callback.isCancelled()) {
-						stopReading();
-					} else {
-						callback.onGpxDataItemReady(item);
-					}
+	@Override
+	public void onProgressUpdate(@NonNull GpxDataItem... dataItems) {
+		for (GpxDataItem item : dataItems) {
+			GpxDataItemCallback callback = readingItemsCallbacks.remove(item.getFile());
+			if (callback != null) {
+				if (callback.isCancelled()) {
+					stopReading();
+				} else {
+					callback.onGpxDataItemReady(item);
 				}
 			}
 		}
+	}
 
-		@Override
-		protected void onPostExecute(Void aVoid) {
-			if (readingItems.size() > 0 && !isCancelled()) {
-				startReading();
-			} else {
-				readerTask = null;
-			}
+	@Override
+	public void onReadingCancelled() {
+		readingItems.clear();
+		readingItemsMap.clear();
+		readingItemsCallbacks.clear();
+	}
+
+	@Override
+	public void onReadingFinished(boolean cancelled) {
+		if (!Algorithms.isEmpty(readingItems) && !cancelled) {
+			startReading();
+		} else {
+			readerTask = null;
 		}
 	}
 }

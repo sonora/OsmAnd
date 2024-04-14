@@ -56,6 +56,7 @@ import org.apache.commons.logging.Log;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +66,7 @@ public abstract class OsmandMapLayer implements MapRendererViewListener {
 	private static final Log LOG = PlatformUtil.getLog(OsmandMapLayer.class);
 
 	public static final float ICON_VISIBLE_PART_RATIO = 0.45f;
+	public static final float TOUCH_RADIUS_MULTIPLIER = 1.5f;
 
 	@NonNull
 	private final Context ctx;
@@ -81,6 +83,35 @@ public abstract class OsmandMapLayer implements MapRendererViewListener {
 	protected MapMarkersCollection mapMarkersCollection;
 	protected PointI movableObject;
 	protected int pointsOrder = 0;
+
+	public static class CustomMapObjects<T> {
+		protected List<T> customMapObjects;
+		private boolean isChanged;
+
+		@NonNull
+		public List<T> getMapObjects() {
+			if (customMapObjects == null) {
+				return Collections.emptyList();
+			} else {
+				return customMapObjects;
+			}
+		}
+
+		public void setCustomMapObjects(List<T> customMapObjects) {
+			if(this.customMapObjects != customMapObjects){
+				isChanged = true;
+			}
+			this.customMapObjects = customMapObjects;
+		}
+
+		public void acceptChanges() {
+			isChanged = false;
+		}
+
+		public boolean isChanged() {
+			return isChanged;
+		}
+	}
 
 	public enum MapGestureType {
 		DOUBLE_TAP_ZOOM_IN,
@@ -208,6 +239,10 @@ public abstract class OsmandMapLayer implements MapRendererViewListener {
 
 	@Override
 	public void onUpdateFrame(MapRendererView mapRenderer) {
+	}
+
+	@Override
+	public void onFrameReady(MapRendererView mapRenderer) {
 	}
 
 	public void destroyLayer() {
@@ -371,7 +406,7 @@ public abstract class OsmandMapLayer implements MapRendererViewListener {
 		return (int) textScale * radiusPoi;
 	}
 
-	public static void setMapButtonIcon(@NonNull ImageView imageView, @NonNull Drawable icon) {
+	public static void setMapButtonIcon(@NonNull ImageView imageView, @Nullable Drawable icon) {
 		int btnSizePx = imageView.getLayoutParams().height;
 		int iconSizePx = imageView.getContext().getResources().getDimensionPixelSize(R.dimen.map_widget_icon);
 		int iconPadding = (btnSizePx - iconSizePx) / 2;
@@ -959,4 +994,5 @@ public abstract class OsmandMapLayer implements MapRendererViewListener {
 			}
 		}
 	}
+
 }

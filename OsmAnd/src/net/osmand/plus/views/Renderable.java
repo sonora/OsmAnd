@@ -87,6 +87,7 @@ public class Renderable {
 
         protected GpxGeometryWay geometryWay;
         protected boolean drawArrows;
+        protected boolean use3DVisualization;
 
         public RenderableSegment(List<WptPt> points, double segmentSize) {
             this.points = points;
@@ -101,6 +102,12 @@ public class Renderable {
         public boolean setDrawArrows(boolean drawArrows) {
             boolean changed = this.drawArrows != drawArrows;
             this.drawArrows = drawArrows;
+            return changed;
+        }
+
+        public boolean setUse3DVisualization(boolean use3DVisualization) {
+            boolean changed = this.use3DVisualization != use3DVisualization;
+            this.use3DVisualization = use3DVisualization;
             return changed;
         }
 
@@ -186,17 +193,17 @@ public class Renderable {
         public void drawGeometry(@NonNull Canvas canvas, @NonNull RotatedTileBox tileBox,
                                  @NonNull QuadRect quadRect, int trackColor, float trackWidth,
                                  @Nullable float[] dashPattern) {
-            drawGeometry(canvas, tileBox, quadRect, trackColor, trackWidth, dashPattern, drawArrows);
+            drawGeometry(canvas, tileBox, quadRect, trackColor, trackWidth, dashPattern, drawArrows, use3DVisualization);
         }
 
         public void drawGeometry(@NonNull Canvas canvas, @NonNull RotatedTileBox tileBox,
                                  @NonNull QuadRect quadRect, int trackColor, float trackWidth,
-                                 @Nullable float[] dashPattern, boolean drawArrows) {
+                                 @Nullable float[] dashPattern, boolean drawArrows, boolean use3DVisualization) {
             if (geometryWay != null) {
                 List<WptPt> points = coloringType.isRouteInfoAttribute() ? this.points : getPointsForDrawing();
                 if (!Algorithms.isEmpty(points)) {
                     geometryWay.setTrackStyleParams(trackColor, trackWidth, dashPattern, drawArrows,
-                            coloringType, routeInfoAttribute);
+                            use3DVisualization, coloringType, routeInfoAttribute);
                     geometryWay.updateSegment(tileBox, points, routeSegments);
                     geometryWay.drawSegments(tileBox, canvas, quadRect.top, quadRect.left,
                             quadRect.bottom, quadRect.right, null, 0);
@@ -209,10 +216,11 @@ public class Renderable {
             QuadRect tileBounds = tileBox.getLatLonBounds();
             WptPt lastPt = pts.get(0);
             boolean recalculateLastXY = true;
+            boolean specificLast = false;
             Path path = new Path();
             for (int i = 1; i < pts.size(); i++) {
                 WptPt pt = pts.get(i);
-                if (arePointsInsideTile(pt, lastPt, tileBounds) && !arePrimeMeridianPoints(pt, lastPt)) {
+                if (arePointsInsideTile(pt, lastPt, tileBounds)) {
                     if (recalculateLastXY) {
                         recalculateLastXY = false;
                         float lastX = tileBox.getPixXFromLatLon(lastPt.lat, lastPt.lon);
@@ -223,13 +231,25 @@ public class Renderable {
                         path.reset();
                         path.moveTo(lastX, lastY);
                     }
+                    if (Math.abs(pt.lon - lastPt.lon) >= 180) {
+                        pt = GPXUtilities.projectionOnPrimeMeridian(lastPt, pt);
+                        lastPt = new WptPt(pt);
+                        lastPt.lon = -lastPt.lon;
+                        recalculateLastXY = true;
+                        specificLast = true;
+                        i--;
+                    }
                     float x = tileBox.getPixXFromLatLon(pt.lat, pt.lon);
                     float y = tileBox.getPixYFromLatLon(pt.lat, pt.lon);
                     path.lineTo(x, y);
                 } else {
                     recalculateLastXY = true;
                 }
-                lastPt = pt;
+                if (specificLast) {
+                    specificLast = false;
+                } else {
+                    lastPt = pt;
+                }
             }
             if (!path.isEmpty()) {
                 canvas.drawPath(path, p);
@@ -246,6 +266,7 @@ public class Renderable {
             boolean drawSegmentBorder = DRAW_BORDER && zoom >= BORDER_TYPE_ZOOM_THRESHOLD;
             Path path = new Path();
             boolean recalculateLastXY = true;
+            boolean specificLast = false;
             WptPt lastPt = pts.get(0);
 
             List<PointF> gradientPoints = new ArrayList<>();
@@ -262,7 +283,7 @@ public class Renderable {
                 float nextY = nextPt == null ? 0 : tileBox.getPixYFromLatLon(nextPt.lat, nextPt.lon);
                 float lastX = 0;
                 float lastY = 0;
-                if (arePointsInsideTile(pt, lastPt, tileBounds) && !arePrimeMeridianPoints(pt, lastPt)) {
+                if (arePointsInsideTile(pt, lastPt, tileBounds)) {
                     if (recalculateLastXY) {
                         recalculateLastXY = false;
                         lastX = tileBox.getPixXFromLatLon(lastPt.lat, lastPt.lon);
@@ -278,6 +299,14 @@ public class Renderable {
                         gradientColors.clear();
                         gradientPoints.add(new PointF(lastX, lastY));
                         gradientColors.add(lastPt.getColor(scaleType.toColorizationType()));
+                    }
+                    if (Math.abs(pt.lon - lastPt.lon) >= 180) {
+                        pt = GPXUtilities.projectionOnPrimeMeridian(lastPt, pt);
+                        lastPt = new WptPt(pt);
+                        lastPt.lon = -lastPt.lon;
+                        recalculateLastXY = true;
+                        specificLast = true;
+                        i--;
                     }
                     float x = tileBox.getPixXFromLatLon(pt.lat, pt.lon);
                     float y = tileBox.getPixYFromLatLon(pt.lat, pt.lon);
@@ -297,7 +326,11 @@ public class Renderable {
                 } else {
                     recalculateLastXY = true;
                 }
-                lastPt = pt;
+                if (specificLast) {
+                    specificLast = false;
+                } else {
+                    lastPt = pt;
+                }
             }
             if (!path.isEmpty()) {
                 paths.add(new Path(path));
@@ -358,11 +391,6 @@ public class Renderable {
                     && Math.max(first.lon, second.lon) > tileBounds.left
                     && Math.min(first.lat, second.lat) < tileBounds.top
                     && Math.max(first.lat, second.lat) > tileBounds.bottom;
-        }
-
-        protected boolean arePrimeMeridianPoints(WptPt first, WptPt second) {
-            return Math.max(first.lon, second.lon) == GPXUtilities.PRIME_MERIDIAN
-                    && Math.min(first.lon, second.lon) == -GPXUtilities.PRIME_MERIDIAN;
         }
     }
 

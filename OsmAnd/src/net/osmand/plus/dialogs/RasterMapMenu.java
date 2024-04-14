@@ -30,8 +30,6 @@ import org.jetbrains.annotations.NotNull;
 
 import static net.osmand.plus.plugins.rastermaps.LayerTransparencySeekbarMode.OVERLAY;
 import static net.osmand.plus.plugins.rastermaps.LayerTransparencySeekbarMode.UNDERLAY;
-import static net.osmand.plus.plugins.rastermaps.OsmandRasterMapsPlugin.HIDE_WATER_POLYGONS_ATTR;
-import static net.osmand.plus.plugins.rastermaps.OsmandRasterMapsPlugin.NO_POLYGONS_ATTR;
 
 
 public class RasterMapMenu {
@@ -73,17 +71,13 @@ public class RasterMapMenu {
 			throw new RuntimeException("Unexpected raster map type");
 		}
 
-		CommonPreference<Boolean> hidePolygonsPref = settings.getCustomRenderBooleanProperty(NO_POLYGONS_ATTR);
-		CommonPreference<Boolean> hideWaterPolygonsPref = settings.getCustomRenderBooleanProperty(HIDE_WATER_POLYGONS_ATTR);
-
-		String mapTypeDescr = mapTypePreference.get();
-		if (mapTypeDescr != null && mapTypeDescr.contains(".sqlitedb")) {
-			mapTypeDescr = mapTypeDescr.replaceFirst(".sqlitedb", "");
+		String mapSourceTitle = mapTypePreference.get();
+		if (mapSourceTitle != null) {
+			mapSourceTitle = settings.getTileSourceTitle(mapSourceTitle);
 		}
 
-		boolean mapSelected = mapTypeDescr != null;
-		int toggleActionStringId = mapSelected ? R.string.shared_string_on
-				: R.string.shared_string_off;
+		boolean mapSelected = mapSourceTitle != null;
+		int toggleActionStringId = mapSelected ? R.string.shared_string_on : R.string.shared_string_off;
 
 		OnMapSelectedCallback onMapSelectedCallback =
 				canceled -> {
@@ -118,9 +112,7 @@ public class RasterMapMenu {
 						plugin.toggleUnderlayState(mapActivity, type, onMapSelectedCallback);
 					});
 				} else if (itemId == R.string.show_polygons) {
-					hidePolygonsPref.set(!isChecked);
-					hideWaterPolygonsPref.set(!isChecked);
-					settings.POLYGONS_VISIBILITY_SET_MANUALLY.set(true);
+					settings.SHOW_POLYGONS_WHEN_UNDERLAY_IS_ON.set(isChecked);
 					mapActivity.refreshMapComplete();
 				} else if (itemId == R.string.show_transparency_seekbar) {
 					updateTransparencyBarVisibility(isChecked);
@@ -132,11 +124,11 @@ public class RasterMapMenu {
 						settings.SHOW_MAP_LAYER_PARAMETER.set(true);
 						MapTileLayer overlayLayer = plugin.getOverlayLayer();
 						if (overlayLayer != null) {
-							mapLayers.getMapControlsLayer().showParameterBar(overlayLayer);
+							mapLayers.getMapControlsLayer().getMapTransparencyHelper().showParameterBar(overlayLayer);
 						}
 					} else {
 						settings.SHOW_MAP_LAYER_PARAMETER.set(false);
-						mapLayers.getMapControlsLayer().hideParameterBar();
+						mapLayers.getMapControlsLayer().getMapTransparencyHelper().hideParameterBar();
 						updateTransparencyBarVisibility(isSeekbarVisible(app, RasterMapType.OVERLAY));
 					}
 				}
@@ -146,16 +138,16 @@ public class RasterMapMenu {
 			private void updateTransparencyBarVisibility(boolean visible) {
 				if (visible) {
 					settings.LAYER_TRANSPARENCY_SEEKBAR_MODE.set(currentMode);
-					mapLayers.getMapControlsLayer().showTransparencyBar(mapTransparencyPreference);
+					mapLayers.getMapControlsLayer().getMapTransparencyHelper().showTransparencyBar(mapTransparencyPreference);
 				} else // if(settings.LAYER_TRANSPARENCY_SEEKBAR_MODE.get() == currentMode)
 				{
 					settings.LAYER_TRANSPARENCY_SEEKBAR_MODE.set(LayerTransparencySeekbarMode.OFF);
-					mapLayers.getMapControlsLayer().hideTransparencyBar();
+					mapLayers.getMapControlsLayer().getMapTransparencyHelper().hideTransparencyBar();
 				}
 			}
 		};
 
-		mapTypeDescr = mapSelected ? mapTypeDescr : mapActivity.getString(R.string.shared_string_none);
+		mapSourceTitle = mapSelected ? mapSourceTitle : mapActivity.getString(R.string.shared_string_none);
 		contextMenuAdapter.addItem(new ContextMenuItem(null)
 				.setTitleId(toggleActionStringId, mapActivity)
 				.setHideDivider(true)
@@ -167,11 +159,11 @@ public class RasterMapMenu {
 					.setHideDivider(true)
 					.setListener(l)
 					.setLayout(R.layout.list_item_icon_and_menu_wide)
-					.setDescription(mapTypeDescr));
+					.setDescription(mapSourceTitle));
 			OnIntegerValueChangedListener integerListener =
 					newValue -> {
 						mapTransparencyPreference.set(newValue);
-						mapActivity.getMapLayers().getMapControlsLayer().updateTransparencySliderValue();
+						mapActivity.getMapLayers().getMapControlsLayer().getMapTransparencyHelper().updateTransparencySliderValue();
 						mapActivity.refreshMap();
 						return false;
 					};
@@ -189,7 +181,7 @@ public class RasterMapMenu {
 						.setTitleId(R.string.show_polygons, mapActivity)
 						.setHideDivider(true)
 						.setListener(l)
-						.setSelected(!hidePolygonsPref.get()));
+						.setSelected(settings.SHOW_POLYGONS_WHEN_UNDERLAY_IS_ON.get()));
 			}
 			Boolean transparencySwitchState = isSeekbarVisible(app, type);
 			contextMenuAdapter.addItem(new ContextMenuItem(null)

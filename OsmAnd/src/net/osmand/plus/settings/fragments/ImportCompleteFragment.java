@@ -6,7 +6,6 @@ import static net.osmand.plus.settings.fragments.BaseSettingsListFragment.SETTIN
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,7 +21,6 @@ import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.activities.RestartActivity;
@@ -30,20 +28,19 @@ import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.dashboard.DashboardOnMap.DashboardType;
 import net.osmand.plus.dialogs.SelectMapStyleBottomSheetDialogFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.myplaces.ui.FavoritesActivity;
+import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin;
 import net.osmand.plus.plugins.osmedit.OsmEditingPlugin;
-import net.osmand.plus.quickaction.QuickActionListFragment;
-import net.osmand.plus.routepreparationmenu.AvoidRoadsBottomSheetDialogFragment;
-import net.osmand.plus.search.QuickSearchDialogFragment;
-import net.osmand.plus.settings.backend.ExportSettingsType;
+import net.osmand.plus.avoidroads.AvoidRoadsBottomSheetDialogFragment;
+import net.osmand.plus.search.dialogs.QuickSearchDialogFragment;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
 import net.osmand.plus.settings.backend.backup.SettingsHelper;
+import net.osmand.plus.settings.backend.backup.exporttype.ExportType;
 import net.osmand.plus.settings.backend.backup.items.SettingsItem;
-import net.osmand.plus.settings.fragments.ImportedSettingsItemsAdapter.OnItemClickListener;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.views.mapwidgets.configure.buttons.CustomMapButtonsFragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,17 +52,15 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 	private static final String KEY_SOURCE_NAME = "key_source_name";
 	private static final String KEY_NEED_RESTART = "key_need_restart";
 
-	private OsmandApplication app;
 	private final List<SettingsItem> settingsItems = new ArrayList<>();
 
 	private RecyclerView recyclerView;
 	private String sourceName;
-	private boolean nightMode;
 	private boolean needRestart;
 
 	public static void showInstance(@NonNull FragmentManager fragmentManager,
-									@NonNull List<SettingsItem> settingsItems,
-									@NonNull String sourceName, boolean needRestart) {
+	                                @NonNull List<SettingsItem> settingsItems,
+	                                @NonNull String sourceName, boolean needRestart) {
 		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
 			ImportCompleteFragment fragment = new ImportCompleteFragment();
 			fragment.settingsItems.addAll(settingsItems);
@@ -82,8 +77,6 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
-		nightMode = !app.getSettings().isLightContent();
 		requireActivity().getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
 			@Override
 			public void handleOnBackPressed() {
@@ -99,9 +92,11 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-							 @Nullable Bundle savedInstanceState) {
-		inflater = UiUtilities.getInflater(app, nightMode);
-		View root = inflater.inflate(R.layout.fragment_import_complete, container, false);
+	                         @Nullable Bundle savedInstanceState) {
+		updateNightMode();
+		View root = themedInflater.inflate(R.layout.fragment_import_complete, container, false);
+		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), root);
+
 		TextView description = root.findViewById(R.id.description);
 		TextView btnClose = root.findViewById(R.id.button_close);
 		ViewGroup buttonContainer = root.findViewById(R.id.button_container);
@@ -110,19 +105,11 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 				String.format(getString(R.string.import_complete_description), sourceName),
 				Typeface.BOLD, sourceName
 		));
-		btnClose.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View view) {
-				dismissFragment();
-			}
-		});
+		btnClose.setOnClickListener(view -> dismissFragment());
 		if (needRestart) {
 			description.append("\n\n");
 			description.append(app.getString(R.string.app_restart_required));
 			setupRestartButton(root);
-		}
-		if (Build.VERSION.SDK_INT >= 21) {
-			AndroidUtils.addStatusBarPadding21v(requireMyActivity(), root);
 		}
 		ViewTreeObserver treeObserver = buttonContainer.getViewTreeObserver();
 		treeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -140,20 +127,13 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 	@Override
 	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
-		if (settingsItems != null) {
-			ImportedSettingsItemsAdapter adapter = new ImportedSettingsItemsAdapter(
-					app,
-					SettingsHelper.getSettingsToOperate(settingsItems, true, false),
-					nightMode,
-					new OnItemClickListener() {
-						@Override
-						public void onItemClick(ExportSettingsType type) {
-							navigateTo(type);
-						}
-					});
-			recyclerView.setLayoutManager(new LinearLayoutManager(getMyApplication()));
-			recyclerView.setAdapter(adapter);
-		}
+		ImportedSettingsItemsAdapter adapter = new ImportedSettingsItemsAdapter(
+				app,
+				SettingsHelper.collectSettingsToOperate(settingsItems, true, false),
+				nightMode,
+				this::navigateTo);
+		recyclerView.setLayoutManager(new LinearLayoutManager(app));
+		recyclerView.setAdapter(adapter);
 	}
 
 	public void dismissFragment() {
@@ -170,7 +150,7 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 		outState.putBoolean(KEY_NEED_RESTART, needRestart);
 	}
 
-	private void navigateTo(ExportSettingsType type) {
+	private void navigateTo(@NonNull ExportType exportType) {
 		FragmentManager fm = getFragmentManager();
 		FragmentActivity activity = requireActivity();
 		if (fm == null || fm.isStateSaved()) {
@@ -178,7 +158,7 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 		}
 		dismissFragment();
 		fm.popBackStack(DRAWER_SETTINGS_ID, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-		switch (type) {
+		switch (exportType) {
 			case GLOBAL:
 			case PROFILE:
 			case CUSTOM_ROUTING:
@@ -186,7 +166,7 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 				BaseSettingsFragment.showInstance(requireActivity(), SettingsScreenType.MAIN_SETTINGS);
 				break;
 			case QUICK_ACTIONS:
-				QuickActionListFragment.showInstance(activity);
+				CustomMapButtonsFragment.showInstance(fm, null);
 				break;
 			case POI_TYPES:
 				if (activity instanceof MapActivity) {
@@ -221,7 +201,7 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 			case FAVORITES:
 			case MULTIMEDIA_NOTES:
 			case FAVORITES_BACKUP:
-				int tabId = getFavoritesTabId(type);
+				int tabId = getFavoritesTabId(exportType);
 				openFavouritesActivity(activity, tabId);
 				break;
 			case SEARCH_HISTORY:
@@ -243,13 +223,13 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 
 	private void openFavouritesActivity(Activity activity, int tabType) {
 		OsmAndAppCustomization appCustomization = app.getAppCustomization();
-		Intent favoritesActivity = new Intent(activity, appCustomization.getFavoritesActivity());
-		favoritesActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+		Intent intent = new Intent(activity, appCustomization.getMyPlacesActivity());
+		intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
 		app.getSettings().FAVORITES_TAB.set(tabType);
-		startActivity(favoritesActivity);
+		startActivity(intent);
 	}
 
-	private int getFavoritesTabId(ExportSettingsType type) {
+	private int getFavoritesTabId(ExportType type) {
 		switch (type) {
 			case OSM_NOTES:
 			case OSM_EDITS:
@@ -257,11 +237,11 @@ public class ImportCompleteFragment extends BaseOsmAndFragment {
 			case MULTIMEDIA_NOTES:
 				return AudioVideoNotesPlugin.NOTES_TAB;
 			case TRACKS:
-				return FavoritesActivity.GPX_TAB;
+				return MyPlacesActivity.GPX_TAB;
 			case FAVORITES:
 			case FAVORITES_BACKUP:
 			default:
-				return FavoritesActivity.FAV_TAB;
+				return MyPlacesActivity.FAV_TAB;
 		}
 	}
 

@@ -12,7 +12,7 @@ import net.osmand.core.jni.MapTiledCollectionProvider;
 import net.osmand.core.jni.PointI;
 import net.osmand.core.jni.QListMapTiledCollectionPoint;
 import net.osmand.core.jni.QListPointI;
-import net.osmand.core.jni.SWIGTYPE_p_sk_spT_SkImage_const_t;
+import net.osmand.core.jni.SingleSkImage;
 import net.osmand.core.jni.SwigUtilities;
 import net.osmand.core.jni.TextRasterizer;
 import net.osmand.core.jni.TileId;
@@ -22,6 +22,7 @@ import net.osmand.plus.R;
 import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.util.MapUtils;
 
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class AudioNotesTileProvider extends interface_MapTiledCollectionProvider
     }
 
     @Override
-    public SWIGTYPE_p_sk_spT_SkImage_const_t getImageBitmap(int index, boolean isFullSize) {
+    public SingleSkImage getImageBitmap(int index, boolean isFullSize) {
         MapLayerData data = index < mapLayerDataList.size() ? mapLayerDataList.get(index) : null;
         if (data == null) {
             return SwigUtilities.nullSkImage();
@@ -128,7 +129,7 @@ public class AudioNotesTileProvider extends interface_MapTiledCollectionProvider
                 } else {
                     iconId = R.drawable.mx_special_video_camera;
                 }
-                PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx,
+                PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx,
                         ContextCompat.getColor(ctx, R.color.audio_video_icon_color), true, iconId);
                 pointImageDrawable.setAlpha(0.8f);
                 bitmap = pointImageDrawable.getBigMergedBitmap(data.textScale, false);
@@ -136,7 +137,7 @@ public class AudioNotesTileProvider extends interface_MapTiledCollectionProvider
             }
         } else {
             if (smallBitmap == null) {
-                PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx,
+                PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx,
                         ContextCompat.getColor(ctx, R.color.audio_video_icon_color), true);
                 pointImageDrawable.setAlpha(0.8f);
                 smallBitmap = pointImageDrawable.getSmallMergedBitmap(data.textScale);
@@ -154,6 +155,11 @@ public class AudioNotesTileProvider extends interface_MapTiledCollectionProvider
     @Override
     public ZoomLevel getMaxZoom() {
         return ZoomLevel.MaxZoomLevel;
+    }
+
+    @Override
+    public boolean supportsNaturalObtainDataAsync() {
+        return false;
     }
 
     public void addToData(@NonNull AudioVideoNotesPlugin.Recording recording, float textScale) {

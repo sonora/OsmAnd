@@ -13,7 +13,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.aidlapi.OsmAndCustomizationConstants;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.Version;
@@ -36,7 +35,7 @@ public class WhatsNewDialogFragment extends DialogFragment {
 		String appVersion = Version.getAppVersion(app);
 		AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
 		builder.setTitle(getString(R.string.whats_new) + " " + appVersion)
-				.setMessage(getString(R.string.release_4_4))
+				.setMessage(getString(R.string.release_4_6))
 				.setNegativeButton(R.string.shared_string_close, (dialog, which) -> showSharedStorageWarningIfRequired());
 		builder.setPositiveButton(R.string.read_more, (dialog, which) -> {
 			showArticle();
@@ -65,7 +64,7 @@ public class WhatsNewDialogFragment extends DialogFragment {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
 			OsmandApplication app = requireMyApplication();
-			if (mapActivity.getFragment(SharedStorageWarningFragment.TAG) == null
+			if (mapActivity.getFragmentsHelper().getFragment(SharedStorageWarningFragment.TAG) == null
 					&& SharedStorageWarningFragment.dialogShowRequired(app)) {
 				SharedStorageWarningFragment.showInstance(mapActivity.getSupportFragmentManager(), true);
 			}

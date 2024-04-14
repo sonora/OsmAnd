@@ -16,12 +16,12 @@ import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.track.helpers.GPXInfo;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.helpers.TrackSelectSegmentAdapter;
 import net.osmand.plus.routing.GPXRouteParams.GPXRouteParamsBuilder;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
+import net.osmand.plus.track.helpers.GpxDataItem;
 import net.osmand.plus.track.helpers.GpxDbHelper.GpxDataItemCallback;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -46,19 +46,7 @@ public class TrackEditCard extends MapBaseCard {
 	}
 
 	private GpxDataItem getDataItem(GPXInfo info) {
-		GpxDataItemCallback itemCallback = new GpxDataItemCallback() {
-			@Override
-			public boolean isCancelled() {
-				return false;
-			}
-
-			@Override
-			public void onGpxDataItemReady(GpxDataItem item) {
-				if (item != null) {
-					updateContent();
-				}
-			}
-		};
+		GpxDataItemCallback itemCallback = item -> updateContent();
 		return app.getGpxDbHelper().getItem(new File(info.getFileName()), itemCallback);
 	}
 

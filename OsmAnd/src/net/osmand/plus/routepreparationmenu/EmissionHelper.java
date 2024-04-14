@@ -23,10 +23,9 @@ import net.osmand.plus.routing.RouteService;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
-import net.osmand.plus.settings.fragments.RouteParametersFragment.ListParameters;
+import net.osmand.plus.settings.preferences.ListParameters;
 import net.osmand.router.GeneralRouter;
 import net.osmand.router.GeneralRouter.RoutingParameter;
-import net.osmand.router.GeneralRouter.RoutingParameterType;
 import net.osmand.util.Algorithms;
 
 import java.text.DecimalFormat;

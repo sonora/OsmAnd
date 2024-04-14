@@ -1,5 +1,8 @@
 package net.osmand.plus.plugins.rastermaps;
 
+import static net.osmand.plus.plugins.rastermaps.DownloadTilesFragment.KEY_DOWNLOAD_LAYER;
+import static net.osmand.plus.plugins.rastermaps.DownloadTilesFragment.KEY_DOWNLOAD_TYPE;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Typeface;
@@ -23,17 +26,17 @@ import androidx.fragment.app.FragmentManager;
 
 import net.osmand.data.QuadRect;
 import net.osmand.map.ITileSource;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.base.ProgressHelper;
 import net.osmand.plus.helpers.FontCache;
 import net.osmand.plus.plugins.rastermaps.DownloadTilesHelper.DownloadType;
+import net.osmand.plus.settings.enums.MapLayerType;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
 
 import java.text.MessageFormat;
@@ -50,7 +53,6 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 	public static final String KEY_BOTTOM_LAT = "bottom_lat";
 	public static final String KEY_MIN_ZOOM = "min_zoom";
 	public static final String KEY_MAX_ZOOM = "max_zoom";
-	public static final String KEY_DOWNLOAD_TYPE = "download_type";
 	public static final String KEY_MISSING_TILES = "missing_tiles";
 	public static final String KEY_MISSING_SIZE_MB = "missing_size_mb";
 
@@ -58,38 +60,27 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 	private static final String KEY_DOWNLOADED_SIZE_MB = "downloaded_size_mb";
 	private static final String KEY_DOWNLOADED_TILES_NUMBER = "downloaded_tiles_number";
 
-	private OsmandApplication app;
 	private DownloadTilesHelper downloadTilesHelper;
-	private boolean nightMode;
 
-	private View view;
-
+	private ITileSource tileSource;
+	private DownloadType downloadType;
 	private QuadRect latLonRect;
 	private int minZoom;
 	private int maxZoom;
-	private DownloadType downloadType;
 	private boolean approximate;
 
-	private int progress;
-	private float downloadedSizeMb;
-	private long downloadedTilesNumber;
+	private View view;
 
+	private int progress;
 	private long totalTilesNumber;
+	private long downloadedTilesNumber;
 	private float approxSizeMb;
+	private float downloadedSizeMb;
 
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		requireActivity().getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-			@Override
-			public void handleOnBackPressed() {
-				dismiss(true);
-			}
-		});
-
-		app = requireMyApplication();
 		downloadTilesHelper = app.getDownloadTilesHelper();
-		nightMode = isNightMode(true);
 
 		Bundle args = getArguments();
 		if (args != null) {
@@ -99,6 +90,17 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 		if (savedInstanceState != null) {
 			restoreState(savedInstanceState);
 		}
+		requireActivity().getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+			@Override
+			public void handleOnBackPressed() {
+				dismiss(true);
+			}
+		});
+	}
+
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
 	}
 
 	private void restoreState(@NonNull Bundle savedState) {
@@ -115,7 +117,15 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 		latLonRect.top = args.getDouble(KEY_TOP_LAT);
 		latLonRect.right = args.getDouble(KEY_RIGHT_LON);
 		latLonRect.bottom = args.getDouble(KEY_BOTTOM_LAT);
-		downloadType = DownloadType.valueOf(args.getString(KEY_DOWNLOAD_TYPE));
+
+		MapLayerType layerType = AndroidUtils.getSerializable(args, KEY_DOWNLOAD_LAYER, MapLayerType.class);
+		downloadType = AndroidUtils.getSerializable(args, KEY_DOWNLOAD_TYPE, DownloadType.class);
+
+		tileSource = settings.getLayerTileSource(layerType.getMapLayerSettings(app), false);
+		if (tileSource == null) {
+			tileSource = settings.getMapTileSource(false);
+		}
+
 		if (downloadType == DownloadType.ONLY_MISSING) {
 			if (args.containsKey(KEY_MISSING_TILES)) {
 				approximate = true;
@@ -126,19 +136,17 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 				approxSizeMb = -1;
 			}
 		} else {
-			ITileSource tileSource = requireSettings().getMapTileSource(false);
 			boolean ellipticYTile = tileSource.isEllipticYTile();
 			totalTilesNumber = DownloadTilesHelper.getTilesNumber(minZoom, maxZoom, latLonRect, ellipticYTile);
-			approxSizeMb = DownloadTilesHelper.getApproxTilesSizeMb(minZoom, maxZoom, latLonRect, tileSource,
-					app.getResourceManager().getBitmapTilesCache());
+			approxSizeMb = DownloadTilesHelper.getApproxTilesSizeMb(minZoom, maxZoom, latLonRect,
+					tileSource, app.getResourceManager().getBitmapTilesCache());
 		}
 	}
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		Context context = requireContext();
-		LayoutInflater themedInflater = UiUtilities.getInflater(context, nightMode);
+		updateNightMode();
 		view = themedInflater.inflate(R.layout.tiles_download_progress_fragment, container, false);
 
 		setupToolbar();
@@ -192,12 +200,11 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 		String expectedSize = MessageFormat.format("(~{0})", getSizeMb(approxSizeMb));
 		String fullText;
 		boolean showExpectedSize = progress != 100 && !downloadTilesHelper.isDownloadFinished() && approxSizeMb != -1;
-		if (!showExpectedSize) {
-			fullText = getString(R.string.ltr_or_rtl_combine_via_colon, downloadedString, downloadedSize);
-		} else {
-			fullText = getString(R.string.ltr_or_rtl_combine_via_colon,
-					downloadedString,
+		if (showExpectedSize) {
+			fullText = getString(R.string.ltr_or_rtl_combine_via_colon, downloadedString,
 					getString(R.string.ltr_or_rtl_combine_via_space, downloadedSize, expectedSize));
+		} else {
+			fullText = getString(R.string.ltr_or_rtl_combine_via_colon, downloadedString, downloadedSize);
 		}
 
 		Spannable spannable = new SpannableString(fullText);
@@ -215,7 +222,7 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 	}
 
 	private void updateTilesNumber() {
-		String tilesString = getString(R.string.shared_sting_tiles);
+		String tilesString = getString(R.string.shared_string_tiles);
 		String downloadedNumber = formatNumber(downloadedTilesNumber, 0);
 
 		TextView tvDownloaded = view.findViewById(R.id.downloaded_number);
@@ -224,8 +231,7 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 		} else {
 			String totalFormat = approximate ? "(~{0})" : "({0})";
 			String totalNumber = MessageFormat.format(totalFormat, formatNumber(totalTilesNumber, 0));
-			String fullText = getString(R.string.ltr_or_rtl_combine_via_colon,
-					tilesString,
+			String fullText = getString(R.string.ltr_or_rtl_combine_via_colon, tilesString,
 					getString(R.string.ltr_or_rtl_combine_via_space, downloadedNumber, totalNumber));
 
 			Spannable spannable = new SpannableString(fullText);
@@ -236,12 +242,9 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 	}
 
 	private void setupCancelCloseButton(boolean downloadFinished) {
-		View cancelButton = view.findViewById(R.id.cancel_button);
+		DialogButton cancelButton = view.findViewById(R.id.cancel_button);
 		cancelButton.setOnClickListener(v -> dismiss(true));
-		int buttonTextId = downloadFinished
-				? R.string.shared_string_close
-				: R.string.shared_string_cancel;
-		UiUtilities.setupDialogButton(nightMode, cancelButton, DialogButtonType.SECONDARY, buttonTextId);
+		cancelButton.setTitleId(downloadFinished ? R.string.shared_string_close : R.string.shared_string_cancel);
 	}
 
 	public void dismiss(boolean showWarningIfDownloading) {
@@ -264,7 +267,6 @@ public class TilesDownloadProgressFragment extends BaseOsmAndFragment implements
 		super.onStart();
 		downloadTilesHelper.setListener(this);
 		if (!downloadTilesHelper.isDownloadStarted()) {
-			ITileSource tileSource = app.getSettings().getMapTileSource(false);
 			downloadTilesHelper.downloadTiles(minZoom, maxZoom, latLonRect, tileSource, downloadType);
 		}
 	}

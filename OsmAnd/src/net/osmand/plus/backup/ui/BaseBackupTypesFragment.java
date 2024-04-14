@@ -15,11 +15,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.FragmentActivity;
 
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.utils.ColorUtilities;
-import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.BackupListeners.OnDeleteFilesListener;
@@ -29,12 +25,17 @@ import net.osmand.plus.backup.ui.BackupTypesAdapter.OnItemSelectedListener;
 import net.osmand.plus.backup.ui.ClearTypesBottomSheet.BackupClearType;
 import net.osmand.plus.backup.ui.ClearTypesBottomSheet.OnClearTypesListener;
 import net.osmand.plus.base.BaseOsmAndFragment;
+import net.osmand.plus.chooseplan.OsmAndProPlanFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.settings.backend.ExportSettingsCategory;
-import net.osmand.plus.settings.backend.ExportSettingsType;
+import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseListener;
+import net.osmand.plus.inapp.InAppPurchaseUtils;
+import net.osmand.plus.settings.backend.ExportCategory;
 import net.osmand.plus.settings.backend.backup.SettingsHelper;
+import net.osmand.plus.settings.backend.backup.exporttype.ExportType;
 import net.osmand.plus.settings.fragments.BaseSettingsListFragment;
 import net.osmand.plus.settings.fragments.SettingsCategoryItems;
+import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -44,19 +45,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment
-		implements OnItemSelectedListener, OnClearTypesListener, OnDeleteFilesListener {
+public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment implements OnItemSelectedListener,
+		OnClearTypesListener, OnDeleteFilesListener, InAppPurchaseListener {
 
-	protected OsmandApplication app;
 	protected BackupHelper backupHelper;
 
-	protected Map<ExportSettingsCategory, SettingsCategoryItems> dataList = new LinkedHashMap<>();
-	protected Map<ExportSettingsType, List<?>> selectedItemsMap = new EnumMap<>(ExportSettingsType.class);
+	protected Map<ExportCategory, SettingsCategoryItems> dataList = new LinkedHashMap<>();
+	protected Map<ExportType, List<?>> selectedItemsMap = new EnumMap<>(ExportType.class);
 
 	protected ProgressBar progressBar;
+	protected BackupTypesAdapter adapter;
 	protected BackupClearType clearType;
 
-	protected boolean nightMode;
+	protected boolean cloudRestore;
 	protected boolean wasDrawerDisabled;
 
 	@Override
@@ -67,12 +68,11 @@ public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		backupHelper = app.getBackupHelper();
-		nightMode = !app.getSettings().isLightContent();
 		clearType = getClearType();
 		dataList = getDataList();
 		selectedItemsMap = getSelectedItems();
+		cloudRestore = requireMapActivity().getFragmentsHelper().isFirstScreenShowing();
 	}
 
 	protected abstract int getTitleId();
@@ -81,19 +81,19 @@ public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment
 
 	protected abstract RemoteFilesType getRemoteFilesType();
 
-	protected abstract Map<ExportSettingsType, List<?>> getSelectedItems();
+	protected abstract Map<ExportType, List<?>> getSelectedItems();
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(app, nightMode);
+		updateNightMode();
 		View view = themedInflater.inflate(R.layout.fragment_backup_types, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 		setupToolbar(view);
 
 		progressBar = view.findViewById(R.id.progress_bar);
 
-		BackupTypesAdapter adapter = new BackupTypesAdapter(app, this, nightMode);
+		adapter = new BackupTypesAdapter(app, this, cloudRestore, nightMode);
 		adapter.updateSettingsItems(dataList, selectedItemsMap);
 
 		ExpandableListView expandableList = view.findViewById(R.id.list);
@@ -144,60 +144,70 @@ public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment
 	}
 
 	@Override
-	public void onCategorySelected(ExportSettingsCategory category, boolean selected) {
+	public void onCategorySelected(ExportCategory exportCategory, boolean selected) {
 		boolean hasItemsToDelete = false;
-		SettingsCategoryItems categoryItems = dataList.get(category);
-		List<ExportSettingsType> types = categoryItems.getTypes();
-		for (ExportSettingsType type : types) {
-			List<Object> items = getItemsForType(type);
-			hasItemsToDelete |= !Algorithms.isEmpty(items);
-			selectedItemsMap.put(type, selected ? items : null);
+		SettingsCategoryItems categoryItems = dataList.get(exportCategory);
+		List<ExportType> exportTypes = categoryItems.getTypes();
+		for (ExportType exportType : exportTypes) {
+			if (isExportTypeAvailable(exportType)) {
+				List<?> items = getItemsForType(exportType);
+				hasItemsToDelete |= !Algorithms.isEmpty(items);
+				selectedItemsMap.put(exportType, selected ? items : null);
+			}
 		}
 		if (!selected && hasItemsToDelete) {
-			showClearTypesBottomSheet(types);
+			showClearTypesBottomSheet(exportTypes);
 		}
 	}
 
 	@Override
-	public void onTypeSelected(ExportSettingsType type, boolean selected) {
-		List<Object> items = getItemsForType(type);
-		selectedItemsMap.put(type, selected ? items : null);
-
-		if (!selected && !Algorithms.isEmpty(items)) {
-			showClearTypesBottomSheet(Collections.singletonList(type));
+	public void onTypeSelected(@NonNull ExportType exportType, boolean selected) {
+		if (isExportTypeAvailable(exportType)) {
+			List<?> items = getItemsForType(exportType);
+			selectedItemsMap.put(exportType, selected ? items : null);
+			if (!selected && !Algorithms.isEmpty(items)) {
+				showClearTypesBottomSheet(Collections.singletonList(exportType));
+			}
+		} else {
+			OsmAndProPlanFragment.showInstance(requireActivity());
 		}
 	}
 
-	protected void showClearTypesBottomSheet(List<ExportSettingsType> types) {
+	protected boolean isExportTypeAvailable(@NonNull ExportType exportType) {
+		return InAppPurchaseUtils.isExportTypeAvailable(app, exportType) || cloudRestore;
+	}
+
+	protected void showClearTypesBottomSheet(List<ExportType> types) {
 		FragmentActivity activity = getActivity();
 		if (activity != null) {
 			ClearTypesBottomSheet.showInstance(activity.getSupportFragmentManager(), types, clearType, this);
 		}
 	}
 
-	protected Map<ExportSettingsCategory, SettingsCategoryItems> getDataList() {
+	@NonNull
+	protected Map<ExportCategory, SettingsCategoryItems> getDataList() {
 		Map<String, RemoteFile> remoteFiles = backupHelper.getBackup().getRemoteFiles(getRemoteFilesType());
 		if (remoteFiles == null) {
 			remoteFiles = Collections.emptyMap();
 		}
-
-		Map<ExportSettingsType, List<?>> settingsToOperate = new EnumMap<>(ExportSettingsType.class);
-		for (ExportSettingsType type : ExportSettingsType.getEnabledTypes()) {
+		Map<ExportType, List<?>> dataToOperate = new EnumMap<>(ExportType.class);
+		for (ExportType exportType : ExportType.enabledValues()) {
 			List<RemoteFile> filesByType = new ArrayList<>();
 			for (RemoteFile remoteFile : remoteFiles.values()) {
-				if (ExportSettingsType.getExportSettingsTypeForRemoteFile(remoteFile) == type) {
+				if (ExportType.findBy(remoteFile) == exportType) {
 					filesByType.add(remoteFile);
 				}
 			}
-			settingsToOperate.put(type, filesByType);
+			dataToOperate.put(exportType, filesByType);
 		}
-		return SettingsHelper.getSettingsToOperateByCategory(settingsToOperate, true);
+		return SettingsHelper.categorizeSettingsToOperate(dataToOperate, true);
 	}
 
-	protected List<Object> getItemsForType(ExportSettingsType type) {
+	@NonNull
+	protected List<?> getItemsForType(@NonNull ExportType exportType) {
 		for (SettingsCategoryItems categoryItems : dataList.values()) {
-			if (categoryItems.getTypes().contains(type)) {
-				return (List<Object>) categoryItems.getItemsForType(type);
+			if (categoryItems.getTypes().contains(exportType)) {
+				return categoryItems.getItemsForType(exportType);
 			}
 		}
 		return Collections.emptyList();
@@ -220,8 +230,23 @@ public abstract class BaseBackupTypesFragment extends BaseOsmAndFragment
 		backupHelper.prepareBackup();
 	}
 
+	@Override
+	public void onItemPurchased(String sku, boolean active) {
+		dataList = getDataList();
+		selectedItemsMap = getSelectedItems();
+
+		if (isResumed() && adapter != null) {
+			adapter.updateSettingsItems(dataList, selectedItemsMap);
+		}
+	}
+
 	protected void updateProgressVisibility(boolean visible) {
 		AndroidUiHelper.updateVisibility(progressBar, visible);
+	}
+
+	@NonNull
+	protected MapActivity requireMapActivity() {
+		return ((MapActivity) requireActivity());
 	}
 
 	@Nullable

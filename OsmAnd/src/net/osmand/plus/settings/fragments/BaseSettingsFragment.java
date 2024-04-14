@@ -54,6 +54,8 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.activities.OsmandActionBarActivity;
+import net.osmand.plus.base.dialog.DialogManager;
+import net.osmand.plus.base.dialog.interfaces.controller.IDialogController;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.profiles.SelectAppModesBottomSheetDialogFragment;
 import net.osmand.plus.profiles.SelectAppModesBottomSheetDialogFragment.AppModeChangedListener;
@@ -64,6 +66,7 @@ import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.settings.bottomsheets.BooleanPreferenceBottomSheet;
 import net.osmand.plus.settings.bottomsheets.ChangeGeneralProfilesPrefBottomSheet;
+import net.osmand.plus.settings.bottomsheets.CustomizableSingleSelectionBottomSheet;
 import net.osmand.plus.settings.bottomsheets.EditTextPreferenceBottomSheet;
 import net.osmand.plus.settings.bottomsheets.MultiSelectPreferencesBottomSheet;
 import net.osmand.plus.settings.bottomsheets.SingleSelectPreferenceBottomSheet;
@@ -155,7 +158,8 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 	}
 
 	private boolean updateTheme() {
-		boolean nightMode = !settings.isLightContentForMode(getSelectedAppMode());
+		ApplicationMode appMode = getSelectedAppMode();
+		boolean nightMode = !settings.isLightContentForMode(appMode);
 		boolean changed = this.nightMode != nightMode;
 		this.nightMode = nightMode;
 		this.themeRes = nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme;
@@ -266,6 +270,15 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 		}
 	}
 
+	public boolean getContentStatusBarNightMode() {
+		boolean nightMode = isNightMode();
+		if (isProfileDependent()) {
+			return nightMode;
+		} else {
+			return true;
+		}
+	}
+
 	@Override
 	public boolean onPreferenceChange(Preference preference, Object newValue) {
 		return onConfirmPreferenceChange(preference.getKey(), newValue, getApplyQueryType());
@@ -305,6 +318,13 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 		return currentScreenType != null ? currentScreenType.applyQueryType : null;
 	}
 
+	protected void displayPreferenceDialog(@NonNull String prefKey) {
+		Preference preference = findPreference(prefKey);
+		if (preference != null) {
+			onDisplayPreferenceDialog(preference);
+		}
+	}
+
 	@Override
 	public void onDisplayPreferenceDialog(Preference preference) {
 		FragmentManager fragmentManager = getFragmentManager();
@@ -316,7 +336,7 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 		if (preference instanceof ListPreferenceEx) {
 			SingleSelectPreferenceBottomSheet.showInstance(fragmentManager, preference.getKey(), this, false, appMode, isProfileDependent(), false);
 		} else if (preference instanceof SwitchPreferenceEx) {
-			BooleanPreferenceBottomSheet.showInstance(fragmentManager, preference.getKey(), this, false, appMode, getApplyQueryType(), isProfileDependent());
+			BooleanPreferenceBottomSheet.showInstance(fragmentManager, preference.getKey(), getApplyQueryType(), this, appMode, false, isProfileDependent());
 		} else if (preference instanceof EditTextPreference) {
 			EditTextPreferenceBottomSheet.showInstance(fragmentManager, preference.getKey(), this, false, appMode);
 		} else if (preference instanceof MultiSelectBooleanPreference) {
@@ -364,7 +384,7 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 
 	protected abstract void setupPreferences();
 
-	protected void onBindPreferenceViewHolder(Preference preference, PreferenceViewHolder holder) {
+	protected void onBindPreferenceViewHolder(@NonNull Preference preference, @NonNull PreferenceViewHolder holder) {
 		if (preference.isSelectable()) {
 			View selectableView = holder.itemView.findViewById(R.id.selectable_list_item);
 			if (selectableView != null) {
@@ -512,6 +532,11 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 		}
 	}
 
+	protected void addOnPreferencesScreen(@NonNull Preference preference) {
+		PreferenceScreen preferenceScreen = getPreferenceScreen();
+		preferenceScreen.addPreference(preference);
+	}
+
 	private void updatePreferencesScreen() {
 		if (getSelectedAppMode() != null && currentScreenType != null) {
 			int resId = currentScreenType.preferencesResId;
@@ -620,11 +645,18 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 		return null;
 	}
 
+	protected void setPreferenceIcon(@NonNull String prefId, @NonNull Drawable icon) {
+		Preference preference = findPreference(prefId);
+		if (preference != null) {
+			preference.setIcon(icon);
+		}
+	}
+
 	@ColorInt
 	protected int getActiveProfileColor() {
 		return isProfileDependent() ?
 				getSelectedAppMode().getProfileColor(isNightMode()) :
-				ContextCompat.getColor(app, nightMode ? R.color.icon_color_active_dark : R.color.icon_color_active_light);
+				ColorUtilities.getActiveColor(app, nightMode);
 	}
 
 	@ColorRes
@@ -766,6 +798,17 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
 
 	protected Drawable getPersistentPrefIcon(Drawable enabled, Drawable disabled) {
 		return AndroidUtils.createEnabledStateListDrawable(disabled, enabled);
+	}
+
+	protected void showSingleSelectionDialog(@NonNull String processId,
+	                                         @NonNull IDialogController controller) {
+		FragmentActivity activity = getActivity();
+		if (activity != null) {
+			DialogManager dialogManager = app.getDialogManager();
+			dialogManager.register(processId, controller);
+			FragmentManager fm = activity.getSupportFragmentManager();
+			CustomizableSingleSelectionBottomSheet.showInstance(fm, processId, false);
+		}
 	}
 
 	public SwitchPreferenceCompat createSwitchPreference(OsmandPreference<Boolean> b, int title, int summary, int layoutId) {

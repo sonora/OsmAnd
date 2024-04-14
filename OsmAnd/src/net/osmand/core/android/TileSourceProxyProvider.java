@@ -58,6 +58,16 @@ public class TileSourceProxyProvider extends interface_ImageMapLayerProvider {
 	}
 
 	@Override
+	public ZoomLevel getMinVisibleZoom() {
+		return getMinZoom();
+	}
+
+	@Override
+	public ZoomLevel getMaxVisibleZoom() {
+		return getMaxZoom();
+	}
+
+	@Override
 	public boolean supportsNaturalObtainData() {
 		return true;
 	}
@@ -216,6 +226,10 @@ public class TileSourceProxyProvider extends interface_ImageMapLayerProvider {
 				}
 			} else {
 				tilesCache.get(tileFilename, requestTimestamp);
+				if (cacheOnly && tileSource.couldBeDownloadedFromInternet()) {
+					// Async load tile if it's expired
+					tilesCache.getTileForMapAsync(tileFilename, tileSource, tileX, tileY, zoom, true, requestTimestamp);
+				}
 			}
 			bytes = tileSource.getBytes(tileX, tileY, zoom, dirWithTiles);
 		} catch (Exception ignore) {

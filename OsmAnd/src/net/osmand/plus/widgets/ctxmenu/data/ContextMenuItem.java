@@ -9,9 +9,9 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import androidx.core.content.ContextCompat;
 
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
+import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.widgets.ctxmenu.callback.ItemClickListener;
 import net.osmand.plus.widgets.ctxmenu.callback.ItemLongClickListener;
 import net.osmand.plus.widgets.ctxmenu.callback.OnIntegerValueChangedListener;
@@ -41,6 +41,7 @@ public class ContextMenuItem {
 	private String secondaryDescription;
 
 	private boolean useNaturalIconColor;
+	private boolean useNaturalSecondIconColor;
 	@ColorInt
 	private Integer color;
 	@DrawableRes
@@ -64,6 +65,12 @@ public class ContextMenuItem {
 
 	public ContextMenuItem(@Nullable String id) {
 		this.id = id;
+	}
+
+	@NonNull
+	@Override
+	public String toString() {
+		return title;
 	}
 
 	@Nullable
@@ -122,6 +129,10 @@ public class ContextMenuItem {
 
 	public boolean useNaturalIconColor() {
 		return useNaturalIconColor;
+	}
+
+	public boolean useNaturalSecondIconColor() {
+		return useNaturalSecondIconColor;
 	}
 
 	@ColorInt
@@ -263,6 +274,12 @@ public class ContextMenuItem {
 	}
 
 	@NonNull
+	public ContextMenuItem setUseNaturalSecondIconColor(boolean useNaturalSecondIconColor) {
+		this.useNaturalSecondIconColor = useNaturalSecondIconColor;
+		return this;
+	}
+
+	@NonNull
 	public ContextMenuItem setColor(@ColorInt @Nullable Integer color) {
 		this.color = color;
 		return this;
@@ -270,7 +287,7 @@ public class ContextMenuItem {
 
 	@NonNull
 	public ContextMenuItem setColor(@NonNull Context context, @ColorRes int colorRes) {
-		this.color = colorRes != INVALID_ID ? ContextCompat.getColor(context, colorRes) : null;
+		this.color = colorRes != INVALID_ID ? ColorUtilities.getColor(context, colorRes) : null;
 		return this;
 	}
 

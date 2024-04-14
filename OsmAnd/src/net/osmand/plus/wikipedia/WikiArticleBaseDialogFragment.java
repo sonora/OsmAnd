@@ -1,5 +1,7 @@
 package net.osmand.plus.wikipedia;
 
+import static net.osmand.plus.utils.ColorUtilities.getStatusBarSecondaryColorId;
+
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.Log;
@@ -11,9 +13,9 @@ import android.widget.TextView;
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 
-import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.IndexConstants;
 import net.osmand.plus.R;
+import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.wikivoyage.WikiBaseDialogFragment;
 
 import java.io.BufferedWriter;
@@ -85,7 +87,7 @@ public abstract class WikiArticleBaseDialogFragment extends WikiBaseDialogFragme
 			"    }" +
 			"}</script>"
 			+ "</body></html>";
-	protected static final Set<String> rtlLanguages = new HashSet<>(Arrays.asList("ar","dv","he","iw","fa","nqo","ps","sd","ug","ur","yi"));
+	protected static final Set<String> rtlLanguages = new HashSet<>(Arrays.asList("ar", "dv", "he", "iw", "fa", "nqo", "ps", "sd", "ug", "ur", "yi"));
 
 	protected WebView contentWebView;
 	protected TextView selectedLangTv;
@@ -93,7 +95,7 @@ public abstract class WikiArticleBaseDialogFragment extends WikiBaseDialogFragme
 
 
 	protected void updateWebSettings() {
-		WikiArticleShowImages showImages = getSettings().WIKI_ARTICLE_SHOW_IMAGES.get();
+		WikiArticleShowImages showImages = settings.WIKI_ARTICLE_SHOW_IMAGES.get();
 		WebSettings webSettings = contentWebView.getSettings();
 		switch (showImages) {
 			case ON:
@@ -103,15 +105,14 @@ public abstract class WikiArticleBaseDialogFragment extends WikiBaseDialogFragme
 				webSettings.setCacheMode(WebSettings.LOAD_CACHE_ONLY);
 				break;
 			case WIFI:
-				webSettings.setCacheMode(getMyApplication().getSettings().isWifiConnected() ?
-						WebSettings.LOAD_DEFAULT : WebSettings.LOAD_CACHE_ONLY);
+				webSettings.setCacheMode(settings.isWifiConnected() ? WebSettings.LOAD_DEFAULT : WebSettings.LOAD_CACHE_ONLY);
 				break;
 		}
 	}
 
 	@NonNull
 	protected String getBaseUrl() {
-		File wikivoyageDir = getMyApplication().getAppPath(IndexConstants.WIKIVOYAGE_INDEX_DIR);
+		File wikivoyageDir = app.getAppPath(IndexConstants.WIKIVOYAGE_INDEX_DIR);
 		if (new File(wikivoyageDir, "article_style.css").exists()) {
 			return "file://" + wikivoyageDir.getAbsolutePath() + "/";
 		}
@@ -146,7 +147,7 @@ public abstract class WikiArticleBaseDialogFragment extends WikiBaseDialogFragme
 	@Override
 	@ColorRes
 	protected int getStatusBarColor() {
-		return nightMode ? R.color.status_bar_wikivoyage_article_dark : R.color.status_bar_wikivoyage_article_light;
+		return getStatusBarSecondaryColorId(nightMode);
 	}
 
 	protected abstract void showPopupLangMenu(View view, String langSelected);

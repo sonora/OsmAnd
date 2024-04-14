@@ -5,10 +5,12 @@ import static net.osmand.plus.settings.backend.ApplicationMode.BICYCLE;
 import static net.osmand.plus.settings.backend.ApplicationMode.BOAT;
 import static net.osmand.plus.settings.backend.ApplicationMode.CAR;
 import static net.osmand.plus.settings.backend.ApplicationMode.HORSE;
+import static net.osmand.plus.settings.backend.ApplicationMode.MOPED;
 import static net.osmand.plus.settings.backend.ApplicationMode.MOTORCYCLE;
 import static net.osmand.plus.settings.backend.ApplicationMode.PEDESTRIAN;
 import static net.osmand.plus.settings.backend.ApplicationMode.PUBLIC_TRANSPORT;
 import static net.osmand.plus.settings.backend.ApplicationMode.SKI;
+import static net.osmand.plus.settings.backend.ApplicationMode.TRAIN;
 import static net.osmand.plus.settings.backend.ApplicationMode.TRUCK;
 import static net.osmand.plus.views.mapwidgets.WidgetType.ALTITUDE_MY_LOCATION;
 import static net.osmand.plus.views.mapwidgets.WidgetType.ALTITUDE_MAP_CENTER;
@@ -17,9 +19,13 @@ import static net.osmand.plus.views.mapwidgets.WidgetType.BATTERY;
 import static net.osmand.plus.views.mapwidgets.WidgetType.CURRENT_SPEED;
 import static net.osmand.plus.views.mapwidgets.WidgetType.CURRENT_TIME;
 import static net.osmand.plus.views.mapwidgets.WidgetType.DISTANCE_TO_DESTINATION;
+import static net.osmand.plus.views.mapwidgets.WidgetType.GLIDE_AVERAGE;
+import static net.osmand.plus.views.mapwidgets.WidgetType.GLIDE_TARGET;
 import static net.osmand.plus.views.mapwidgets.WidgetType.GPS_INFO;
 import static net.osmand.plus.views.mapwidgets.WidgetType.INTERMEDIATE_DESTINATION;
+import static net.osmand.plus.views.mapwidgets.WidgetType.LANES;
 import static net.osmand.plus.views.mapwidgets.WidgetType.MAGNETIC_BEARING;
+import static net.osmand.plus.views.mapwidgets.WidgetType.MARKERS_TOP_BAR;
 import static net.osmand.plus.views.mapwidgets.WidgetType.MAX_SPEED;
 import static net.osmand.plus.views.mapwidgets.WidgetType.NEXT_TURN;
 import static net.osmand.plus.views.mapwidgets.WidgetType.RADIUS_RULER;
@@ -28,8 +34,10 @@ import static net.osmand.plus.views.mapwidgets.WidgetType.SECOND_NEXT_TURN;
 import static net.osmand.plus.views.mapwidgets.WidgetType.SIDE_MARKER_1;
 import static net.osmand.plus.views.mapwidgets.WidgetType.SIDE_MARKER_2;
 import static net.osmand.plus.views.mapwidgets.WidgetType.SMALL_NEXT_TURN;
+import static net.osmand.plus.views.mapwidgets.WidgetType.STREET_NAME;
 import static net.osmand.plus.views.mapwidgets.WidgetType.SUNRISE;
 import static net.osmand.plus.views.mapwidgets.WidgetType.SUNSET;
+import static net.osmand.plus.views.mapwidgets.WidgetType.SUN_POSITION;
 import static net.osmand.plus.views.mapwidgets.WidgetType.TIME_TO_DESTINATION;
 import static net.osmand.plus.views.mapwidgets.WidgetType.TIME_TO_INTERMEDIATE;
 import static net.osmand.plus.views.mapwidgets.WidgetType.TRUE_BEARING;
@@ -70,17 +78,19 @@ public class WidgetsAvailabilityHelper {
 
 	public static void initRegVisibility() {
 		ApplicationMode[] exceptDefault = {CAR, BICYCLE, PEDESTRIAN, PUBLIC_TRANSPORT, BOAT,
-				AIRCRAFT, SKI, TRUCK, MOTORCYCLE, HORSE};
+				AIRCRAFT, SKI, TRUCK, MOTORCYCLE, HORSE, MOPED, TRAIN};
 		ApplicationMode[] all = null;
 		ApplicationMode[] none = {};
 
 		// left
-		ApplicationMode[] navigationSet1 = {CAR, BICYCLE, BOAT, SKI, TRUCK, MOTORCYCLE, HORSE};
-		ApplicationMode[] navigationSet2 = {PEDESTRIAN, PUBLIC_TRANSPORT, AIRCRAFT};
+		ApplicationMode[] nextTurnSet = {CAR, BICYCLE, BOAT, SKI, TRUCK, MOTORCYCLE, HORSE, MOPED};
+		ApplicationMode[] smallNextTurnSet = {PEDESTRIAN, PUBLIC_TRANSPORT, AIRCRAFT, TRAIN};
+		ApplicationMode[] secondNextTurnSet = {CAR, BICYCLE, PEDESTRIAN, BOAT, SKI, TRUCK, MOTORCYCLE, HORSE, MOPED};
 
-		regWidgetVisibility(NEXT_TURN, navigationSet1);
-		regWidgetVisibility(SMALL_NEXT_TURN, navigationSet2);
-		regWidgetVisibility(SECOND_NEXT_TURN, navigationSet1);
+		regWidgetVisibility(NEXT_TURN, nextTurnSet);
+		regWidgetVisibility(SMALL_NEXT_TURN, smallNextTurnSet);
+		regWidgetVisibility(SECOND_NEXT_TURN, secondNextTurnSet);
+		
 		regWidgetAvailability(NEXT_TURN, exceptDefault);
 		regWidgetAvailability(SMALL_NEXT_TURN, exceptDefault);
 		regWidgetAvailability(SECOND_NEXT_TURN, exceptDefault);
@@ -90,9 +100,9 @@ public class WidgetsAvailabilityHelper {
 		regWidgetVisibility(DISTANCE_TO_DESTINATION, all);
 		regWidgetVisibility(TIME_TO_INTERMEDIATE, all);
 		regWidgetVisibility(TIME_TO_DESTINATION, all);
-		regWidgetVisibility(CURRENT_SPEED, CAR, BICYCLE, BOAT, SKI, PUBLIC_TRANSPORT, AIRCRAFT,
-				TRUCK, MOTORCYCLE, HORSE);
-		regWidgetVisibility(MAX_SPEED, CAR, TRUCK, MOTORCYCLE);
+		regWidgetVisibility(CURRENT_SPEED, BICYCLE, BOAT, SKI, PUBLIC_TRANSPORT, AIRCRAFT,
+				HORSE, TRAIN);
+		regWidgetVisibility(MAX_SPEED, none);
 		regWidgetVisibility(ALTITUDE_MAP_CENTER, PEDESTRIAN, BICYCLE);
 		regWidgetVisibility(ALTITUDE_MY_LOCATION, PEDESTRIAN, BICYCLE);
 		regWidgetAvailability(INTERMEDIATE_DESTINATION, all);
@@ -106,6 +116,14 @@ public class WidgetsAvailabilityHelper {
 		regWidgetAvailability(ALTITUDE_MAP_CENTER, all);
 		regWidgetAvailability(SUNRISE, all);
 		regWidgetAvailability(SUNSET, all);
+		regWidgetAvailability(SUN_POSITION, all);
+		regWidgetAvailability(GLIDE_TARGET, all);
+		regWidgetAvailability(GLIDE_AVERAGE, all);
+
+		// vertical
+		regWidgetVisibility(STREET_NAME, CAR);
+		regWidgetVisibility(LANES, CAR, BICYCLE);
+		regWidgetVisibility(MARKERS_TOP_BAR, all);
 
 		// all = null everything
 		regWidgetAvailability(SIDE_MARKER_1, all);

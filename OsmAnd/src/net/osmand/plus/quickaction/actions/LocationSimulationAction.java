@@ -2,6 +2,7 @@ package net.osmand.plus.quickaction.actions;
 
 import static net.osmand.plus.quickaction.CreateEditActionDialog.FileSelected;
 import static net.osmand.plus.quickaction.CreateEditActionDialog.TAG;
+import static net.osmand.plus.quickaction.QuickActionIds.LOCATION_SIMULATION_ACTION_ID;
 
 import android.graphics.Typeface;
 import android.view.LayoutInflater;
@@ -21,17 +22,18 @@ import com.google.android.material.slider.Slider;
 import net.osmand.CallbackWithObject;
 import net.osmand.gpx.GPXFile;
 import net.osmand.gpx.GPXTrackAnalysis;
-import net.osmand.plus.OsmAndLocationSimulation;
+import net.osmand.plus.simulation.OsmAndLocationSimulation;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
 import net.osmand.plus.quickaction.CreateEditActionDialog;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
-import net.osmand.plus.quickaction.SelectTrackFileDialogFragment;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
-import net.osmand.plus.track.helpers.GpxDbHelper.GpxDataItemCallback;
+import net.osmand.plus.track.SelectTrackTabsFragment;
+import net.osmand.plus.track.helpers.GpxDataItem;
 import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.utils.AndroidUtils;
@@ -47,7 +49,7 @@ import java.io.File;
 
 public class LocationSimulationAction extends QuickAction implements FileSelected {
 
-	public static final QuickActionType TYPE = new QuickActionType(26, "location.simulation", LocationSimulationAction.class)
+	public static final QuickActionType TYPE = new QuickActionType(LOCATION_SIMULATION_ACTION_ID, "location.simulation", LocationSimulationAction.class)
 			.nameRes(R.string.simulate_location_by_gpx)
 			.iconRes(R.drawable.ic_action_start_navigation).nonEditable()
 			.category(QuickActionType.NAVIGATION);
@@ -81,31 +83,34 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 
 	@Override
 	public void execute(@NonNull MapActivity mapActivity) {
+		OsmandDevelopmentPlugin plugin = PluginsHelper.getActivePlugin(OsmandDevelopmentPlugin.class);
+		if (plugin != null) {
+			unselectGpxFileIfMissing();
+			speedUpValue = getFloatFromParams(KEY_SIMULATION_SPEEDUP, MIN_SPEEDUP);
+			cutOffValue = getFloatFromParams(KEY_SIMULATION_CUTOFF, MIN_CUTOFF_DISTANCE);
 
-		unselectGpxFileIfMissing();
-		speedUpValue = getFloatFromParams(KEY_SIMULATION_SPEEDUP, MIN_SPEEDUP);
-		cutOffValue = getFloatFromParams(KEY_SIMULATION_CUTOFF, MIN_CUTOFF_DISTANCE);
-
-		if (!shouldUseSelectedGpxFile()) {
-			OsmAndLocationSimulation sim = mapActivity.getMyApplication().getLocationProvider().getLocationSimulation();
-			if (sim.isRouteAnimating()) {
-				sim.startStopGpxAnimation(mapActivity);
-			} else {
-				CallbackWithObject<String> onFileSelect = gpxFilePath -> {
-					getGpxFile(gpxFilePath, mapActivity, gpxFile -> {
-						startStopSimulation(gpxFile, mapActivity);
+			if (!shouldUseSelectedGpxFile()) {
+				OsmAndLocationSimulation sim = mapActivity.getMyApplication().getLocationProvider().getLocationSimulation();
+				if (sim.isRouteAnimating()) {
+					sim.startStopGpxAnimation(mapActivity);
+				} else {
+					CallbackWithObject<String> onFileSelect = gpxFilePath -> {
+						getGpxFile(gpxFilePath, mapActivity, gpxFile -> {
+							startStopSimulation(gpxFile, mapActivity);
+							return true;
+						});
 						return true;
-					});
+					};
+					showSelectTrackFileDialog(mapActivity, onFileSelect);
+				}
+			} else {
+				getGpxFile(getSelectedGpxFilePath(true), mapActivity, gpxFile -> {
+					startStopSimulation(gpxFile, mapActivity);
 					return true;
-				};
-				showSelectTrackFileDialog(mapActivity, onFileSelect);
+				});
 			}
-		} else {
-			getGpxFile(getSelectedGpxFilePath(true), mapActivity, gpxFile -> {
-				startStopSimulation(gpxFile, mapActivity);
-				return true;
-			});
 		}
+
 	}
 
 	@Override
@@ -119,7 +124,7 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 		if (sim.isRouteAnimating()) {
 			sim.startStopGpxAnimation(mapActivity);
 		} else if (gpxFile != null && gpxFile.hasTrkPt()) {
-			sim.startAnimationThread(app, gpxFile, (int) cutOffValue, true, speedUpValue);
+			sim.startSimulationThread(app, gpxFile, (int) cutOffValue, true, speedUpValue);
 		}
 	}
 
@@ -209,20 +214,11 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 		if (selectedGpxFile != null) {
 			setupGpxTrackInfo(trackInfoContainer, gpxName, selectedGpxFile.getTrackAnalysis(app), app);
 		} else {
-			GpxDataItem gpxDataItem = app.getGpxDbHelper().getItem(file, new GpxDataItemCallback() {
-				@Override
-				public boolean isCancelled() {
-					return false;
-				}
-
-				@Override
-				public void onGpxDataItemReady(GpxDataItem item) {
-					if (item != null && item.getAnalysis() != null) {
-						setupGpxTrackInfo(trackInfoContainer, gpxName, item.getAnalysis(), app);
-					}
+			GpxDataItem gpxDataItem = app.getGpxDbHelper().getItem(file, item -> {
+				if (item.getAnalysis() != null) {
+					setupGpxTrackInfo(trackInfoContainer, gpxName, item.getAnalysis(), app);
 				}
 			});
-
 			if (gpxDataItem != null && gpxDataItem.getAnalysis() != null) {
 				setupGpxTrackInfo(trackInfoContainer, gpxName, gpxDataItem.getAnalysis(), app);
 			}
@@ -245,12 +241,12 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 		ImageView distanceIcon = trackInfoContainer.findViewById(R.id.distance_icon);
 		TextView distanceText = trackInfoContainer.findViewById(R.id.distance);
 		distanceIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_distance_16));
-		distanceText.setText(OsmAndFormatter.getFormattedDistance(analysis.totalDistance, app));
+		distanceText.setText(OsmAndFormatter.getFormattedDistance(analysis.getTotalDistance(), app));
 
 		ImageView waypointsIcon = trackInfoContainer.findViewById(R.id.points_icon);
 		TextView waypointsCountText = trackInfoContainer.findViewById(R.id.points_count);
 		waypointsIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_waypoint_16));
-		waypointsCountText.setText(String.valueOf(analysis.wptPoints));
+		waypointsCountText.setText(String.valueOf(analysis.getWptPoints()));
 
 		ImageView timeIcon = trackInfoContainer.findViewById(R.id.time_icon);
 		if (analysis.isTimeSpecified()) {
@@ -258,17 +254,17 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 			timeIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_time_16));
 
 			TextView timeText = trackInfoContainer.findViewById(R.id.time);
-			int duration = (int) (analysis.timeSpan / 1000);
+			int duration = analysis.getDurationInSeconds();
 			timeText.setText(Algorithms.formatDuration(duration, app.accessibilityEnabled()));
 		} else {
 			AndroidUiHelper.updateVisibility(timeIcon, false);
 		}
 
-		setupCutOffSlider(trackInfoContainer.getRootView(), app, (int) (analysis.totalDistance / CUTOFF_STEP_SIZE) * CUTOFF_STEP_SIZE);
+		setupCutOffSlider(trackInfoContainer.getRootView(), app, (int) (analysis.getTotalDistance() / CUTOFF_STEP_SIZE) * CUTOFF_STEP_SIZE);
 	}
 
 	private void showSelectTrackFileDialog(@NonNull MapActivity mapActivity, CallbackWithObject<String> onFileSelect) {
-		SelectTrackFileDialogFragment.showInstance(mapActivity.getSupportFragmentManager(), getDialog(mapActivity), onFileSelect);
+		SelectTrackTabsFragment.showInstance(mapActivity.getSupportFragmentManager(), onFileSelect != null ? onFileSelect : getDialog(mapActivity));
 	}
 
 	private void setupSpeedUpSlider(@NonNull View container, @NonNull OsmandApplication app) {
@@ -351,7 +347,7 @@ public class LocationSimulationAction extends QuickAction implements FileSelecte
 
 	@Nullable
 	private CreateEditActionDialog getDialog(@NonNull MapActivity mapActivity) {
-		Fragment fragment = mapActivity.getFragment(TAG);
+		Fragment fragment = mapActivity.getFragmentsHelper().getFragment(TAG);
 		return fragment instanceof CreateEditActionDialog ? ((CreateEditActionDialog) fragment) : null;
 	}
 

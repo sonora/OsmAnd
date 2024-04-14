@@ -16,21 +16,18 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 
 import net.osmand.CallbackWithObject;
-import net.osmand.gpx.GPXFile;
 import net.osmand.IndexConstants;
 import net.osmand.PlatformUtil;
 import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
-import net.osmand.plus.OsmandApplication;
+import net.osmand.gpx.GPXFile;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.ContextMenuScrollFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.track.helpers.GpxUiHelper;
-import net.osmand.plus.track.helpers.GPXInfo;
 import net.osmand.plus.importfiles.ImportHelper;
-import net.osmand.plus.importfiles.ImportHelper.OnGpxImportCompleteListener;
-import net.osmand.plus.importfiles.ImportHelper.OnSuccessfulGpxImport;
+import net.osmand.plus.importfiles.GpxImportListener;
+import net.osmand.plus.importfiles.OnSuccessfulGpxImport;
 import net.osmand.plus.measurementtool.MeasurementToolFragment;
 import net.osmand.plus.routepreparationmenu.cards.AttachTrackToRoadsCard;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
@@ -45,13 +42,17 @@ import net.osmand.plus.routepreparationmenu.cards.TracksToFollowCard;
 import net.osmand.plus.routing.GPXRouteParams.GPXRouteParamsBuilder;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.settings.enums.TracksSortByMode;
+import net.osmand.plus.track.SelectTrackTabsFragment;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.track.fragments.TrackSelectSegmentBottomSheet.OnSegmentSelectedListener;
+import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
-import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
-import net.osmand.plus.widgets.popup.PopUpMenuHelper;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.popup.PopUpMenu;
+import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
 import net.osmand.plus.widgets.popup.PopUpMenuItem;
 
 import org.apache.commons.logging.Log;
@@ -70,7 +71,6 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 
 	private static final String SELECTING_TRACK = "selecting_track";
 
-	private OsmandApplication app;
 	private ImportHelper importHelper;
 
 	private GPXFile gpxFile;
@@ -122,9 +122,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
-		MapActivity mapActivity = requireMapActivity();
-		importHelper = new ImportHelper(mapActivity);
+		importHelper = app.getImportHelper();
 
 		GPXRouteParamsBuilder routeParamsBuilder = app.getRoutingHelper().getCurrentGPXRoute();
 		if (routeParamsBuilder != null) {
@@ -367,7 +365,11 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 			} else if (card instanceof TrackEditCard) {
 				openPlanRoute(false);
 			} else if (card instanceof SelectTrackCard) {
-				updateSelectionMode(true);
+				SelectTrackTabsFragment.GpxFileSelectionListener gpxFileSelectionListener = gpxFile -> {
+					selectTrackToFollow(gpxFile, true);
+					updateSelectionMode(false);
+				};
+				SelectTrackTabsFragment.showInstance(mapActivity.getSupportFragmentManager(), gpxFileSelectionListener);
 			} else if (card instanceof ReverseTrackCard
 					|| card instanceof NavigateTrackOptionsCard) {
 				updateMenu();
@@ -391,8 +393,8 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null && index < card.getGpxInfoList().size()) {
 			GPXInfo gpxInfo = card.getGpxInfoList().get(index);
-			String fileName = gpxInfo.getFileName();
-			SelectedGpxFile selectedGpxFile = app.getSelectedGpxHelper().getSelectedFileByName(fileName);
+			String filePath = gpxInfo.getFilePath();
+			SelectedGpxFile selectedGpxFile = app.getSelectedGpxHelper().getSelectedFileByPath(filePath);
 			if (selectedGpxFile != null) {
 				GPXFile gpxFile = selectedGpxFile.getGpxFile();
 				selectTrackToFollow(gpxFile, true);
@@ -406,6 +408,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 					}
 					return true;
 				};
+				String fileName = gpxInfo.getFileName();
 				File dir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
 				GpxUiHelper.loadGPXFileInDifferentThread(mapActivity, callback, dir, null, fileName);
 			}
@@ -434,7 +437,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 	}
 
 	public void importTrack() {
-		Intent intent = ImportHelper.getImportTrackIntent();
+		Intent intent = ImportHelper.getImportFileIntent();
 		AndroidUtils.startActivityForResultIfSafe(this, intent, ImportHelper.IMPORT_FILE_REQUEST);
 	}
 
@@ -443,16 +446,16 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 		if (requestCode == ImportHelper.IMPORT_FILE_REQUEST && resultCode == Activity.RESULT_OK) {
 			if (data != null) {
 				Uri uri = data.getData();
-				importHelper.setGpxImportCompleteListener(new OnGpxImportCompleteListener() {
+				importHelper.setGpxImportListener(new GpxImportListener() {
 					@Override
-					public void onSaveComplete(boolean success, GPXFile result) {
+					public void onSaveComplete(boolean success, GPXFile gpxFile) {
 						if (success) {
-							selectTrackToFollow(result, true);
+							selectTrackToFollow(gpxFile, true);
 							updateSelectionMode(false);
 						} else {
 							app.showShortToastMessage(app.getString(R.string.error_occurred_loading_gpx));
 						}
-						importHelper.setGpxImportCompleteListener(null);
+						importHelper.setGpxImportListener(null);
 					}
 				});
 				importHelper.handleGpxImport(uri, OnSuccessfulGpxImport.OPEN_PLAN_ROUTE_FRAGMENT, true);
@@ -504,7 +507,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 				items.add(new PopUpMenuItem.Builder(app)
 						.setTitleId(mode.getNameId())
 						.setIcon(app.getUIUtilities().getThemedIcon(mode.getIconId()))
-						.setOnClickListener(v1 -> {
+						.setOnClickListener(menuItem -> {
 							sortByMode = mode;
 							sortButton.setImageResource(mode.getIconId());
 							if (tracksCard != null) {
@@ -515,7 +518,11 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 						.create()
 				);
 			}
-			new PopUpMenuHelper.Builder(v, items, isNightMode()).show();
+			PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+			displayData.anchorView = v;
+			displayData.menuItems = items;
+			displayData.nightMode = isNightMode();
+			PopUpMenu.show(displayData);
 		});
 	}
 
@@ -523,9 +530,10 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 		View buttonsContainer = view.findViewById(R.id.buttons_container);
 		buttonsContainer.setBackgroundColor(AndroidUtils.getColorFromAttr(view.getContext(), R.attr.bg_color));
 
-		View cancelButton = view.findViewById(R.id.dismiss_button);
+		DialogButton cancelButton = view.findViewById(R.id.dismiss_button);
 		cancelButton.setOnClickListener(v -> dismiss());
-		UiUtilities.setupDialogButton(isNightMode(), cancelButton, DialogButtonType.SECONDARY, R.string.shared_string_close);
+		cancelButton.setButtonType(DialogButtonType.SECONDARY);
+		cancelButton.setTitleId(R.string.shared_string_close);
 	}
 
 	private void close() {
@@ -545,7 +553,7 @@ public class FollowTrackFragment extends ContextMenuScrollFragment implements Ca
 				if (!mapActivity.isChangingConfigurations()) {
 					mapActivity.getMapRouteInfoMenu().cancelSelectionFromTracks();
 				}
-				mapActivity.getMapLayers().getMapControlsLayer().showRouteInfoControlDialog();
+				mapActivity.getMapLayers().getMapActionsHelper().showRouteInfoControlDialog();
 			}
 		} catch (Exception e) {
 			log.error(e);

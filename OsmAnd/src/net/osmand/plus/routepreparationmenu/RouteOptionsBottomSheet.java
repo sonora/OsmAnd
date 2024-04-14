@@ -2,9 +2,11 @@ package net.osmand.plus.routepreparationmenu;
 
 import static net.osmand.IndexConstants.GPX_FILE_EXT;
 import static net.osmand.plus.measurementtool.MeasurementToolFragment.ATTACH_ROADS_MODE;
+import static net.osmand.plus.measurementtool.MeasurementToolFragment.CALCULATE_HEIGHTMAP_MODE;
 import static net.osmand.plus.measurementtool.MeasurementToolFragment.CALCULATE_SRTM_MODE;
 import static net.osmand.plus.measurementtool.MeasurementToolFragment.FOLLOW_TRACK_MODE;
 import static net.osmand.plus.routepreparationmenu.RoutingOptionsHelper.DRIVING_STYLE;
+import static net.osmand.plus.settings.fragments.BaseSettingsFragment.APP_MODE_KEY;
 import static net.osmand.plus.settings.fragments.RouteParametersFragment.RELIEF_SMOOTHNESS_FACTOR;
 import static net.osmand.plus.settings.fragments.RouteParametersFragment.getRoutingParameterTitle;
 import static net.osmand.plus.settings.fragments.RouteParametersFragment.isRoutingParameterSelected;
@@ -29,7 +31,8 @@ import androidx.fragment.app.FragmentManager;
 import net.osmand.gpx.GPXFile;
 import net.osmand.PlatformUtil;
 import net.osmand.StateChangedListener;
-import net.osmand.plus.OsmAndLocationSimulation;
+import net.osmand.plus.avoidroads.AvoidRoadsBottomSheetDialogFragment;
+import net.osmand.plus.simulation.OsmAndLocationSimulation;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
@@ -66,10 +69,10 @@ import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.bottomsheets.ElevationDateBottomSheet;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.fragments.SettingsScreenType;
-import net.osmand.plus.settings.fragments.VoiceLanguageBottomSheetFragment;
-import net.osmand.plus.track.SaveGpxAsyncTask.SaveGpxListener;
+import net.osmand.plus.settings.fragments.voice.VoiceLanguageBottomSheetFragment;
 import net.osmand.plus.track.fragments.TrackAltitudeBottomSheet;
 import net.osmand.plus.track.fragments.TrackAltitudeBottomSheet.CalculateAltitudeListener;
+import net.osmand.plus.track.helpers.save.SaveGpxHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FileUtils;
@@ -90,7 +93,6 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 
 	public static final String TAG = RouteOptionsBottomSheet.class.getSimpleName();
 	private static final Log LOG = PlatformUtil.getLog(RouteOptionsBottomSheet.class);
-	public static final String APP_MODE_KEY = "APP_MODE_KEY";
 	public static final String DIALOG_MODE_KEY = "DIALOG_MODE_KEY";
 
 	private OsmandApplication app;
@@ -327,7 +329,7 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 		});
 
 		Drawable drawable = app.getUIUtilities().getIcon(R.drawable.ic_action_settings,
-				nightMode ? R.color.route_info_control_icon_color_dark : R.color.route_info_control_icon_color_light);
+				nightMode ? R.color.icon_color_default_dark : R.color.icon_color_default_light);
 		if (Build.VERSION.SDK_INT >= 21) {
 			Drawable activeDrawable = app.getUIUtilities().getPaintedIcon(R.drawable.ic_action_settings, selectedModeColor);
 			drawable = AndroidUtils.createPressedStateListDrawable(drawable, activeDrawable);
@@ -442,7 +444,6 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 						fragment.setUsedOnMap(true);
 						fragment.setArguments(args);
 						fragment.setTargetFragment(RouteOptionsBottomSheet.this, ShowAlongTheRouteBottomSheet.REQUEST_CODE);
-						fragment.setAppMode(applicationMode);
 						fragment.show(fm, ShowAlongTheRouteBottomSheet.TAG);
 						updateMenu();
 					}
@@ -480,7 +481,7 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 		});
 
 		Drawable drawable = app.getUIUtilities().getIcon(R.drawable.ic_action_settings,
-				nightMode ? R.color.route_info_control_icon_color_dark : R.color.route_info_control_icon_color_light);
+				nightMode ? R.color.icon_color_default_dark : R.color.icon_color_default_light);
 		Drawable activeDrawable = app.getUIUtilities().getPaintedIcon(R.drawable.ic_action_settings, selectedModeColor);
 		drawable = AndroidUtils.createPressedStateListDrawable(drawable, activeDrawable);
 		settingBtnImage.setImageDrawable(drawable);
@@ -564,7 +565,7 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 					public void onClick(View view) {
 						MapRouteInfoMenu mapRouteInfoMenu = mapActivity.getMapRouteInfoMenu();
 						mapRouteInfoMenu.hide();
-						mapRouteInfoMenu.selectTrack();
+						mapRouteInfoMenu.chooseAndShowFollowTrack();
 						dismiss();
 					}
 				})
@@ -693,17 +694,20 @@ public class RouteOptionsBottomSheet extends MenuBottomSheetDialogFragment imple
 	public void calculateOnlineSelected(int segmentIndex) {
 		GPXFile gpxFile = GpxUiHelper.makeGpxFromRoute(routingHelper.getRoute(), app);
 		gpxFile.path = FileUtils.getTempDir(app).getAbsolutePath() + "/route" + GPX_FILE_EXT;
-		GpxUiHelper.saveGpx(gpxFile, new SaveGpxListener() {
-			@Override
-			public void gpxSavingStarted() {
-
+		SaveGpxHelper.saveGpx(gpxFile, errorMessage -> {
+			if (errorMessage == null) {
+				openPlanRoute(gpxFile, segmentIndex, CALCULATE_SRTM_MODE | FOLLOW_TRACK_MODE);
 			}
+		});
+	}
 
-			@Override
-			public void gpxSavingFinished(Exception errorMessage) {
-				if (errorMessage == null) {
-					openPlanRoute(gpxFile, segmentIndex, CALCULATE_SRTM_MODE | FOLLOW_TRACK_MODE);
-				}
+	@Override
+	public void calculateOfflineSelected(int segmentIndex) {
+		GPXFile gpxFile = GpxUiHelper.makeGpxFromRoute(routingHelper.getRoute(), app);
+		gpxFile.path = FileUtils.getTempDir(app).getAbsolutePath() + "/route" + GPX_FILE_EXT;
+		SaveGpxHelper.saveGpx(gpxFile, errorMessage -> {
+			if (errorMessage == null) {
+				openPlanRoute(gpxFile, segmentIndex, CALCULATE_HEIGHTMAP_MODE | FOLLOW_TRACK_MODE);
 			}
 		});
 	}

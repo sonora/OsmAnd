@@ -1,5 +1,8 @@
 package net.osmand.plus.configmap;
 
+import static net.osmand.IProgress.EMPTY_PROGRESS;
+import static net.osmand.plus.wikivoyage.data.TravelGpx.ACTIVITY_TYPE;
+
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -10,21 +13,23 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import net.osmand.IProgress;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.fragment.app.FragmentManager;
+
 import net.osmand.OsmAndCollator;
 import net.osmand.map.OsmandRegions;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiType;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.helpers.FileNameTranslationHelper;
 import net.osmand.plus.render.TravelRendererHelper;
-import net.osmand.plus.resources.ResourceManager.ReloadIndexesListener;
 import net.osmand.plus.settings.backend.ApplicationMode;
-import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
@@ -37,28 +42,17 @@ import net.osmand.util.Algorithms;
 import java.util.Collections;
 import java.util.List;
 
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
-import androidx.fragment.app.FragmentManager;
-
-import static net.osmand.plus.wikivoyage.data.TravelGpx.ACTIVITY_TYPE;
-
 public class TravelRoutesFragment extends BaseOsmAndFragment {
 
 	public static final String TAG = TravelRoutesFragment.class.getSimpleName();
 	private static final String TRAVEL_TYPE_KEY = "travel_type_key";
 
-	private OsmandApplication app;
-	private OsmandSettings settings;
 	private TravelRendererHelper rendererHelper;
 
 	private List<String> routeTypes;
 	private List<String> pointCategories;
 
 	private TravelType travelType = TravelType.ROUTE_TYPES;
-	private boolean nightMode;
 
 	private enum TravelType {
 		ROUTE_TYPES(R.string.shared_string_tracks),
@@ -80,12 +74,14 @@ public class TravelRoutesFragment extends BaseOsmAndFragment {
 	}
 
 	@Override
+	protected boolean isUsedOnMap() {
+		return true;
+	}
+
+	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
-		settings = app.getSettings();
 		rendererHelper = app.getTravelRendererHelper();
-		nightMode = app.getDaynightHelper().isNightModeForMapControls();
 		updateRouteTypes();
 		updatePointCategories();
 
@@ -102,7 +98,7 @@ public class TravelRoutesFragment extends BaseOsmAndFragment {
 
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(requireContext(), nightMode);
+		updateNightMode();
 		View view = themedInflater.inflate(R.layout.travel_routes_fragment, container, false);
 
 		showHideTopShadow(view);
@@ -147,7 +143,7 @@ public class TravelRoutesFragment extends BaseOsmAndFragment {
 	}
 
 	private void updateItemView(View itemView, String name, @DrawableRes int imageId, boolean selected,
-								DescriptionType descriptionType) {
+	                            DescriptionType descriptionType) {
 		TextView title = itemView.findViewById(R.id.title);
 		ImageView icon = itemView.findViewById(R.id.icon);
 		TextView description = itemView.findViewById(R.id.description);
@@ -273,16 +269,9 @@ public class TravelRoutesFragment extends BaseOsmAndFragment {
 				updateRouteTypes();
 				updatePointCategories();
 
-				app.getResourceManager().reloadIndexesAsync(IProgress.EMPTY_PROGRESS, new ReloadIndexesListener() {
-					@Override
-					public void reloadIndexesStarted() {
-					}
-
-					@Override
-					public void reloadIndexesFinished(List<String> warnings) {
-						app.getOsmandMap().refreshMap(true);
-						app.getOsmandMap().getMapLayers().updateLayers((MapActivity) getMyActivity());
-					}
+				app.getResourceManager().reloadIndexesAsync(EMPTY_PROGRESS, warnings -> {
+					app.getOsmandMap().refreshMap(true);
+					app.getOsmandMap().getMapLayers().updateLayers((MapActivity) getMyActivity());
 				});
 			});
 			container.addView(itemView);

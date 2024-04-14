@@ -22,7 +22,6 @@ import androidx.fragment.app.FragmentManager;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 
 import net.osmand.IndexConstants;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.RestartActivity;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
@@ -36,7 +35,8 @@ import net.osmand.plus.settings.datastorage.item.StorageItem;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
 import net.osmand.util.Algorithms;
 
@@ -61,7 +61,6 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 	private static final String EXISTING_FILES_KEY = "existing_files";
 	private static final String SELECTED_STORAGE_KEY = "selected_storage";
 
-	private OsmandApplication app;
 	private StorageItem selectedStorage;
 	private StorageItem currentStorage;
 
@@ -83,7 +82,6 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 	private int generalProgress;
 	private boolean copyFinished;
 
-	private boolean nightMode;
 	private boolean usedOnMap;
 
 	private AlertDialog closeDialog = null;
@@ -91,7 +89,6 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = getMyApplication();
 		if (savedInstanceState != null && filesSize == null) {
 			filesCount = savedInstanceState.getInt(FILES_COUNT_KEY);
 			remainingSize = savedInstanceState.getLong(REMAINING_SIZE_KEY);
@@ -112,13 +109,17 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 				}
 			}
 		}
-		nightMode = isNightMode(usedOnMap);
+	}
+
+	@Override
+	protected boolean isUsedOnMap() {
+		return usedOnMap;
 	}
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(requireContext(), nightMode);
+		updateNightMode();
 		mainView = themedInflater.inflate(R.layout.copy_files_fragment, container, false);
 		ViewCompat.setNestedScrollingEnabled(mainView.findViewById(R.id.list), true);
 
@@ -194,7 +195,7 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 	}
 
 	private void setupButtons() {
-		View actionButton = mainView.findViewById(R.id.dismiss_button);
+		DialogButton actionButton = mainView.findViewById(R.id.dismiss_button);
 		actionButton.setOnClickListener(v -> {
 			FragmentActivity activity = getActivity();
 			if (restartListener != null) {
@@ -205,7 +206,8 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 				}
 			}
 		});
-		UiUtilities.setupDialogButton(nightMode, actionButton, DialogButtonType.PRIMARY, R.string.shared_string_restart);
+		actionButton.setButtonType(DialogButtonType.PRIMARY);
+		actionButton.setTitleId(R.string.shared_string_restart);
 		AndroidUiHelper.updateVisibility(actionButton, copyFinished);
 	}
 
@@ -214,7 +216,6 @@ public class StorageMigrationFragment extends BaseOsmAndDialogFragment implement
 		progressTitle = mainView.findViewById(R.id.progress_title);
 		copyFilesDescr = mainView.findViewById(R.id.copy_files_descr);
 
-		progressBar.setMin(0);
 		progressBar.setMax((int) (filesSize.second / 1024));
 
 		setupFilesTitle();

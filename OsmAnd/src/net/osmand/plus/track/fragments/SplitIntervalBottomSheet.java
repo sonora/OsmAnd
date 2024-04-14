@@ -1,6 +1,6 @@
 package net.osmand.plus.track.fragments;
 
-import static net.osmand.plus.track.fragments.TrackMenuFragment.TRACK_FILE_NAME;
+import static net.osmand.plus.track.helpers.GpxDisplayGroup.getTrackDisplayGroup;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -21,12 +21,16 @@ import net.osmand.plus.R;
 import net.osmand.plus.base.MenuBottomSheetDialogFragment;
 import net.osmand.plus.base.bottomsheetmenu.SimpleBottomSheetItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.TitleItem;
-import net.osmand.plus.configmap.tracks.TracksAppearanceFragment;
+import net.osmand.plus.base.dialog.DialogManager;
+import net.osmand.plus.configmap.tracks.appearance.ChangeAppearanceController;
+import net.osmand.plus.configmap.tracks.appearance.DefaultAppearanceController;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.track.GpxSplitType;
 import net.osmand.plus.track.TrackDrawInfo;
 import net.osmand.plus.track.helpers.GpxDisplayGroup;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
+import net.osmand.plus.track.helpers.TrackDisplayGroup;
+import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.multistatetoggle.TextToggleButton;
@@ -78,9 +82,6 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 			TrackAppearanceFragment fragment = (TrackAppearanceFragment) target;
 			trackDrawInfo = fragment.getTrackDrawInfo();
 			selectedGpxFile = fragment.getSelectedGpxFile();
-		} else if (target instanceof TracksAppearanceFragment) {
-			TracksAppearanceFragment fragment = (TracksAppearanceFragment) target;
-			trackDrawInfo = fragment.getTrackDrawInfo();
 		}
 		prepareSplitIntervalOptions();
 
@@ -125,7 +126,7 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 		TextRadioItem time = createRadioButton(GpxSplitType.TIME, R.string.shared_string_time);
 		TextRadioItem distance = createRadioButton(GpxSplitType.DISTANCE, R.string.distance);
 
-		time.setEnabled(selectedGpxFile == null || selectedGpxFile.getTrackAnalysisToDisplay(app).timeSpan > 0);
+		time.setEnabled(selectedGpxFile == null || selectedGpxFile.getTrackAnalysisToDisplay(app).getTimeSpan() > 0);
 
 		TextToggleButton radioGroup = new TextToggleButton(app, buttonsContainer, nightMode);
 		radioGroup.setItems(none, time, distance);
@@ -196,13 +197,14 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 		addTimeOptionSplit(3600, groups);
 	}
 
-	private void addDistanceOptionSplit(int value, @NonNull List<GpxDisplayGroup> displayGroups) {
+	private void addDistanceOptionSplit(int value, @NonNull List<GpxDisplayGroup> model) {
 		double roundedDist = OsmAndFormatter.calculateRoundedDist(value, app);
-		String formattedDist = OsmAndFormatter.getFormattedDistanceInterval(app, value, false);
+		String formattedDist = OsmAndFormatter.getFormattedDistanceInterval(app, value, OsmAndFormatter.OsmAndFormatterParams.NO_TRAILING_ZEROS);
 		distanceSplitOptions.put(formattedDist, roundedDist);
 
-		if (displayGroups.size() > 0) {
-			if (Math.abs(displayGroups.get(0).getSplitDistance() - roundedDist) < 1) {
+		if (model.size() > 0) {
+			TrackDisplayGroup trackGroup = getTrackDisplayGroup(model.get(0));
+			if (trackGroup != null && Math.abs(trackGroup.getSplitDistance() - roundedDist) < 1) {
 				selectedDistanceSplitInterval = distanceSplitOptions.size() - 1;
 			}
 		}
@@ -213,7 +215,8 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 		timeSplitOptions.put(time, value);
 
 		if (model.size() > 0) {
-			if (model.get(0).getSplitTime() == value) {
+			TrackDisplayGroup trackGroup = getTrackDisplayGroup(model.get(0));
+			if (trackGroup != null && trackGroup.getSplitTime() == value) {
 				selectedTimeSplitInterval = timeSplitOptions.size() - 1;
 			}
 		}
@@ -293,27 +296,37 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 	}
 
 	private void updateSplit() {
-		double splitInterval = 0;
-		if (selectedSplitType == GpxSplitType.NO_SPLIT) {
-			splitInterval = 0;
-		} else if (selectedSplitType == GpxSplitType.DISTANCE) {
-			splitInterval = new ArrayList<>(distanceSplitOptions.values()).get(selectedDistanceSplitInterval);
-		} else if (selectedSplitType == GpxSplitType.TIME) {
-			splitInterval = new ArrayList<>(timeSplitOptions.values()).get(selectedTimeSplitInterval);
+		if (trackDrawInfo != null) {
+			double splitInterval = 0;
+			if (selectedSplitType == GpxSplitType.NO_SPLIT) {
+				splitInterval = 0;
+			} else if (selectedSplitType == GpxSplitType.DISTANCE) {
+				splitInterval = new ArrayList<>(distanceSplitOptions.values()).get(selectedDistanceSplitInterval);
+			} else if (selectedSplitType == GpxSplitType.TIME) {
+				splitInterval = new ArrayList<>(timeSplitOptions.values()).get(selectedTimeSplitInterval);
+			}
+			trackDrawInfo.setSplitType(selectedSplitType.getType());
+			trackDrawInfo.setSplitInterval(splitInterval);
 		}
-		trackDrawInfo.setSplitType(selectedSplitType.getType());
-		trackDrawInfo.setSplitInterval(splitInterval);
 	}
 
 	private void applySelectedSplit() {
 		int timeSplit = new ArrayList<>(timeSplitOptions.values()).get(selectedTimeSplitInterval);
 		double distanceSplit = new ArrayList<>(distanceSplitOptions.values()).get(selectedDistanceSplitInterval);
+		double splitInterval = GpxSplitType.DISTANCE == selectedSplitType ? distanceSplit : timeSplit;
 
 		Fragment target = getTargetFragment();
 		if (target instanceof TrackAppearanceFragment) {
 			((TrackAppearanceFragment) target).applySplit(selectedSplitType, timeSplit, distanceSplit);
-		} else if (target instanceof TracksAppearanceFragment) {
-			((TracksAppearanceFragment) target).updateContent();
+		}
+		DialogManager dialogManager = app.getDialogManager();
+		ChangeAppearanceController changeAppearanceController = (ChangeAppearanceController) dialogManager.findController(ChangeAppearanceController.PROCESS_ID);
+		if (changeAppearanceController != null) {
+			changeAppearanceController.getSplitCardController().onSplitSelected(selectedSplitType.getType(), splitInterval);
+		}
+		DefaultAppearanceController defaultAppearanceController = (DefaultAppearanceController) dialogManager.findController(DefaultAppearanceController.PROCESS_ID);
+		if (defaultAppearanceController != null) {
+			defaultAppearanceController.getSplitCardController().onSplitSelected(selectedSplitType.getType(), splitInterval);
 		}
 	}
 
@@ -326,19 +339,11 @@ public class SplitIntervalBottomSheet extends MenuBottomSheetDialogFragment {
 		return Collections.emptyList();
 	}
 
-	public static void showInstance(@NonNull FragmentManager fragmentManager, TrackDrawInfo trackDrawInfo, Fragment target) {
-		try {
-			if (fragmentManager.findFragmentByTag(TAG) == null) {
-				Bundle args = new Bundle();
-				args.putString(TRACK_FILE_NAME, trackDrawInfo.getFilePath());
-
-				SplitIntervalBottomSheet splitIntervalBottomSheet = new SplitIntervalBottomSheet();
-				splitIntervalBottomSheet.setArguments(args);
-				splitIntervalBottomSheet.setTargetFragment(target, 0);
-				splitIntervalBottomSheet.show(fragmentManager, TAG);
-			}
-		} catch (RuntimeException e) {
-			log.error("showInstance", e);
+	public static void showInstance(@NonNull FragmentManager manager, @Nullable Fragment target) {
+		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
+			SplitIntervalBottomSheet fragment = new SplitIntervalBottomSheet();
+			fragment.setTargetFragment(target, 0);
+			fragment.show(manager, TAG);
 		}
 	}
 }

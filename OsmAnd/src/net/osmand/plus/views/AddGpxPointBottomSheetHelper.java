@@ -7,11 +7,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import net.osmand.gpx.GPXFile;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
 import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
+import net.osmand.gpx.GPXFile;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
@@ -19,7 +19,6 @@ import net.osmand.plus.mapcontextmenu.MapContextMenu;
 import net.osmand.plus.mapcontextmenu.editors.WptPtEditor;
 import net.osmand.plus.mapcontextmenu.editors.WptPtEditor.OnDismissListener;
 import net.osmand.plus.track.fragments.TrackMenuFragment;
-import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.layers.ContextMenuLayer;
 import net.osmand.util.Algorithms;
 
@@ -55,8 +54,9 @@ public class AddGpxPointBottomSheetHelper implements OnDismissListener {
 		view.findViewById(R.id.create_button).setOnClickListener(v -> {
 			menuLayer.createGpxPoint();
 			if (pointDescription.isWpt()) {
+				RotatedTileBox tileBox = mapActivity.getMapView().getRotatedTileBox();
 				GPXFile gpx = newGpxPoint.getGpx();
-				LatLon latLon = getSelectedLatLon();
+				LatLon latLon = menuLayer.getMovableCenterLatLon(tileBox);
 				WptPtEditor editor = mapActivity.getContextMenu().getWptPtPointEditor();
 				if (editor != null) {
 					editor.setOnDismissListener(this);
@@ -70,14 +70,6 @@ public class AddGpxPointBottomSheetHelper implements OnDismissListener {
 			menuLayer.cancelAddGpxPoint();
 			onClose();
 		});
-	}
-
-	@NonNull
-	private LatLon getSelectedLatLon() {
-		RotatedTileBox tileBox = mapActivity.getMapView().getCurrentRotatedTileBox();
-		PointF point = menuLayer.getMovableCenterPoint(tileBox);
-		return NativeUtilities.getLatLonFromPixel(mapActivity.getMapView().getMapRenderer(),
-				tileBox, point.x, point.y);
 	}
 
 	public void onDraw(@NonNull RotatedTileBox tileBox) {
@@ -139,7 +131,7 @@ public class AddGpxPointBottomSheetHelper implements OnDismissListener {
 	}
 
 	private void onClose() {
-		TrackMenuFragment fragment = mapActivity.getTrackMenuFragment();
+		TrackMenuFragment fragment = mapActivity.getFragmentsHelper().getTrackMenuFragment();
 		if (fragment != null) {
 			fragment.updateContent();
 			fragment.show();

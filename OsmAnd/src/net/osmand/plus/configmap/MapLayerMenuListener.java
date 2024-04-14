@@ -6,9 +6,10 @@ import android.widget.CompoundButton;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.configmap.tracks.TracksFragment;
+import net.osmand.plus.configmap.tracks.TracksTabsFragment;
 import net.osmand.plus.plugins.PluginsFragment;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.rastermaps.OsmandRasterMapsPlugin;
@@ -41,7 +42,7 @@ final class MapLayerMenuListener extends OnRowItemClick {
 			showPoiFilterDialog(uiAdapter, item);
 			return false;
 		} else if (itemId == R.string.layer_gpx_layer) {
-			TracksFragment.showInstance(mapActivity.getSupportFragmentManager());
+			TracksTabsFragment.showInstance(mapActivity.getSupportFragmentManager());
 			return false;
 		} else if (itemId == R.string.rendering_category_transport) {
 			TransportLinesMenu.showTransportsDialog(mapActivity);
@@ -62,8 +63,9 @@ final class MapLayerMenuListener extends OnRowItemClick {
 	@Override
 	public boolean onContextMenuClick(@Nullable OnDataChangeUiAdapter uiAdapter, @Nullable View view,
 	                                  @NotNull ContextMenuItem item, boolean isChecked) {
-		OsmandSettings settings = mapActivity.getMyApplication().getSettings();
-		PoiFiltersHelper poiFiltersHelper = mapActivity.getMyApplication().getPoiFilters();
+		OsmandApplication app = mapActivity.getMyApplication();
+		OsmandSettings settings = app.getSettings();
+		PoiFiltersHelper poiFiltersHelper = app.getPoiFilters();
 		if (item.getSelected() != null) {
 			item.setColor(mapActivity, isChecked ? R.color.osmand_orange : ContextMenuItem.INVALID_ID);
 		}
@@ -81,12 +83,12 @@ final class MapLayerMenuListener extends OnRowItemClick {
 		} else if (itemId == R.string.shared_string_favorites) {
 			settings.SHOW_FAVORITES.set(isChecked);
 		} else if (itemId == R.string.layer_gpx_layer) {
-			GpxSelectionHelper selectedGpxHelper = mapActivity.getMyApplication().getSelectedGpxHelper();
+			GpxSelectionHelper selectedGpxHelper = app.getSelectedGpxHelper();
 			if (selectedGpxHelper.isAnyGpxFileSelected()) {
 				selectedGpxHelper.clearAllGpxFilesToShow(true);
 				item.setDescription(selectedGpxHelper.getGpxDescription());
 			} else {
-				TracksFragment.showInstance(mapActivity.getSupportFragmentManager());
+				TracksTabsFragment.showInstance(mapActivity.getSupportFragmentManager());
 			}
 		} else if (itemId == R.string.rendering_category_transport) {
 			boolean selected = transportLinesMenu.isShowAnyTransport();
@@ -96,8 +98,9 @@ final class MapLayerMenuListener extends OnRowItemClick {
 		} else if (itemId == R.string.layer_map) {
 			if (!PluginsHelper.isActive(OsmandRasterMapsPlugin.class)) {
 				PluginsFragment.showInstance(mapActivity.getSupportFragmentManager());
+				app.showToastMessage(R.string.map_online_plugin_is_not_installed);
 			} else if (uiAdapter != null) {
-				mapActivity.getMapLayers().selectMapLayer(mapActivity, item, uiAdapter);
+				mapActivity.getMapLayers().selectMapSourceLayer(mapActivity, item, uiAdapter);
 			}
 			return false;
 		} else if (itemId == R.string.show_borders_of_downloaded_maps) {

@@ -1,31 +1,31 @@
 package net.osmand.plus.views.controls.maphudbuttons;
 
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROUTE_PLANNING_HUD_ID;
+
 import android.graphics.drawable.Drawable;
+
+import androidx.annotation.NonNull;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.views.layers.MapControlsLayer;
-
-import androidx.annotation.NonNull;
-
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROUTE_PLANNING_HUD_ID;
+import net.osmand.plus.views.layers.MapActionsHelper;
 
 public class NavigationMenuButton extends MapButton {
 
 	private final RoutingHelper routingHelper;
 
 	public NavigationMenuButton(@NonNull MapActivity mapActivity) {
-		super(mapActivity, mapActivity.findViewById(R.id.map_route_info_button), ROUTE_PLANNING_HUD_ID);
+		super(mapActivity, mapActivity.findViewById(R.id.map_route_info_button), ROUTE_PLANNING_HUD_ID, false);
 		routingHelper = app.getRoutingHelper();
 		setIconColorId(R.color.map_button_icon_color_light, R.color.map_button_icon_color_dark);
 		setBackground(R.drawable.btn_round, R.drawable.btn_round_night);
 		setOnClickListener(v -> {
-			mapActivity.dismissCardDialog();
-			MapControlsLayer mapControlsLayer = app.getOsmandMap().getMapLayers().getMapControlsLayer();
-			if (mapControlsLayer != null) {
-				mapControlsLayer.doRoute();
+			mapActivity.getFragmentsHelper().dismissCardDialog();
+			MapActionsHelper controlsHelper = app.getOsmandMap().getMapLayers().getMapActionsHelper();
+			if (controlsHelper != null) {
+				controlsHelper.doRoute();
 			}
 		});
 	}

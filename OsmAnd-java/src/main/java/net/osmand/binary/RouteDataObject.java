@@ -1,17 +1,20 @@
 package net.osmand.binary;
 
+import static net.osmand.router.GeneralRouter.*;
+
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import gnu.trove.map.hash.TIntObjectHashMap;
+
 import net.osmand.Location;
-import net.osmand.PlatformUtil;
 import net.osmand.binary.BinaryMapRouteReaderAdapter.RouteRegion;
 import net.osmand.binary.BinaryMapRouteReaderAdapter.RouteTypeRule;
 import net.osmand.data.LatLon;
 import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 import net.osmand.util.TransliterationHelper;
-import org.apache.commons.logging.Log;
 
 public class RouteDataObject {
 	/*private */static final int RESTRICTION_SHIFT = 3;
@@ -36,7 +39,6 @@ public class RouteDataObject {
 	// mixed array [0, height, cumulative_distance height, cumulative_distance, height, ...] - length is length(points)*2
 	public float[] heightDistanceArray = null;
 	public float heightByCurrentLocation = Float.NaN;
-	private static final Log LOG = PlatformUtil.getLog(RouteDataObject.class);
 
 	public RouteDataObject(RouteRegion region) {
 		this.region = region;
@@ -343,45 +345,33 @@ public class RouteDataObject {
 
 	public String getDestinationName(String lang, boolean transliterate, boolean direction) {
 		if (names != null) {
-			int[] kt = names.keys();
-
-			// Issue #3181: Parse destination keys in this order:
-			//              destination:lang:XX:forward/backward
-			//              destination:forward/backward
-			//              destination:lang:XX
-			//              destination
-
-			String destinationTagLangFB = "destination:lang:XX";
+			int[] nameKeys = names.keys();
+			Map<String, Integer> tagPriorities = new HashMap<>();
+			int tagPriority = 1;
 			if (!Algorithms.isEmpty(lang)) {
-				destinationTagLangFB = (direction == true) ? "destination:lang:" + lang + ":forward" : "destination:lang:" + lang + ":backward";
+				tagPriorities.put("destination:lang:" + lang + (direction ? ":forward" : ":backward"), tagPriority++);
 			}
-			String destinationTagFB = (direction == true) ? "destination:forward" : "destination:backward";
-			String destinationTagLang = "destination:lang:XX";
+			tagPriorities.put("destination:" + (direction ? "forward" : "backward"), tagPriority++);
 			if (!Algorithms.isEmpty(lang)) {
-				destinationTagLang = "destination:lang:" + lang;
+				tagPriorities.put("destination:lang:" + lang, tagPriority++);
 			}
-			String destinationTagDefault = "destination";
-			String destinationDefault = null;
+			tagPriorities.put("destination", tagPriority);
 
-			for (int i = 0; i < kt.length; i++) {
-				int k = kt[i];
-				if (region.routeEncodingRules.size() > k) {
-					if (!Algorithms.isEmpty(lang) && destinationTagLangFB.equals(region.routeEncodingRules.get(k).getTag())) {
-						return (transliterate) ? TransliterationHelper.transliterate(names.get(k)) : names.get(k);
-					}
-					if (destinationTagFB.equals(region.routeEncodingRules.get(k).getTag())) {
-						return (transliterate) ? TransliterationHelper.transliterate(names.get(k)) : names.get(k);
-					}
-					if (!Algorithms.isEmpty(lang) && destinationTagLang.equals(region.routeEncodingRules.get(k).getTag())) {
-						return (transliterate) ? TransliterationHelper.transliterate(names.get(k)) : names.get(k);
-					}
-					if (destinationTagDefault.equals(region.routeEncodingRules.get(k).getTag())) {
-						destinationDefault = names.get(k);
+			int highestPriorityNameKey = -1;
+			int highestPriority = Integer.MAX_VALUE;
+			for (int nameKey : nameKeys) {
+				if (region.routeEncodingRules.size() > nameKey) {
+					String tag = region.routeEncodingRules.get(nameKey).getTag();
+					Integer priority = tagPriorities.get(tag);
+					if (priority != null && priority < highestPriority) {
+						highestPriority = priority;
+						highestPriorityNameKey = nameKey;
 					}
 				}
 			}
-			if (destinationDefault != null) {
-				return (transliterate) ? TransliterationHelper.transliterate(destinationDefault) : destinationDefault;
+			if (highestPriorityNameKey > 0) {
+				String name = names.get(highestPriorityNameKey);
+				return transliterate ? TransliterationHelper.transliterate(name) : name;
 			}
 		}
 		return "";
@@ -391,8 +381,16 @@ public class RouteDataObject {
 		return pointsX[i];
 	}
 
+	public int getPoint31XTile(int s, int e) {
+		return pointsX[s] / 2 + pointsX[e] / 2;
+	}
+
 	public int getPoint31YTile(int i) {
 		return pointsY[i];
+	}
+	
+	public int getPoint31YTile(int s, int e) {
+		return pointsY[s] / 2 + pointsY[e] / 2;
 	}
 
 	public int getPointsLength() {
@@ -596,26 +594,21 @@ public class RouteDataObject {
 	}
 
 	public float getMaximumSpeed(boolean direction) {
-		int sz = types.length;
-		float maxSpeed = 0;
-		for (int i = 0; i < sz; i++) {
-			RouteTypeRule r = region.quickGetEncodingRule(types[i]);
-			float mx = r.maxSpeed();
-			if (mx > 0) {
-				if (r.isForward() != 0) {
-					if ((r.isForward() == 1) != direction) {
-						continue;
-					} else {
-						// priority over default
-						maxSpeed = mx;
-						break;
-					}
-				} else {
-					maxSpeed = mx;
-				}
+		return getMaximumSpeed(direction, RouteTypeRule.PROFILE_NONE);
+	}
+
+	public float getMaximumSpeed(boolean direction, int profile) {
+		float maxSpeed = 0, maxProfileSpeed = 0;
+		for (int type : types) {
+			RouteTypeRule r = region.quickGetEncodingRule(type);
+			boolean forwardDirection = r.isForward() > 0;
+			if (forwardDirection == direction || r.isForward() == 0) {
+				// priority over default
+				maxSpeed = r.maxSpeed(RouteTypeRule.PROFILE_NONE) > 0 ? r.maxSpeed(RouteTypeRule.PROFILE_NONE) : maxSpeed;
+				maxProfileSpeed = r.maxSpeed(profile) > 0 ? r.maxSpeed(profile) : maxProfileSpeed;
 			}
 		}
-		return maxSpeed;
+		return maxProfileSpeed > 0 ? maxProfileSpeed : maxSpeed;
 	}
 
 	public static float parseSpeed(String v, float def) {
@@ -684,10 +677,6 @@ public class RouteDataObject {
 		return def;
 	}
 
-	public boolean loop() {
-		return pointsX[0] == pointsX[pointsX.length - 1] && pointsY[0] == pointsY[pointsY.length - 1];
-	}
-
 	public boolean platform() {
 		int sz = types.length;
 		for (int i = 0; i < sz; i++) {
@@ -707,8 +696,6 @@ public class RouteDataObject {
 		for (int i = 0; i < sz; i++) {
 			RouteTypeRule r = region.quickGetEncodingRule(types[i]);
 			if (r.roundabout()) {
-				return true;
-			} else if (r.onewayDirection() != 0 && loop()) {
 				return true;
 			}
 		}
@@ -834,16 +821,17 @@ public class RouteDataObject {
 		return getHighway(types, region);
 	}
 
-	public boolean hasPrivateAccess() {
-		int sz = types.length;
-		for (int i = 0; i < sz; i++) {
-			RouteTypeRule r = region.quickGetEncodingRule(types[i]);
-			if ("motorcar".equals(r.getTag())
-					|| "motor_vehicle".equals(r.getTag())
-					|| "vehicle".equals(r.getTag())
-					|| "access".equals(r.getTag())) {
-				if (r.getValue().equals("private")) {
+	public boolean hasPrivateAccess(GeneralRouterProfile profile) {
+		for (int type : types) {
+			RouteTypeRule rule = region.quickGetEncodingRule(type);
+			String tag = rule.getTag();
+			if (rule.getValue().equals("private")) {
+				if ("vehicle".equals(tag) || "access".equals(tag)) {
 					return true;
+				} else if (profile == GeneralRouterProfile.CAR) {
+					return "motorcar".equals(tag) || "motor_vehicle".equals(tag);
+				} else if (profile == GeneralRouterProfile.BICYCLE) {
+					return "bicycle".equals(tag);
 				}
 			}
 		}
@@ -942,8 +930,8 @@ public class RouteDataObject {
 		return false;
 	}
 
-	public boolean isStopApplicable(boolean direction, int intId, int startPointInd, int endPointInd) {
-		int[] pt = getPointTypes(intId);
+	public boolean isDirectionApplicable(boolean direction, int ind, int startPointInd, int endPointInd) {
+		int[] pt = getPointTypes(ind);
 		int sz = pt.length;
 		for (int i = 0; i < sz; i++) {
 			RouteTypeRule r = region.quickGetEncodingRule(pt[i]);
@@ -956,22 +944,20 @@ public class RouteDataObject {
 					return false;
 				}
 			}
-			// Tagging stop=all should be ok anyway, usually tagged on intersection node itself, so not needed here
-			//if (r.getTag().equals("stop") && r.getValue().equals("all")) {
-			//	return true;
-			//}
 		}
-		// Heuristic fallback: Distance analysis for STOP with no recognized directional tagging:
-		// Mask STOPs closer to the start than to the end of the routing segment if it is within 50m of start, but do not mask STOPs mapped directly on start/end (likely intersection node)
-		double d2Start = distance(startPointInd, intId);
-		double d2End = distance(intId, endPointInd);
-		if ((d2Start < d2End) && d2Start != 0 && d2End != 0 && d2Start < 50) {
-			return false;
+		if (startPointInd >= 0 ) {
+			// Heuristic fallback: Distance analysis for STOP with no recognized directional tagging:
+			// Mask STOPs closer to the start than to the end of the routing segment if it is within 50m of start, but do not mask STOPs mapped directly on start/end (likely intersection node)
+			double d2Start = distance(startPointInd, ind);
+			double d2End = distance(ind, endPointInd);
+			if ((d2Start < d2End) && d2Start != 0 && d2End != 0 && d2Start < 50) {
+				return false;
+			}
 		}
 		// No directional info detected
 		return true;
 	}
-
+	
 	public double distance(int startPoint, int endPoint) {
 		if (startPoint > endPoint) {
 			int k = endPoint;
@@ -1109,6 +1095,16 @@ public class RouteDataObject {
 	}
 
 	public void setRestriction(int k, long to, int type, long viaWay) {
+		if (restrictions == null) {
+			restrictions = new long[k + 1];
+		}
+		if (restrictions.length <= k) {
+			long[] copy = restrictions;
+			restrictions = new long[k + 1];
+			for (int i = 0; i < copy.length; i++) {
+				restrictions[i] = copy[i];
+			}
+		}
 		long valto = (to << RouteDataObject.RESTRICTION_SHIFT) | ((long) type & RouteDataObject.RESTRICTION_MASK);
 		restrictions[k] = valto;
 		if (viaWay != 0) {
@@ -1157,6 +1153,17 @@ public class RouteDataObject {
 		for (int k = 0; pointTypes != null && pointTypes[pntId] != null && k < pointTypes[pntId].length; k++) {
 			if (pointTypes[pntId][k] == type) {
 				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean containsType(int cachedType) {
+		if(cachedType != -1) {
+			for(int i=0; i<types.length; i++){
+				if(types[i] == cachedType) {
+					return true;
+				}
 			}
 		}
 		return false;

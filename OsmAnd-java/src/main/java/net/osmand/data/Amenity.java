@@ -1,8 +1,12 @@
 package net.osmand.data;
 
+import static net.osmand.gpx.GPXUtilities.OSM_PREFIX;
+
 import net.osmand.Location;
+import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
+import net.osmand.osm.PoiType;
 import net.osmand.util.Algorithms;
 
 import org.json.JSONObject;
@@ -41,6 +45,8 @@ public class Amenity extends MapObject {
 	public static final String REF = "ref";
 	public static final String OSM_DELETE_VALUE = "delete";
 	public static final String OSM_DELETE_TAG = "osmand_change";
+	public static final String PRIVATE_VALUE = "private";
+	public static final String ACCESS_PRIVATE_TAG = "access_private";
 	public static final String IMAGE_TITLE = "image_title";
 	public static final String IS_PART = "is_part";
 	public static final String IS_PARENT_OF = "is_parent_of";
@@ -56,6 +62,7 @@ public class Amenity extends MapObject {
 	public static final String SUBTYPE = "subtype";
 	public static final String NAME = "name";
 	public static final String SEPARATOR = ";";
+	public static final String ALT_NAME_WITH_LANG_PREFIX = "alt_name:";
 
 	private String subType;
 	private PoiCategory type;
@@ -67,6 +74,15 @@ public class Amenity extends MapObject {
 	private TIntArrayList y;
 	private TIntArrayList x;
 	private String mapIconName;
+	private int order;
+
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
 
 	public static class AmenityRoutePoint {
 		public double deviateDistance;
@@ -112,12 +128,70 @@ public class Amenity extends MapObject {
 		return str;
 	}
 
+	public boolean hasAdditionalInfo() {
+		return !Algorithms.isEmpty(additionalInfo);
+	}
+
 	// this method should be used carefully
-	public Map<String, String> getInternalAdditionalInfoMap() {
+	private Map<String, String> getInternalAdditionalInfoMap() {
 		if (additionalInfo == null) {
 			return Collections.emptyMap();
 		}
 		return additionalInfo;
+	}
+
+	public Map<String, String> getAdditionalInfoAndCollectCategories(
+			MapPoiTypes poiTypes,
+			List<String> hiddenAdditional,
+			Map<String, List<PoiType>> collectedPoiAdditionalCategories,
+			String[] alternateName) {
+		Map<String, String> result = new HashMap<>();
+		for (Entry<String, String> entry : getInternalAdditionalInfoMap().entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+
+			//collect tags with categories and skip
+			AbstractPoiType pt = poiTypes.getAnyPoiAdditionalTypeByKey(key);
+			if (pt == null && !isContentZipped(value)) {
+				pt = poiTypes.getAnyPoiAdditionalTypeByKey(key + "_" + value);
+			}
+			PoiType pType = null;
+			if (pt != null) {
+				pType = (PoiType) pt;
+				if (pType.isFilterOnly()) {
+					continue;
+				}
+			}
+			if (pType != null && !pType.isText()) {
+				if (collectedPoiAdditionalCategories != null) {
+					String categoryName = pType.getPoiAdditionalCategory();
+					if (!Algorithms.isEmpty(categoryName)) {
+						List<PoiType> poiAdditionalCategoryTypes = collectedPoiAdditionalCategories.get(categoryName);
+						if (poiAdditionalCategoryTypes == null) {
+							poiAdditionalCategoryTypes = new ArrayList<>();
+							collectedPoiAdditionalCategories.put(categoryName, poiAdditionalCategoryTypes);
+						}
+						poiAdditionalCategoryTypes.add(pType);
+						continue;
+					}
+				} else {
+					if (value.equals(alternateName[0])) {
+						alternateName[0] = pType.getTranslation();
+						return null;
+					}
+				}
+			}
+
+			//save all other values to separate lines
+			if (key.endsWith(OPENING_HOURS)) {
+				continue;
+			}
+			if (!Algorithms.isEmpty(hiddenAdditional) && !hiddenAdditional.contains(key)) {
+				key = OSM_PREFIX + key;
+			}
+			result.put(key, value);
+		}
+		return result;
 	}
 
 	public Collection<String> getAdditionalInfoValues(boolean excludeZipped) {
@@ -185,6 +259,23 @@ public class Amenity extends MapObject {
 			this.additionalInfo.put(tag, value);
 			if (OPENING_HOURS.equals(tag)) {
 				this.openingHours = unzipContent(value);
+			}
+		}
+	}
+
+	public StringBuilder printNamesAndAdditional() {
+		StringBuilder s = new StringBuilder();
+		printNames(" ", getInternalAdditionalInfoMap(), s);
+		printNames(" name:", getNamesMap(true), s);
+		return s;
+	}
+
+	private void printNames(String prefix, Map<String, String> stringMap, StringBuilder s) {
+		for (Entry<String, String> e : stringMap.entrySet()) {
+			if (e.getValue().startsWith(" gz ")) {
+				s.append(prefix).append(e.getKey()).append("='gzip ...'");
+			} else {
+				s.append(prefix).append(e.getKey()).append("='").append(e.getValue()).append("'");
 			}
 		}
 	}
@@ -272,6 +363,16 @@ public class Amenity extends MapObject {
 		}
 		return l;
 	}
+	public Map<String, String> getAltNamesMap() {
+		Map<String, String>  names = new HashMap<>();
+		for (String nm : getAdditionalInfoKeys()) {
+			String name = additionalInfo.get(nm);
+			if (nm.startsWith(ALT_NAME_WITH_LANG_PREFIX)) {
+				names.put(nm.substring(ALT_NAME_WITH_LANG_PREFIX.length()), name);
+			}
+		}
+		return names;
+	}
 
 	public String getTagSuffix(String tagPrefix) {
 		for (String infoTag : getAdditionalInfoKeys()) {
@@ -350,6 +451,22 @@ public class Amenity extends MapObject {
 				Algorithms.objectEquals(this.additionalInfo, thatObj.additionalInfo);
 	}
 
+	public boolean strictEquals(Object object) {
+		if (equals(object)) {
+			if (x != null && ((Amenity) object).x != null && x.size() == ((Amenity) object).x.size()) {
+				for (int i = 0; i < x.size(); i++) {
+					if (x.get(i) != ((Amenity) object).x.get(i) || y.get(i) != ((Amenity) object).y.get(i)) {
+						return false;
+					}
+				}
+				return true;
+			} else {
+				return x == null && ((Amenity) object).x == null;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public int compareTo(MapObject o) {
 		int cmp = super.compareTo(o);
@@ -389,6 +506,10 @@ public class Amenity extends MapObject {
 
 	public boolean isClosed() {
 		return OSM_DELETE_VALUE.equals(getAdditionalInfo(OSM_DELETE_TAG));
+	}
+
+	public boolean isPrivateAccess() {
+		return PRIVATE_VALUE.equals(getTagContent(ACCESS_PRIVATE_TAG));
 	}
 
 	public JSONObject toJSON() {

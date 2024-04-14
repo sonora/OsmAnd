@@ -1,15 +1,21 @@
 package net.osmand.plus.backup.commands;
 
+import static net.osmand.plus.backup.BackupHelper.LIST_FILES_URL;
+import static net.osmand.plus.backup.BackupHelper.STATUS_EMPTY_RESPONSE_ERROR;
+import static net.osmand.plus.backup.BackupHelper.STATUS_PARSE_JSON_ERROR;
+import static net.osmand.plus.backup.BackupHelper.STATUS_SERVER_ERROR;
+import static net.osmand.plus.backup.BackupHelper.STATUS_SUCCESS;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.plus.utils.AndroidNetworkUtils;
-import net.osmand.plus.utils.AndroidNetworkUtils.OnRequestResultListener;
+import net.osmand.plus.backup.BackupError;
 import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.BackupListeners.OnDeleteFilesListener;
 import net.osmand.plus.backup.RemoteFile;
-import net.osmand.plus.backup.BackupError;
-import net.osmand.plus.settings.backend.ExportSettingsType;
+import net.osmand.plus.settings.backend.backup.exporttype.ExportType;
+import net.osmand.plus.utils.AndroidNetworkUtils;
+import net.osmand.plus.utils.AndroidNetworkUtils.OnRequestResultListener;
 import net.osmand.util.Algorithms;
 
 import org.json.JSONArray;
@@ -17,29 +23,22 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static net.osmand.plus.backup.BackupHelper.LIST_FILES_URL;
-import static net.osmand.plus.backup.BackupHelper.STATUS_EMPTY_RESPONSE_ERROR;
-import static net.osmand.plus.backup.BackupHelper.STATUS_PARSE_JSON_ERROR;
-import static net.osmand.plus.backup.BackupHelper.STATUS_SERVER_ERROR;
-import static net.osmand.plus.backup.BackupHelper.STATUS_SUCCESS;
-
 public class DeleteOldFilesCommand extends BaseDeleteFilesCommand {
 
-	private final List<ExportSettingsType> types;
+	private final List<ExportType> types;
 
 	public DeleteOldFilesCommand(@NonNull BackupHelper helper,
-								 @Nullable List<ExportSettingsType> types) {
+								 @Nullable List<ExportType> types) {
 		super(helper, true);
 		this.types = types;
 	}
 
 	public DeleteOldFilesCommand(@NonNull BackupHelper helper,
-								 @Nullable List<ExportSettingsType> types,
+								 @Nullable List<ExportType> types,
 								 @Nullable OnDeleteFilesListener listener) {
 		super(helper, true, listener);
 		this.types = types;
@@ -61,9 +60,7 @@ public class DeleteOldFilesCommand extends BaseDeleteFilesCommand {
 		super.onProgressUpdate(objects);
 		for (OnDeleteFilesListener listener : getListeners()) {
 			Object obj = objects[0];
-			if (obj instanceof Map) {
-				listener.onFilesDeleteDone((Map) obj);
-			} else if (obj instanceof List) {
+			if (obj instanceof List) {
 				listener.onFilesDeleteStarted((List) obj);
 			} else if (obj instanceof Integer && objects.length == 2) {
 				int status = (Integer) obj;
@@ -108,7 +105,7 @@ public class DeleteOldFilesCommand extends BaseDeleteFilesCommand {
 				List<RemoteFile> filesToDelete = new ArrayList<>();
 				if (types != null) {
 					for (RemoteFile file : remoteFiles) {
-						ExportSettingsType exportType = ExportSettingsType.getExportSettingsTypeForRemoteFile(file);
+						ExportType exportType = ExportType.findBy(file);
 						if (types.contains(exportType)) {
 							filesToDelete.add(file);
 						}
@@ -119,8 +116,6 @@ public class DeleteOldFilesCommand extends BaseDeleteFilesCommand {
 				if (!filesToDelete.isEmpty()) {
 					publishProgress(filesToDelete);
 					deleteFiles(filesToDelete);
-				} else {
-					publishProgress(Collections.emptyMap());
 				}
 			}
 		};

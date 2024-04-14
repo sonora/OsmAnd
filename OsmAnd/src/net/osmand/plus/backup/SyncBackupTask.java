@@ -5,6 +5,7 @@ import static net.osmand.plus.backup.NetworkSettingsHelper.RESTORE_ITEMS_KEY;
 import static net.osmand.plus.backup.NetworkSettingsHelper.SyncOperationType.SYNC_OPERATION_DOWNLOAD;
 import static net.osmand.plus.backup.NetworkSettingsHelper.SyncOperationType.SYNC_OPERATION_SYNC;
 import static net.osmand.plus.backup.NetworkSettingsHelper.SyncOperationType.SYNC_OPERATION_UPLOAD;
+import static net.osmand.plus.backup.PrepareBackupResult.RemoteFilesType.UNIQUE;
 
 import android.os.AsyncTask;
 
@@ -12,13 +13,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.PlatformUtil;
-import net.osmand.plus.AppInitializer;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.backup.NetworkSettingsHelper.BackupExportListener;
 import net.osmand.plus.backup.NetworkSettingsHelper.SyncOperationType;
+import net.osmand.plus.backup.PrepareBackupResult.RemoteFilesType;
 import net.osmand.plus.backup.PrepareBackupTask.OnPrepareBackupListener;
-import net.osmand.plus.settings.backend.ExportSettingsType;
 import net.osmand.plus.settings.backend.backup.SettingsHelper.ImportListener;
+import net.osmand.plus.settings.backend.backup.exporttype.ExportType;
 import net.osmand.plus.settings.backend.backup.items.SettingsItem;
 
 import org.apache.commons.logging.Log;
@@ -84,7 +85,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		PrepareBackupResult backup = backupHelper.getBackup();
 		BackupInfo info = backup.getBackupInfo();
 
-		List<SettingsItem> settingsItems = BackupHelper.getItemsForRestore(info, backup.getSettingsItems());
+		List<SettingsItem> settingsItems = BackupUtils.getItemsForRestore(info, backup.getSettingsItems());
 
 		if (operation != SYNC_OPERATION_DOWNLOAD) {
 			maxProgress += calculateExportMaxProgress() / 1024;
@@ -96,7 +97,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 			syncListener.onBackupSyncStarted();
 		}
 		if (settingsItems.size() > 0 && operation != SYNC_OPERATION_UPLOAD) {
-			networkSettingsHelper.importSettings(RESTORE_ITEMS_KEY, settingsItems, true, this);
+			networkSettingsHelper.importSettings(RESTORE_ITEMS_KEY, settingsItems, UNIQUE, true, this);
 		} else if (operation != SYNC_OPERATION_DOWNLOAD) {
 			uploadNewItems();
 		} else {
@@ -105,23 +106,26 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	}
 
 	public void uploadLocalItem(@NonNull SettingsItem item) {
-		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.singletonList(item),
+		networkSettingsHelper.exportSettings(
+				BackupUtils.getItemFileName(item), Collections.singletonList(item),
 				Collections.emptyList(), Collections.emptyList(), this);
 	}
 
 	public void deleteItem(@NonNull SettingsItem item) {
-		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.emptyList(),
+		networkSettingsHelper.exportSettings(BackupUtils.getItemFileName(item), Collections.emptyList(),
 				Collections.singletonList(item), Collections.emptyList(), this);
 	}
 
 	public void deleteLocalItem(@NonNull SettingsItem item) {
-		networkSettingsHelper.exportSettings(BackupHelper.getItemFileName(item), Collections.emptyList(),
+		networkSettingsHelper.exportSettings(BackupUtils.getItemFileName(item), Collections.emptyList(),
 				Collections.emptyList(), Collections.singletonList(item), this);
 	}
 
-	public void downloadRemoteVersion(@NonNull SettingsItem item) {
-		item.setShouldReplace(true);
-		networkSettingsHelper.importSettings(BackupHelper.getItemFileName(item), Collections.singletonList(item), true, this);
+	public void downloadItem(@NonNull SettingsItem item, @NonNull RemoteFilesType filesType,
+	                          boolean shouldReplace, boolean restoreDeleted) {
+		item.setShouldReplace(shouldReplace);
+		String name = BackupUtils.getItemFileName(item);
+		networkSettingsHelper.importSettings(name, Collections.singletonList(item), filesType, true, shouldReplace, restoreDeleted, this);
 	}
 
 	private void uploadNewItems() {
@@ -148,7 +152,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 		if (info != null) {
 			List<SettingsItem> oldItemsToDelete = new ArrayList<>();
 			for (SettingsItem item : info.itemsToUpload) {
-				ExportSettingsType exportType = ExportSettingsType.getExportSettingsTypeForItem(item);
+				ExportType exportType = ExportType.findBy(item);
 				if (exportType != null && backupHelper.getVersionHistoryTypePref(exportType).get()) {
 					oldItemsToDelete.add(item);
 				}
@@ -175,22 +179,17 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	@Override
 	public void onImportFinished(boolean succeed, boolean needRestart, @NonNull List<SettingsItem> items) {
 		if (isCancelled()) {
+			onSyncFinished(null);
 			return;
 		}
 		if (succeed) {
-			app.getRendererRegistry().updateExternalRenderers();
-			app.getPoiFilters().loadSelectedPoiFilters();
-			AppInitializer.loadRoutingFiles(app, null);
-//			app.getResourceManager().reloadIndexesAsync(null, null);
-//			AudioVideoNotesPlugin plugin = PluginsHelper.getPlugin(AudioVideoNotesPlugin.class);
-//			if (plugin != null) {
-//				plugin.indexingFiles(true, true);
-//			}
+			BackupUtils.updateCacheForItems(app, items);
 		}
 		if (singleOperation) {
 			onSyncFinished(null);
+		} else {
+			uploadNewItems();
 		}
-		uploadNewItems();
 	}
 
 	@Override
@@ -224,7 +223,7 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 
 	private void onSyncFinished(@Nullable String error) {
 		backupHelper.removePrepareBackupListener(this);
-		networkSettingsHelper.syncBackupTasks.remove(key);
+		networkSettingsHelper.unregisterSyncBackupTask(key);
 
 		if (syncListener != null) {
 			syncListener.onBackupSyncFinished(error);
@@ -271,6 +270,10 @@ public class SyncBackupTask extends AsyncTask<Void, Void, Void> implements OnPre
 	}
 
 	public interface OnBackupSyncListener {
+
+		default void onBackupSyncTasksUpdated() {
+
+		}
 
 		default void onBackupSyncStarted() {
 

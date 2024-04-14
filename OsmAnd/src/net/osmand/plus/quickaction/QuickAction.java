@@ -8,12 +8,14 @@ import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 
+import net.osmand.core.android.MapRendererView;
 import net.osmand.data.LatLon;
 import net.osmand.data.RotatedTileBox;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
+import net.osmand.plus.views.mapwidgets.configure.buttons.QuickActionButtonState;
 import net.osmand.util.Algorithms;
 
 import java.util.HashMap;
@@ -24,7 +26,7 @@ public class QuickAction {
 
     public interface QuickActionSelectionListener {
 
-        void onActionSelected(QuickAction action);
+        void onActionSelected(@NonNull QuickActionButtonState buttonState, @NonNull QuickAction action);
     }
     private static int SEQ;
 
@@ -34,7 +36,7 @@ public class QuickAction {
     private QuickActionType actionType;
 
     protected QuickAction() {
-        this(QuickActionRegistry.TYPE_ADD_ITEMS);
+        this(MapButtonsHelper.TYPE_ADD_ITEMS);
     }
 
     public QuickAction(QuickActionType type) {
@@ -85,23 +87,24 @@ public class QuickAction {
         return true;
     }
 
-    public String getName(Context context) {
-        if (Algorithms.isEmpty(name)) {
+	public String getName(@NonNull Context context) {
+		if (Algorithms.isEmpty(name) || !isActionEditable()) {
 			return getDefaultName(context);
 		} else {
-            return name;
-        }
-    }
+			return name;
+		}
+	}
 
-    public String getRawName() {
-    	return name;
+	public String getRawName() {
+		return name;
 	}
 
 	@NonNull
-	private String getDefaultName(Context context) {
+	private String getDefaultName(@NonNull Context context) {
 		return getNameRes() != 0 ? context.getString(getNameRes()) : "";
 	}
 
+	@NonNull
 	public Map<String, String> getParams() {
         if (params == null) {
         	params = new HashMap<>();
@@ -140,13 +143,11 @@ public class QuickAction {
 	public LatLon getMapLocation(@NonNull Context context) {
 		OsmandApplication app = (OsmandApplication) context.getApplicationContext();
 		OsmandMapTileView mapView = app.getOsmandMap().getMapView();
+		MapRendererView mapRenderer = mapView.getMapRenderer();
 		RotatedTileBox tb = mapView.getCurrentRotatedTileBox().copy();
-		LatLon latLon = NativeUtilities.getLatLonFromPixel(mapView.getMapRenderer(),
-				tb, tb.getCenterPixelX(), tb.getCenterPixelY());
-		if (latLon == null) {
-			latLon = tb.getCenterLatLon();
-		}
-		return latLon;
+		int centerPixX = tb.getCenterPixelX();
+		int centerPixY = tb.getCenterPixelY();
+		return NativeUtilities.getLatLonFromElevatedPixel(mapRenderer, tb, centerPixX, centerPixY);
 	}
 
     public void execute(@NonNull MapActivity mapActivity) {

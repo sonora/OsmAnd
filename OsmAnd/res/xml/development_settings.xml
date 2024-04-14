@@ -11,20 +11,17 @@
 		android:title="@string/plugin_global_prefs_info"
 		tools:icon="@drawable/ic_action_info_dark" />
 
+	<PreferenceCategory
+		android:key="heightmap"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/shared_string_terrain" />
+
 	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
-		android:key="show_heightmaps"
+		android:key="use_raster_sqlitedb"
 		android:layout="@layout/preference_with_descr_dialog_and_switch"
 		android:summaryOff="@string/shared_string_disabled"
 		android:summaryOn="@string/shared_string_enabled"
-		android:title="@string/download_heightmap_maps" />
-
-	<Preference
-		android:key="show_heightmaps_promo"
-		android:layout="@layout/preference_with_descr"
-		android:persistent="false"
-		android:title="@string/download_heightmap_maps"
-		android:summary="@string/shared_string_disabled"
-		tools:isPreferenceVisible="false"/>
+		android:title="@string/use_raster_sqlitedb_for_slope_hillshade" />
 
 	<PreferenceCategory
 		android:key="safe"
@@ -37,13 +34,6 @@
 		android:summaryOff="@string/shared_string_disabled"
 		android:summaryOn="@string/shared_string_enabled"
 		android:title="@string/safe_mode" />
-
-	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
-		android:key="approx_safe_mode"
-		android:layout="@layout/preference_with_descr_dialog_and_switch"
-		android:summaryOff="@string/shared_string_disabled"
-		android:summaryOn="@string/shared_string_enabled"
-		android:title="@string/approx_safe_mode" />
 
 	<PreferenceCategory
 		android:key="routing"
@@ -104,6 +94,51 @@
 		android:summary="@string/logcat_buffer_descr"
 		android:title="@string/logcat_buffer" />
 
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="show_info_about_pressed_key"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="@string/show_toast_about_key_pressed" />
+
+	<PreferenceCategory
+		android:key="trip_recording"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="@string/shared_string_trip_recording" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="save_bearing_to_gpx"
+		android:layout="@layout/preference_with_descr"
+		android:summaryOff="@string/shared_string_no"
+		android:summaryOn="@string/shared_string_yes"
+		android:title="@string/write_bearing" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="save_heading_to_gpx"
+		android:layout="@layout/preference_with_descr"
+		android:summaryOff="@string/shared_string_no"
+		android:summaryOn="@string/shared_string_yes"
+		android:title="@string/write_heading" />
+
+	<PreferenceCategory
+		android:key="texts"
+		android:layout="@layout/preference_category_with_descr"
+		android:title="Map texts" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="show_symbols_debug_info"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="Show debug information" />
+
+	<net.osmand.plus.settings.preferences.SwitchPreferenceEx
+		android:key="allow_symbols_display_on_top"
+		android:layout="@layout/preference_with_descr_dialog_and_switch"
+		android:summaryOff="@string/shared_string_disabled"
+		android:summaryOn="@string/shared_string_enabled"
+		android:title="Allow display on top" />
+
 	<PreferenceCategory
 		android:key="info"
 		android:layout="@layout/preference_category_with_descr"
@@ -146,5 +181,16 @@
 		android:selectable="false"
 		android:title="@string/day_night_info"
 		tools:summary="@string/day_night_info_description" />
+
+	<Preference
+		android:layout="@layout/simple_divider_item"
+		android:selectable="false" />
+
+	<Preference
+		android:key="reset_to_default"
+		android:layout="@layout/preference_button"
+		android:persistent="false"
+		android:title="@string/reset_plugin_to_default"
+		tools:icon="@drawable/ic_action_reset_to_default_dark" />
 
 </PreferenceScreen>

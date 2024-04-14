@@ -15,9 +15,9 @@ import net.osmand.gpx.GPXFile;
 import net.osmand.gpx.GPXTrackAnalysis;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.track.helpers.GPXInfo;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.track.helpers.GpxUiHelper;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
+import net.osmand.plus.track.helpers.GpxDataItem;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 
@@ -87,14 +87,12 @@ public class TracksCard extends MapBaseCard {
 		int dividerColor = ColorUtilities.getDividerColor(mapActivity, nightMode);
 
 		boolean showLimitExceeds = gpxItems.size() > 4;
-		ContextThemeWrapper ctx = new ContextThemeWrapper(mapActivity, !nightMode ? R.style.OsmandLightTheme : R.style.OsmandDarkTheme);
-		LayoutInflater inflater = LayoutInflater.from(ctx);
 		for (int i = 0; i < gpxItems.size(); i++) {
 			GpxItem item = gpxItems.get(i);
 			if (showLimitExceeds && i >= 3 && showLimited) {
 				break;
 			}
-			View v = inflater.inflate(R.layout.gpx_track_item, tracks, false);
+			View v = themedInflater.inflate(R.layout.gpx_track_item, tracks, false);
 			GpxDataItem dataItem = getDataItem(item.info);
 			GPXTrackAnalysis analysis = null;
 			if (dataItem != null) {

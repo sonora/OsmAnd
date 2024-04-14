@@ -10,7 +10,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import net.osmand.PlatformUtil;
 import net.osmand.core.android.MapRendererView;
+import net.osmand.core.jni.PointI;
 import net.osmand.core.jni.TextRasterizer;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
@@ -22,12 +24,13 @@ import net.osmand.plus.R;
 import net.osmand.plus.mapmarkers.MapMarker;
 import net.osmand.plus.mapmarkers.MapMarkersGroup;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
-import net.osmand.plus.myplaces.FavoriteGroup;
-import net.osmand.plus.myplaces.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.FavoriteGroup;
+import net.osmand.plus.myplaces.favorites.FavouritesHelper;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.views.layers.ContextMenuLayer.ApplyMovedObjectCallback;
 import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
 import net.osmand.plus.views.layers.ContextMenuLayer.IMoveObjectProvider;
@@ -36,6 +39,8 @@ import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.layers.core.FavoritesTileProvider;
 import net.osmand.util.Algorithms;
 
+import org.apache.commons.logging.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +48,7 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		IMoveObjectProvider, MapTextProvider<FavouritePoint> {
 
 	private static final int START_ZOOM = 6;
+	private static final Log LOG = PlatformUtil.getLog(FavouritesLayer.class);
 
 	private FavouritesHelper favouritesHelper;
 	private MapMarkersHelper mapMarkersHelper;
@@ -60,6 +66,8 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 	private boolean nightMode;
 	private boolean changeMarkerPositionMode;
 	private long favoritesChangedTime;
+
+	public CustomMapObjects<FavouritePoint> customObjectsDelegate;
 
 	//OpenGl
 	private FavoritesTileProvider favoritesMapLayerProvider;
@@ -79,10 +87,6 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		defaultColor = ContextCompat.getColor(getContext(), R.color.color_favorite);
 		grayColor = ContextCompat.getColor(getContext(), R.color.color_favorite_gray);
 		contextMenuLayer = view.getLayerByClass(ContextMenuLayer.class);
-	}
-
-	private boolean calculateBelongs(int ex, int ey, int objx, int objy, int radius) {
-		return (Math.abs(objx - ex) <= radius * 1.5 && Math.abs(objy - ey) <= radius * 1.5);
 	}
 
 	@Override
@@ -126,7 +130,7 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		boolean textVisible = isTextVisible();
 		boolean textVisibleChanged = this.textVisible != textVisible;
 		this.textVisible = textVisible;
-		boolean showFavorites = this.settings.SHOW_FAVORITES.get();
+		boolean showFavorites = this.settings.SHOW_FAVORITES.get() || customObjectsDelegate != null;
 		boolean showFavoritesChanged = !Algorithms.objectEquals(this.showFavorites, showFavorites);
 		this.showFavorites = showFavorites;
 		long favoritesChangedTime = favouritesHelper.getLastModifiedTime();
@@ -135,14 +139,18 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 
 		if (hasMapRenderer()) {
 			if (mapActivityInvalidated || mapRendererChanged || nightModeChanged || showFavoritesChanged
-					|| favoritesChanged || textScaleChanged || textVisibleChanged) {
+					|| favoritesChanged || textScaleChanged || textVisibleChanged
+					|| (customObjectsDelegate != null && customObjectsDelegate.isChanged())) {
 				showFavorites();
+				if (customObjectsDelegate != null) {
+					customObjectsDelegate.acceptChanges();
+				}
 				mapRendererChanged = false;
 			}
 		} else {
 			cache.clear();
 			if (showFavorites && favouritesHelper.isFavoritesLoaded()) {
-				if (tileBox.getZoom() >= START_ZOOM) {
+				if (tileBox.getZoom() >= START_ZOOM || customObjectsDelegate != null) {
 					float iconSize = getIconSize(view.getApplication());
 					QuadTree<QuadRect> boundIntersections = initBoundIntersections(tileBox);
 
@@ -150,49 +158,13 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 					QuadRect latLonBounds = tileBox.getLatLonBounds();
 					List<LatLon> fullObjectsLatLon = new ArrayList<>();
 					List<LatLon> smallObjectsLatLon = new ArrayList<>();
-					for (FavoriteGroup group : getFavoriteGroups()) {
-						List<Pair<FavouritePoint, MapMarker>> fullObjects = new ArrayList<>();
-						boolean synced = isSynced(group);
-						for (FavouritePoint favoritePoint : group.getPoints()) {
-							double lat = favoritePoint.getLatitude();
-							double lon = favoritePoint.getLongitude();
-							if (favoritePoint.isVisible() && favoritePoint != contextMenuLayer.getMoveableObject()
-									&& lat >= latLonBounds.bottom && lat <= latLonBounds.top
-									&& lon >= latLonBounds.left && lon <= latLonBounds.right) {
-								MapMarker marker = null;
-								if (synced) {
-									marker = mapMarkersHelper.getMapMarker(favoritePoint);
-									if (marker == null || marker.history && !view.getSettings().KEEP_PASSED_MARKERS_ON_MAP.get()) {
-										continue;
-									}
-								}
-								cache.add(favoritePoint);
-								float x = tileBox.getPixXFromLatLon(lat, lon);
-								float y = tileBox.getPixYFromLatLon(lat, lon);
-
-								if (intersects(boundIntersections, x, y, iconSize, iconSize)) {
-									@ColorInt
-									int color;
-									if (marker != null && marker.history) {
-										color = grayColor;
-									} else {
-										color = favouritesHelper.getColorWithCategory(favoritePoint, defaultColor);
-									}
-									PointImageDrawable pointImageDrawable = PointImageDrawable.getFromFavorite(
-											getContext(), color, true, favoritePoint);
-									pointImageDrawable.drawSmallPoint(canvas, x, y, textScale);
-									smallObjectsLatLon.add(new LatLon(lat, lon));
-								} else {
-									fullObjects.add(new Pair<>(favoritePoint, marker));
-									fullObjectsLatLon.add(new LatLon(lat, lon));
-								}
-							}
-						}
-						for (Pair<FavouritePoint, MapMarker> pair : fullObjects) {
-							FavouritePoint favoritePoint = pair.first;
-							float x = tileBox.getPixXFromLatLon(favoritePoint.getLatitude(), favoritePoint.getLongitude());
-							float y = tileBox.getPixYFromLatLon(favoritePoint.getLatitude(), favoritePoint.getLongitude());
-							drawBigPoint(canvas, favoritePoint, x, y, pair.second, textScale);
+					if (customObjectsDelegate != null) {
+						drawPoints(customObjectsDelegate.getMapObjects(), latLonBounds, false, tileBox, boundIntersections, iconSize, canvas,
+								fullObjectsLatLon, smallObjectsLatLon);
+					} else {
+						for (FavoriteGroup group : getFavoriteGroups()) {
+							drawPoints(group.getPoints(), latLonBounds, isSynced(group), tileBox, boundIntersections, iconSize, canvas,
+									fullObjectsLatLon, smallObjectsLatLon);
 						}
 					}
 					this.fullObjectsLatLon = fullObjectsLatLon;
@@ -206,6 +178,55 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		mapActivityInvalidated = false;
 	}
 
+	private void drawPoints(List<FavouritePoint> pointsToDraw, QuadRect latLonBounds, boolean synced, RotatedTileBox tileBox,
+	                        QuadTree<QuadRect> boundIntersections, float iconSize, Canvas canvas,
+	                        List<LatLon> fullObjectsLatLon, List<LatLon> smallObjectsLatLon) {
+		List<Pair<FavouritePoint, MapMarker>> fullObjects = new ArrayList<>();
+
+		for (FavouritePoint favoritePoint : pointsToDraw) {
+			double lat = favoritePoint.getLatitude();
+			double lon = favoritePoint.getLongitude();
+			if (favoritePoint.isVisible() && favoritePoint != contextMenuLayer.getMoveableObject()
+					&& lat >= latLonBounds.bottom && lat <= latLonBounds.top
+					&& lon >= latLonBounds.left && lon <= latLonBounds.right) {
+				MapMarker marker = null;
+				if (synced) {
+					marker = mapMarkersHelper.getMapMarker(favoritePoint);
+					if (marker == null || marker.history && !view.getSettings().KEEP_PASSED_MARKERS_ON_MAP.get()) {
+						continue;
+					}
+				}
+				cache.add(favoritePoint);
+				float x = tileBox.getPixXFromLatLon(lat, lon);
+				float y = tileBox.getPixYFromLatLon(lat, lon);
+
+				if (intersects(boundIntersections, x, y, iconSize, iconSize)) {
+					@ColorInt
+					int color;
+					if (marker != null && marker.history) {
+						color = grayColor;
+					} else {
+						color = favouritesHelper.getColorWithCategory(favoritePoint, defaultColor);
+					}
+					PointImageDrawable pointImageDrawable = PointImageUtils.getFromPoint(
+							getContext(), color, true, favoritePoint);
+					pointImageDrawable.drawSmallPoint(canvas, x, y, textScale);
+					smallObjectsLatLon.add(new LatLon(lat, lon));
+				} else {
+					fullObjects.add(new Pair<>(favoritePoint, marker));
+					fullObjectsLatLon.add(new LatLon(lat, lon));
+				}
+			}
+		}
+		for (Pair<FavouritePoint, MapMarker> pair : fullObjects) {
+			FavouritePoint favoritePoint = pair.first;
+			float x = tileBox.getPixXFromLatLon(favoritePoint.getLatitude(), favoritePoint.getLongitude());
+			float y = tileBox.getPixYFromLatLon(favoritePoint.getLatitude(), favoritePoint.getLongitude());
+			drawBigPoint(canvas, favoritePoint, x, y, pair.second, textScale);
+		}
+
+	}
+
 	private boolean isSynced(@NonNull FavoriteGroup group) {
 		MapMarkersGroup markersGroup = mapMarkersHelper.getMarkersGroup(group);
 		return markersGroup != null && !markersGroup.isDisabled();
@@ -216,11 +237,11 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		PointImageDrawable pointImageDrawable;
 		boolean history = false;
 		if (marker != null) {
-			pointImageDrawable = PointImageDrawable.getOrCreateSyncedIcon(getContext(),
+			pointImageDrawable = PointImageUtils.getOrCreateSyncedIcon(getContext(),
 					favouritesHelper.getColorWithCategory(favoritePoint, defaultColor), favoritePoint);
 			history = marker.history;
 		} else {
-			pointImageDrawable = PointImageDrawable.getFromFavorite(getContext(),
+			pointImageDrawable = PointImageUtils.getFromPoint(getContext(),
 					favouritesHelper.getColorWithCategory(favoritePoint, defaultColor), true, favoritePoint);
 		}
 		pointImageDrawable.drawPoint(canvas, x, y, textScale, history);
@@ -230,7 +251,7 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		return new ArrayList<>(favouritesHelper.getFavoriteGroups());
 	}
 
-	public void showFavorites() {
+	public synchronized void showFavorites() {
 		MapRendererView mapRenderer = getMapRenderer();
 		if (mapRenderer == null) {
 			return;
@@ -240,30 +261,38 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		favoritesMapLayerProvider = new FavoritesTileProvider(getContext(), getPointsOrder(), isTextVisible(),
 				getTextStyle(textScale), view.getDensity());
 
-		if (settings.SHOW_FAVORITES.get() && favouritesHelper.isFavoritesLoaded()) {
+		if (customObjectsDelegate != null) {
+			List<FavouritePoint> points = customObjectsDelegate.getMapObjects();
+			showFavoritePoints(textScale, false, points);
+			favoritesMapLayerProvider.drawSymbols(mapRenderer);
+		} else if (settings.SHOW_FAVORITES.get() && favouritesHelper.isFavoritesLoaded()) {
 			for (FavoriteGroup group : getFavoriteGroups()) {
 				boolean synced = isSynced(group);
 				List<FavouritePoint> points = new ArrayList<>(group.getPoints());
-				for (FavouritePoint favoritePoint : points) {
-					if (favoritePoint.isVisible() && favoritePoint != contextMenuLayer.getMoveableObject()) {
-						MapMarker marker = null;
-						if (synced) {
-							marker = mapMarkersHelper.getMapMarker(favoritePoint);
-							if (marker == null || marker.history && !view.getSettings().KEEP_PASSED_MARKERS_ON_MAP.get()) {
-								continue;
-							}
-						}
-						int color;
-						if ((marker != null && marker.history)) {
-							color = grayColor;
-						} else {
-							color = favouritesHelper.getColorWithCategory(favoritePoint, defaultColor);
-						}
-						favoritesMapLayerProvider.addToData(favoritePoint, color, true, marker != null, textScale);
-					}
-				}
+				showFavoritePoints(textScale, synced, points);
 			}
 			favoritesMapLayerProvider.drawSymbols(mapRenderer);
+		}
+	}
+
+	private void showFavoritePoints(float textScale, boolean synced, List<FavouritePoint> points) {
+		for (FavouritePoint favoritePoint : points) {
+			if (favoritePoint.isVisible() && favoritePoint != contextMenuLayer.getMoveableObject()) {
+				MapMarker marker = null;
+				if (synced) {
+					marker = mapMarkersHelper.getMapMarker(favoritePoint);
+					if (marker == null || marker.history && !view.getSettings().KEEP_PASSED_MARKERS_ON_MAP.get()) {
+						continue;
+					}
+				}
+				int color;
+				if ((marker != null && marker.history)) {
+					color = grayColor;
+				} else {
+					color = favouritesHelper.getColorWithCategory(favoritePoint, defaultColor);
+				}
+				favoritesMapLayerProvider.addToData(favoritePoint, color, true, marker != null, textScale);
+			}
 		}
 	}
 
@@ -286,20 +315,34 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 	}
 
 	private void getFavoriteFromPoint(RotatedTileBox tb, PointF point, List<? super FavouritePoint> res) {
-		int r = getScaledTouchRadius(view.getApplication(), tb.getDefaultRadiusPoi());
-		int ex = (int) point.x;
-		int ey = (int) point.y;
-		for (FavouritePoint n : favouritesHelper.getFavouritePoints()) {
-			getFavFromPoint(tb, res, r, ex, ey, n);
+		List<FavouritePoint> favouritePoints = favouritesHelper.getFavouritePoints();
+		if (Algorithms.isEmpty(favouritePoints)) {
+			return;
 		}
-	}
 
-	private void getFavFromPoint(RotatedTileBox tb, List<? super FavouritePoint> res, int r, int ex, int ey,
-								 FavouritePoint n) {
-		if (n.isVisible()) {
-			PointF pixel = NativeUtilities.getPixelFromLatLon(getMapRenderer(), tb, n.getLatitude(), n.getLongitude());
-			if (calculateBelongs(ex, ey, (int) pixel.x, (int) pixel.y, r)) {
-				res.add(n);
+		MapRendererView mapRenderer = getMapRenderer();
+		float radius = getScaledTouchRadius(getApplication(), tb.getDefaultRadiusPoi()) * TOUCH_RADIUS_MULTIPLIER;
+		List<PointI> touchPolygon31 = null;
+		if (mapRenderer != null) {
+			touchPolygon31 = NativeUtilities.getPolygon31FromPixelAndRadius(mapRenderer, point, radius);
+			if (touchPolygon31 == null) {
+				return;
+			}
+		}
+
+		for (FavouritePoint favouritePoint : favouritePoints) {
+			if (!favouritePoint.isVisible()) {
+				continue;
+			}
+
+			double lat = favouritePoint.getLatitude();
+			double lon = favouritePoint.getLongitude();
+
+			boolean add = mapRenderer != null
+					? NativeUtilities.isPointInsidePolygon(lat, lon, touchPolygon31)
+					: tb.isLatLonNearPixel(lat, lon, point.x, point.y, radius);
+			if (add) {
+				res.add(favouritePoint);
 			}
 		}
 	}
@@ -310,26 +353,6 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 			return ((FavouritePoint) o).getPointDescription(getContext());
 		}
 		return null;
-	}
-
-	@Override
-	public boolean disableSingleTap() {
-		return false;
-	}
-
-	@Override
-	public boolean disableLongPressOnMap(PointF point, RotatedTileBox tileBox) {
-		return false;
-	}
-
-	@Override
-	public boolean runExclusiveAction(Object o, boolean unknownLocation) {
-		return false;
-	}
-
-	@Override
-	public boolean showMenuAction(@Nullable Object o) {
-		return false;
 	}
 
 	@Override
@@ -390,6 +413,13 @@ public class FavouritesLayer extends OsmandMapLayer implements IContextMenuProvi
 		}
 		if (callback != null) {
 			callback.onApplyMovedObject(result, o);
+		}
+	}
+
+	public void setCustomMapObjects(List<FavouritePoint> favouritePoints) {
+		if (customObjectsDelegate != null) {
+			customObjectsDelegate.setCustomMapObjects(favouritePoints);
+			getApplication().getOsmandMap().refreshMap();
 		}
 	}
 }

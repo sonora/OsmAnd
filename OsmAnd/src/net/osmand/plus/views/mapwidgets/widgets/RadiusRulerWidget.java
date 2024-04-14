@@ -21,11 +21,10 @@ import net.osmand.plus.views.mapwidgets.MapWidgetRegistry;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.util.MapUtils;
 
+import java.util.Collections;
 import java.util.Set;
 
 public class RadiusRulerWidget extends TextInfoWidget {
-
-	private static final String DASH = "—";
 
 	private RadiusRulerMode cachedRadiusRulerMode;
 
@@ -34,7 +33,7 @@ public class RadiusRulerWidget extends TextInfoWidget {
 		cachedRadiusRulerMode = settings.RADIUS_RULER_MODE.get();
 
 		updateIcons();
-		setText(DASH, null);
+		setText(NO_VALUE, null);
 		setOnClickListener(v -> switchRadiusRulerMode());
 	}
 
@@ -67,7 +66,7 @@ public class RadiusRulerWidget extends TextInfoWidget {
 				setDistanceText(distance);
 			}
 		} else {
-			setText(DASH, null);
+			setText(NO_VALUE, null);
 		}
 	}
 
@@ -80,8 +79,7 @@ public class RadiusRulerWidget extends TextInfoWidget {
 	}
 
 	private void setDistanceText(float dist) {
-		FormattedValue formattedDistance = OsmAndFormatter
-				.getFormattedDistanceValue(dist, app, true, settings.METRIC_SYSTEM.get());
+		FormattedValue formattedDistance = OsmAndFormatter.getFormattedDistanceValue(dist, app);
 		setText(formattedDistance.value, formattedDistance.unit);
 	}
 
@@ -90,7 +88,7 @@ public class RadiusRulerWidget extends TextInfoWidget {
 	public OsmandPreference<?> getWidgetSettingsPrefToReset(@NonNull ApplicationMode appMode) {
 		MapWidgetRegistry mapWidgetRegistry = app.getOsmandMap().getMapLayers().getMapWidgetRegistry();
 		Set<MapWidgetInfo> widgetInfos = mapWidgetRegistry
-				.getWidgetsForPanel(mapActivity, appMode, ENABLED_MODE, WidgetsPanel.LEFT.getMergedPanels());
+				.getWidgetsForPanel(mapActivity, appMode, ENABLED_MODE, Collections.singletonList(WidgetsPanel.LEFT));
 		for (MapWidgetInfo widgetInfo : widgetInfos) {
 			MapWidget widget = widgetInfo.widget;
 			boolean anotherRulerWidgetPresent = widget instanceof RadiusRulerWidget && !widget.equals(this);

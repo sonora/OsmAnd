@@ -1,14 +1,17 @@
 package net.osmand.plus.resources;
 
 
+import static net.osmand.IndexConstants.TTSVOICE_INDEX_EXT_JS;
 import static net.osmand.IndexConstants.VOICE_INDEX_DIR;
+import static net.osmand.IndexConstants.VOICE_PROVIDER_SUFFIX;
+import static net.osmand.plus.AppInitEvents.ASSETS_COPIED;
+import static net.osmand.plus.AppInitEvents.MAPS_INITIALIZED;
 
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.database.sqlite.SQLiteException;
 import android.os.AsyncTask;
 import android.os.HandlerThread;
-import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
@@ -26,6 +29,7 @@ import net.osmand.binary.BinaryMapIndexReader.SearchPoiTypeFilter;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiSubType;
 import net.osmand.binary.CachedOsmandIndexes;
 import net.osmand.data.Amenity;
+import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
 import net.osmand.data.TransportRoute;
 import net.osmand.data.TransportStop;
@@ -37,14 +41,13 @@ import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
 import net.osmand.osm.PoiType;
 import net.osmand.plus.AppInitializer;
-import net.osmand.plus.AppInitializer.InitEvents;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.Version;
 import net.osmand.plus.download.DownloadOsmandIndexesHelper;
 import net.osmand.plus.download.DownloadOsmandIndexesHelper.AssetEntry;
 import net.osmand.plus.download.SrtmDownloadItem;
-import net.osmand.plus.inapp.InAppPurchaseHelper;
+import net.osmand.plus.inapp.InAppPurchaseUtils;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.openseamaps.NauticalMapsPlugin;
 import net.osmand.plus.plugins.srtm.SRTMPlugin;
@@ -71,7 +74,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,6 +85,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -99,7 +105,8 @@ import java.util.concurrent.Executors;
 public class ResourceManager {
 
 	private static final String INDEXES_CACHE = "ind.cache";
-	public static final String DEFAULT_WIKIVOYAGE_TRAVEL_OBF = "Default_wikivoyage.travel.obf";
+	private static final String DEFAULT_WIKIVOYAGE_TRAVEL_OBF = "Default_wikivoyage.travel.obf";
+	private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm";
 
 	private static final Log log = PlatformUtil.getLog(ResourceManager.class);
 
@@ -118,8 +125,17 @@ public class ResourceManager {
 	private boolean reloadingIndexes;
 
 	public interface ResourceListener {
-		default void onMapsIndexed() {}
-		default void onMapClosed(String fileName) {}
+		default void onMapsIndexed() {
+		}
+
+		default void onReaderIndexed(BinaryMapIndexReader reader) {
+		}
+
+		default void onReaderClosed(BinaryMapIndexReader reader) {
+		}
+
+		default void onMapClosed(String fileName) {
+		}
 	}
 
 	// Indexes
@@ -257,7 +273,7 @@ public class ResourceManager {
 	private boolean depthContours;
 	private boolean indexesLoadedOnStart;
 
-	public ResourceManager(OsmandApplication context) {
+	public ResourceManager(@NonNull OsmandApplication context) {
 		this.context = context;
 		this.renderer = new MapRenderRepositories(context);
 
@@ -362,6 +378,7 @@ public class ResourceManager {
 		}
 	}
 
+	@Nullable
 	private MapTileLayerSize getMapTileLayerSize(MapTileLayer layer) {
 		for (MapTileLayerSize layerSize : mapTileLayerSizes) {
 			if (layerSize.layer == layer) {
@@ -386,10 +403,12 @@ public class ResourceManager {
 		}
 	}
 
-	public java.text.DateFormat getDateFormat() {
-		return DateFormat.getDateFormat(context);
+	@NonNull
+	public DateFormat getDateFormat() {
+		return new SimpleDateFormat(DATE_TIME_PATTERN, Locale.US);
 	}
 
+	@NonNull
 	public OsmandApplication getContext() {
 		return context;
 	}
@@ -400,6 +419,7 @@ public class ResourceManager {
 
 	////////////////////////////////////////////// Working with tiles ////////////////////////////////////////////////
 
+	@Nullable
 	private TilesCache<?> getTilesCache(ITileSource map) {
 		for (TilesCache<?> cache : tilesCacheList) {
 			if (cache.isTileSourceSupported(map)) {
@@ -448,6 +468,7 @@ public class ResourceManager {
 	private GeoidAltitudeCorrection geoidAltitudeCorrection;
 	private boolean searchAmenitiesInProgress;
 
+	@Nullable
 	public synchronized String calculateTileId(ITileSource map, int x, int y, int zoom) {
 		TilesCache<?> cache = getTilesCache(map);
 		if (cache != null) {
@@ -494,9 +515,9 @@ public class ResourceManager {
 		close();
 		// check we have some assets to copy to sdcard
 		warnings.addAll(checkAssets(progress, false, true));
-		progress.notifyEvent(InitEvents.ASSETS_COPIED);
+		progress.notifyEvent(ASSETS_COPIED);
 		reloadIndexes(progress, warnings);
-		progress.notifyEvent(InitEvents.MAPS_INITIALIZED);
+		progress.notifyEvent(MAPS_INITIALIZED);
 		indexesLoadedOnStart = true;
 		return warnings;
 	}
@@ -561,9 +582,11 @@ public class ResourceManager {
 
 	public interface ReloadIndexesListener {
 
-		void reloadIndexesStarted();
+		default void reloadIndexesStarted() {
 
-		void reloadIndexesFinished(List<String> reloadIndexesWarnings);
+		}
+
+		void reloadIndexesFinished(@NonNull List<String> warnings);
 	}
 
 	public List<String> indexAdditionalMaps(@Nullable IProgress progress) {
@@ -572,20 +595,20 @@ public class ResourceManager {
 
 
 	public List<String> indexVoiceFiles(@Nullable IProgress progress) {
-		File file = context.getAppPath(VOICE_INDEX_DIR);
-		file.mkdirs();
+		File voiceDir = context.getAppPath(VOICE_INDEX_DIR);
+		voiceDir.mkdirs();
 		List<String> warnings = new ArrayList<>();
-		if (file.exists() && file.canRead()) {
-			File[] lf = file.listFiles();
-			if (lf != null) {
-				java.text.DateFormat dateFormat = getDateFormat();
-				for (File f : lf) {
-					if (f.isDirectory()) {
-						String lang = f.getName().replace(IndexConstants.VOICE_PROVIDER_SUFFIX, "");
-						File conf = new File(f, lang + "_" + IndexConstants.TTSVOICE_INDEX_EXT_JS);
+		if (voiceDir.exists() && voiceDir.canRead()) {
+			File[] files = voiceDir.listFiles();
+			if (files != null) {
+				DateFormat dateFormat = getDateFormat();
+				for (File file : files) {
+					if (file.isDirectory()) {
+						String lang = file.getName().replace(VOICE_PROVIDER_SUFFIX, "");
+						File conf = new File(file, lang + "_" + TTSVOICE_INDEX_EXT_JS);
 						if (conf.exists()) {
-							indexFileNames.put(f.getName(), dateFormat.format(conf.lastModified()));
-							indexFiles.put(f.getName(), f);
+							indexFileNames.put(file.getName(), dateFormat.format(conf.lastModified()));
+							indexFiles.put(file.getName(), file);
 						}
 					}
 				}
@@ -595,17 +618,17 @@ public class ResourceManager {
 	}
 
 	public List<String> indexFontFiles(@Nullable IProgress progress) {
-		File file = context.getAppPath(IndexConstants.FONT_INDEX_DIR);
-		file.mkdirs();
+		File fontDir = context.getAppPath(IndexConstants.FONT_INDEX_DIR);
+		fontDir.mkdirs();
 		List<String> warnings = new ArrayList<>();
-		if (file.exists() && file.canRead()) {
-			File[] lf = file.listFiles();
-			if (lf != null) {
-				java.text.DateFormat dateFormat = getDateFormat();
-				for (File f : lf) {
-					if (!f.isDirectory()) {
-						indexFileNames.put(f.getName(), dateFormat.format(f.lastModified()));
-						indexFiles.put(f.getName(), f);
+		if (fontDir.exists() && fontDir.canRead()) {
+			File[] files = fontDir.listFiles();
+			if (files != null) {
+				DateFormat dateFormat = getDateFormat();
+				for (File file : files) {
+					if (!file.isDirectory()) {
+						indexFileNames.put(file.getName(), dateFormat.format(file.lastModified()));
+						indexFiles.put(file.getName(), file);
 					}
 				}
 			}
@@ -630,10 +653,10 @@ public class ResourceManager {
 			if (appPath.canWrite()) {
 				for (AssetEntry asset : assets) {
 					File jsFile = new File(appPath, asset.destination);
-					if (asset.destination.contains(IndexConstants.VOICE_PROVIDER_SUFFIX) && asset.destination
-							.endsWith(IndexConstants.TTSVOICE_INDEX_EXT_JS)) {
+					if (asset.destination.contains(VOICE_PROVIDER_SUFFIX) && asset.destination
+							.endsWith(TTSVOICE_INDEX_EXT_JS)) {
 						File oggFile = new File(appPath, asset.destination.replace(
-								IndexConstants.VOICE_PROVIDER_SUFFIX, ""));
+								VOICE_PROVIDER_SUFFIX, ""));
 						if (oggFile.getParentFile().exists() && !oggFile.exists()) {
 							copyAssets(context.getAssets(), asset.source, oggFile);
 						}
@@ -883,6 +906,7 @@ public class ResourceManager {
 		File roadsPath = context.getAppPath(IndexConstants.ROADS_INDEX_DIR);
 		roadsPath.mkdirs();
 
+		collectFiles(context.getAppInternalPath(IndexConstants.HIDDEN_DIR), IndexConstants.BINARY_MAP_INDEX_EXT, files);
 		collectFiles(appPath, IndexConstants.BINARY_MAP_INDEX_EXT, files);
 		renameRoadsFiles(files, roadsPath);
 		collectFiles(roadsPath, IndexConstants.BINARY_MAP_INDEX_EXT, files);
@@ -892,10 +916,10 @@ public class ResourceManager {
 		} else {
 			collectFiles(context.getAppPath(IndexConstants.WIKIVOYAGE_INDEX_DIR), DEFAULT_WIKIVOYAGE_TRAVEL_OBF, files);
 		}
-		if (PluginsHelper.isActive(SRTMPlugin.class) || InAppPurchaseHelper.isContourLinesPurchased(context)) {
+		if (PluginsHelper.isActive(SRTMPlugin.class) || InAppPurchaseUtils.isContourLinesAvailable(context)) {
 			collectFiles(context.getAppPath(IndexConstants.SRTM_INDEX_DIR), IndexConstants.BINARY_MAP_INDEX_EXT, files);
 		}
-		if (PluginsHelper.isActive(NauticalMapsPlugin.class) || InAppPurchaseHelper.isDepthContoursPurchased(context)) {
+		if (PluginsHelper.isActive(NauticalMapsPlugin.class) || InAppPurchaseUtils.isDepthContoursAvailable(context)) {
 			collectFiles(context.getAppPath(IndexConstants.NAUTICAL_INDEX_DIR), IndexConstants.BINARY_DEPTH_MAP_INDEX_EXT, files);
 		}
 
@@ -908,7 +932,7 @@ public class ResourceManager {
 		File indCache = context.getAppPath(INDEXES_CACHE);
 		if (indCache.exists()) {
 			try {
-				cachedOsmandIndexes.readFromFile(indCache, CachedOsmandIndexes.VERSION);
+				cachedOsmandIndexes.readFromFile(indCache);
 			} catch (Exception e) {
 				log.error(e.getMessage(), e);
 			}
@@ -942,7 +966,7 @@ public class ResourceManager {
 			files.remove(worldBasemapMini);
 		}
 
-		java.text.DateFormat dateFormat = getDateFormat();
+		DateFormat dateFormat = getDateFormat();
 		for (File f : files) {
 			String fileName = f.getName();
 			if (progress != null) {
@@ -950,8 +974,9 @@ public class ResourceManager {
 			}
 			try {
 				BinaryMapIndexReader mapReader = null;
+				boolean reindex = filesToReindex.contains(f);
 				try {
-					mapReader = cachedOsmandIndexes.getReader(f, !filesToReindex.contains(f));
+					mapReader = cachedOsmandIndexes.getReader(f, !reindex);
 					if (mapReader.getVersion() != IndexConstants.BINARY_MAP_VERSION) {
 						mapReader = null;
 					}
@@ -982,6 +1007,11 @@ public class ResourceManager {
 						}
 					} else if (!wikiMap && !srtmMap) {
 						changesManager.indexMainMap(f, dateCreated);
+						if (reindex) {
+							for (ResourceListener l : resourceListeners) {
+								l.onReaderIndexed(mapReader);
+							}
+						}
 					}
 					indexFileNames.put(fileName, dateFormat.format(dateCreated));
 					indexFiles.put(fileName, f);
@@ -1128,12 +1158,10 @@ public class ResourceManager {
 		Collections.sort(fileNames, Algorithms.getStringVersionComparator());
 		List<AmenityIndexRepository> res = new ArrayList<>();
 		for (String fileName : fileNames) {
-			if (!includeTravel) {
-				if (fileName.endsWith(IndexConstants.BINARY_TRAVEL_GUIDE_MAP_INDEX_EXT)) {
+			if (fileName.endsWith(IndexConstants.BINARY_TRAVEL_GUIDE_MAP_INDEX_EXT)) {
+				if (!includeTravel || !context.getTravelRendererHelper().getFileVisibilityProperty(fileName).get()) {
 					continue;
 				}
-			} else if (!context.getTravelRendererHelper().getFileVisibilityProperty(fileName).get()) {
-				continue;
 			}
 			AmenityIndexRepository r = amenityRepositories.get(fileName);
 			if (r != null) {
@@ -1143,8 +1171,16 @@ public class ResourceManager {
 		return res;
 	}
 
-	public List<Amenity> searchAmenities(SearchPoiTypeFilter filter,
-	                                     double topLatitude, double leftLongitude, double bottomLatitude, double rightLongitude, int zoom, ResultMatcher<Amenity> matcher) {
+	@NonNull
+	public List<Amenity> searchAmenities(SearchPoiTypeFilter filter, QuadRect rect, boolean includeTravel) {
+		return searchAmenities(filter, rect.top, rect.left, rect.bottom, rect.right, -1, includeTravel, null);
+	}
+
+	@NonNull
+	public List<Amenity> searchAmenities(SearchPoiTypeFilter filter, double topLatitude,
+	                                     double leftLongitude, double bottomLatitude,
+	                                     double rightLongitude, int zoom, boolean includeTravel,
+	                                     ResultMatcher<Amenity> matcher) {
 		List<Amenity> amenities = new ArrayList<>();
 		searchAmenitiesInProgress = true;
 		try {
@@ -1153,7 +1189,7 @@ public class ResourceManager {
 				int left31 = MapUtils.get31TileNumberX(leftLongitude);
 				int bottom31 = MapUtils.get31TileNumberY(bottomLatitude);
 				int right31 = MapUtils.get31TileNumberX(rightLongitude);
-				for (AmenityIndexRepository index : getAmenityRepositories()) {
+				for (AmenityIndexRepository index : getAmenityRepositories(includeTravel)) {
 					if (matcher != null && matcher.isCancelled()) {
 						searchAmenitiesInProgress = false;
 						break;
@@ -1269,7 +1305,7 @@ public class ResourceManager {
 			}
 		}
 
-		// Not using boundares results in very slow initial search if user has many maps installed
+		// Not using boundaries results in very slow initial search if user has many maps installed
 //		int left = 0;
 //		int top = 0;
 //		int right = Integer.MAX_VALUE;
@@ -1395,6 +1431,9 @@ public class ResourceManager {
 		renderer.closeConnection(fileName);
 		BinaryMapReaderResource resource = fileReaders.remove(fileName);
 		if (resource != null) {
+			for (ResourceListener l : resourceListeners) {
+				l.onReaderClosed(resource.initialReader);
+			}
 			resource.close();
 		}
 		for (ResourceListener l : resourceListeners) {

@@ -1,5 +1,6 @@
 package net.osmand.plus.settings.backend.preferences;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.plus.settings.backend.ApplicationMode;
@@ -8,14 +9,16 @@ import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class ListStringPreference extends StringPreference {
 
 	private final String delimiter;
 
-	public ListStringPreference(OsmandSettings osmandSettings, String id, String defaultValue, String delimiter) {
-		super(osmandSettings, id, defaultValue);
+	public ListStringPreference(@NonNull OsmandSettings settings, @NonNull String id,
+	                            @Nullable String defaultValue, @NonNull String delimiter) {
+		super(settings, id, defaultValue);
 		this.delimiter = delimiter;
 	}
 
@@ -58,9 +61,11 @@ public class ListStringPreference extends StringPreference {
 
 	public boolean removeValueForProfile(ApplicationMode appMode, String res) {
 		String vl = getModeValue(appMode);
-		String r = res + delimiter;
 		if (vl != null) {
-			if (vl.startsWith(r)) {
+			String r = res + delimiter;
+			if (vl.equals(res)) {
+				vl = "";
+			} else if (vl.startsWith(r)) {
 				vl = vl.substring(r.length());
 			} else {
 				int it = vl.indexOf(delimiter + r);
@@ -86,11 +91,7 @@ public class ListStringPreference extends StringPreference {
 			if (listAsString.contains(delimiter)) {
 				return Arrays.asList(listAsString.split(delimiter));
 			} else {
-				return new ArrayList<String>() {
-					{
-						add(listAsString);
-					}
-				};
+				return new ArrayList<>(Collections.singleton(listAsString));
 			}
 		}
 		return null;
@@ -127,5 +128,10 @@ public class ListStringPreference extends StringPreference {
 			}
 		}
 		return setModeValue(mode, vl);
+	}
+
+	@NonNull
+	public String getDelimiter() {
+		return delimiter;
 	}
 }

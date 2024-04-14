@@ -16,7 +16,7 @@ import net.osmand.core.jni.MapTiledCollectionProvider;
 import net.osmand.core.jni.PointI;
 import net.osmand.core.jni.QListMapTiledCollectionPoint;
 import net.osmand.core.jni.QListPointI;
-import net.osmand.core.jni.SWIGTYPE_p_sk_spT_SkImage_const_t;
+import net.osmand.core.jni.SingleSkImage;
 import net.osmand.core.jni.SwigUtilities;
 import net.osmand.core.jni.TextRasterizer;
 import net.osmand.core.jni.TileId;
@@ -30,11 +30,12 @@ import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.helpers.ColorDialogs;
+import net.osmand.plus.card.color.palette.main.data.DefaultColors;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.render.RenderingIcons;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.TileBoxRequest;
 import net.osmand.util.Algorithms;
@@ -76,7 +77,7 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 			if (ROUTE_ARTICLE_POINT.equals(amenity.getSubType())) {
 				String colorStr = amenity.getColor();
 				if (colorStr != null) {
-					color = ColorDialogs.getColorByTag(colorStr);
+					color = DefaultColors.valueOf(colorStr);
 				}
 			}
 			return color != 0 ? color : ContextCompat.getColor(ctx, R.color.osmand_orange);
@@ -88,7 +89,7 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 		}
 
 		@Override
-		public SWIGTYPE_p_sk_spT_SkImage_const_t getImageBitmap(boolean isFullSize) {
+		public SingleSkImage getImageBitmap(boolean isFullSize) {
 			Bitmap bitmap = null;
 			if (isFullSize) {
 				String id = amenity.getGpxIcon();
@@ -96,13 +97,13 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 					id = RenderingIcons.getIconNameForAmenity(amenity);
 				}
 				if (id != null) {
-					PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx, getColor(),
+					PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx, getColor(),
 							true, RenderingIcons.getResId(id));
 					pointImageDrawable.setAlpha(0.8f);
 					bitmap = pointImageDrawable.getBigMergedBitmap(textScale, false);
 				}
 			} else {
-				PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx, getColor(), true);
+				PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx, getColor(), true);
 				pointImageDrawable.setAlpha(0.8f);
 				bitmap = pointImageDrawable.getSmallMergedBitmap(textScale);
 			}
@@ -192,10 +193,11 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 
 	@Override
 	public QListMapTiledCollectionPoint getTilePoints(TileId tileId, ZoomLevel zoom) {
-		OsmandApplication app = (OsmandApplication) ctx.getApplicationContext();
-		if (!app.getOsmandMap().getMapView().hasMapRenderer()) {
+		if (isMapRendererLost()) {
 			return new QListMapTiledCollectionPoint();
 		}
+
+		OsmandApplication app = (OsmandApplication) ctx.getApplicationContext();
 		RotatedTileBox tb = app.getOsmandMap().getMapView().getRotatedTileBox();
 		TileBoxRequest request = new TileBoxRequest(tb);
 		OsmandMapLayer.MapLayerData<List<Amenity>>.DataReadyCallback dataReadyCallback = layerData.getDataReadyCallback(request);
@@ -206,7 +208,7 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 			start[0] = System.currentTimeMillis();
 		});
 		while (System.currentTimeMillis() - start[0] < layerData.DATA_REQUEST_TIMEOUT) {
-			if (!app.getOsmandMap().getMapView().hasMapRenderer()) {
+			if (isMapRendererLost()) {
 				return new QListMapTiledCollectionPoint();
 			}
 			synchronized (dataReadyCallback.getSync()) {
@@ -220,6 +222,11 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 			}
 		}
 		layerData.removeDataReadyCallback(dataReadyCallback);
+
+		if (isMapRendererLost()) {
+			return new QListMapTiledCollectionPoint();
+		}
+
 		List<Amenity> results = dataReadyCallback.getResults();
 		if (Algorithms.isEmpty(results)) {
 			return new QListMapTiledCollectionPoint();
@@ -244,7 +251,7 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 	}
 
 	@Override
-	public SWIGTYPE_p_sk_spT_SkImage_const_t getImageBitmap(int index, boolean isFullSize) {
+	public SingleSkImage getImageBitmap(int index, boolean isFullSize) {
 		return SwigUtilities.nullSkImage();
 	}
 
@@ -263,6 +270,10 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 		return ZoomLevel.MaxZoomLevel;
 	}
 
+	@Override
+	public boolean supportsNaturalObtainDataAsync() {
+		return false;
+	}
 
 	@Override
 	public MapMarker.PinIconVerticalAlignment getPinIconVerticalAlignment() {
@@ -277,5 +288,9 @@ public class POITileProvider extends interface_MapTiledCollectionProvider {
 	@Override
 	public PointI getPinIconOffset() {
 		return offset;
+	}
+
+	private boolean isMapRendererLost() {
+		return !((OsmandApplication) ctx.getApplicationContext()).getOsmandMap().getMapView().hasMapRenderer();
 	}
 }

@@ -10,7 +10,7 @@ import androidx.annotation.StringRes;
 import net.osmand.plus.R;
 import net.osmand.plus.plugins.OsmandPlugin;
 import net.osmand.plus.plugins.PluginsHelper;
-import net.osmand.plus.plugins.antplus.AntPlusPlugin;
+import net.osmand.plus.plugins.externalsensors.ExternalSensorsPlugin;
 import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin;
 import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
@@ -32,7 +32,8 @@ public enum WidgetGroup {
 	ALTITUDE(R.string.altitude, R.string.map_widget_altitude_desc, R.drawable.widget_altitude_day, R.drawable.widget_altitude_night, 0),
 	ANT_PLUS(R.string.external_sensor_widgets, 0, R.drawable.widget_sensor_external_day, R.drawable.widget_sensor_external_night, 0),
 	WEATHER(R.string.shared_string_weather, R.string.weather_widget_group_desc, R.drawable.widget_weather_umbrella_day, R.drawable.widget_weather_umbrella_night, 0),
-	SUNRISE_SUNSET(R.string.map_widget_group_sunrise_sunset, R.string.map_widget_group_sunrise_sunset_desc, R.drawable.widget_sunset_day, R.drawable.widget_sunset_night, 0);
+	SUNRISE_SUNSET(R.string.map_widget_sun_position, R.string.map_widget_group_sunrise_sunset_desc, R.drawable.widget_sunset_day, R.drawable.widget_sunset_night, 0),
+	GLIDE(R.string.map_widget_group_glide_ratio, R.string.map_widget_group_glide_desc, R.drawable.widget_glide_ratio_to_target_day, R.drawable.widget_glide_ratio_to_target_night, 0);
 
 	@StringRes
 	public final int titleId;
@@ -43,7 +44,7 @@ public enum WidgetGroup {
 	@DrawableRes
 	public final int nightIconId;
 	@StringRes
-	public int docsUrlId;
+	public final int docsUrlId;
 
 	WidgetGroup(@StringRes int titleId,
 	            @StringRes int descId,
@@ -116,7 +117,7 @@ public enum WidgetGroup {
 		} else if (this == DEVELOPER_OPTIONS) {
 			return getPartOfPluginDesc(context, OsmandDevelopmentPlugin.class);
 		} else if (this == ANT_PLUS) {
-			return getPartOfPluginDesc(context, AntPlusPlugin.class);
+			return getPartOfPluginDesc(context, ExternalSensorsPlugin.class);
 		} else if (this == WEATHER) {
 			return getPartOfPluginDesc(context, WeatherPlugin.class);
 		}

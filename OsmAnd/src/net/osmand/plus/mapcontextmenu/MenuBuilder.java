@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -50,7 +51,6 @@ import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.chooseplan.ChoosePlanFragment;
 import net.osmand.plus.chooseplan.OsmAndFeature;
-import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.helpers.FontCache;
 import net.osmand.plus.mapcontextmenu.builders.cards.AbstractCard;
 import net.osmand.plus.mapcontextmenu.builders.cards.CardsRowBuilder;
@@ -62,21 +62,21 @@ import net.osmand.plus.mapcontextmenu.controllers.TransportStopController;
 import net.osmand.plus.mapcontextmenu.other.ShareMenu;
 import net.osmand.plus.plugins.OsmandPlugin;
 import net.osmand.plus.plugins.PluginsHelper;
-import net.osmand.plus.plugins.openplacereviews.UploadPhotosHelper;
 import net.osmand.plus.poi.PoiFiltersHelper;
 import net.osmand.plus.poi.PoiUIFilter;
 import net.osmand.plus.render.RenderingIcons;
-import net.osmand.plus.search.QuickSearchDialogFragment.QuickSearchToolbarController;
+import net.osmand.plus.search.dialogs.QuickSearchToolbarController;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
 import net.osmand.plus.transport.TransportStopRoute;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.layers.POIMapLayer;
 import net.osmand.plus.views.layers.TransportStopsLayer;
 import net.osmand.plus.widgets.TextViewEx;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.plus.widgets.tools.ClickableSpanTouchListener;
 import net.osmand.plus.wikipedia.WikiArticleHelper;
 import net.osmand.plus.wikipedia.WikipediaPlugin;
@@ -106,6 +106,7 @@ public class MenuBuilder {
 	protected static final String NEAREST_POI_KEY = "nearest_poi_key";
 	protected static final String DIVIDER_ROW_KEY = "divider_row_key";
 	protected static final String NAMES_ROW_KEY = "names_row_key";
+	protected static final String ALT_NAMES_ROW_KEY = "alt_names_row_key";
 
 	private static final int NEARBY_MAX_POI_COUNT = 10;
 	private static final int NEARBY_POI_MIN_RADIUS = 250;
@@ -139,19 +140,10 @@ public class MenuBuilder {
 	private final String preferredMapLang;
 	private String preferredMapAppLang;
 	private final boolean transliterateNames;
-	private View photoButton;
-
-	private String[] placeId = new String[0];
 	private final GetImageCardsListener imageCardListener = new GetImageCardsListener() {
 		@Override
 		public void onPostProcess(List<ImageCard> cardList) {
 			processOnlinePhotosCards(cardList);
-		}
-
-		@Override
-		public void onPlaceIdAcquired(String[] placeId) {
-			MenuBuilder.this.placeId = placeId;
-			app.runInUIThread(() -> AndroidUiHelper.updateVisibility(photoButton, placeId.length >= 2));
 		}
 
 		@Override
@@ -169,18 +161,6 @@ public class MenuBuilder {
 		}
 	};
 
-	public void addImageCard(@NonNull ImageCard card) {
-		if (onlinePhotoCards != null) {
-			if (onlinePhotoCards.size() == 1 && onlinePhotoCards.get(0) instanceof NoImagesCard) {
-				onlinePhotoCards.clear();
-			}
-			onlinePhotoCards.add(0, card);
-		}
-		if (onlinePhotoCardsRow != null) {
-			onlinePhotoCardsRow.setCards(onlinePhotoCards);
-		}
-	}
-
 	public interface CollapseExpandListener {
 		void onCollapseExpand(boolean collapsed);
 	}
@@ -197,6 +177,12 @@ public class MenuBuilder {
 			preferredMapAppLang = app.getLanguage();
 		}
 		transliterateNames = app.getSettings().MAP_TRANSLITERATE_NAMES.get();
+	}
+
+	public void notifyCollapseExpand(boolean collapsed) {
+		if (collapseExpandListener != null) {
+			collapseExpandListener.onCollapseExpand(collapsed);
+		}
 	}
 
 	public CollapseExpandListener getCollapseExpandListener() {
@@ -275,8 +261,10 @@ public class MenuBuilder {
 		this.amenity = amenity;
 	}
 
-	public void addMenuPlugin(OsmandPlugin plugin) {
-		menuPlugins.add(plugin);
+	public void addMenuPlugin(@NonNull OsmandPlugin plugin) {
+		if (!menuPlugins.contains(plugin)) {
+			menuPlugins.add(plugin);
+		}
 	}
 
 	public void setLight(boolean light) {
@@ -464,15 +452,10 @@ public class MenuBuilder {
 						LinearLayout.LayoutParams.WRAP_CONTENT));
 		parent.setOrientation(LinearLayout.VERTICAL);
 		parent.addView(onlinePhotoCardsRow.getContentView());
-		parent.addView(createAddPhotoButton(view.getContext()));
-		CollapsableView collapsableView = new CollapsableView(parent, this,
-				app.getSettings().ONLINE_PHOTOS_ROW_COLLAPSED);
-		collapsableView.setCollapseExpandListener(new CollapseExpandListener() {
-			@Override
-			public void onCollapseExpand(boolean collapsed) {
-				if (!collapsed && onlinePhotoCards == null) {
-					startLoadingImages();
-				}
+		CollapsableView collapsableView = new CollapsableView(parent, this, app.getSettings().ONLINE_PHOTOS_ROW_COLLAPSED);
+		collapsableView.setCollapseExpandListener(collapsed -> {
+			if (!collapsed && onlinePhotoCards == null) {
+				startLoadingImages();
 			}
 		});
 		buildRow(view, R.drawable.ic_action_photo_dark, null, app.getString(R.string.online_photos), 0, true,
@@ -483,23 +466,6 @@ public class MenuBuilder {
 		} else if (!collapsableView.isCollapsed()) {
 			startLoadingImages();
 		}
-	}
-
-	private View createAddPhotoButton(Context ctx) {
-		View view = UiUtilities.getInflater(ctx, !light).inflate(R.layout.dialog_button_with_icon, null);
-		int dp6 = ctx.getResources().getDimensionPixelSize(R.dimen.bottom_sheet_title_padding_bottom);
-		View button = view.findViewById(R.id.button);
-		UiUtilities.setupDialogButton(!light, button, UiUtilities.DialogButtonType.STROKED,
-				ctx.getString(R.string.shared_string_add_photo), R.drawable.ic_sample);
-		TextView textView = view.findViewById(R.id.button_text);
-		textView.setCompoundDrawablePadding(dp6);
-		button.setOnClickListener(v -> {
-			UploadPhotosHelper photosHelper = new UploadPhotosHelper(mapActivity, this::addImageCard);
-			photosHelper.chooseAndUploadPhoto(placeId);
-		});
-		AndroidUiHelper.updateVisibility(view, false);
-		photoButton = view;
-		return view;
 	}
 
 	private void buildCoordinatesRow(View view) {
@@ -552,7 +518,7 @@ public class MenuBuilder {
 	}
 
 	protected void showDescriptionDialog(@NonNull Context ctx, @NonNull String description, @NonNull String title) {
-		if (description.contains("</")) {
+		if (Algorithms.isHtmlText(description)) {
 			POIMapLayer.showHtmlDescriptionDialog(ctx, app, description, title);
 		} else {
 			POIMapLayer.showPlainDescriptionDialog(ctx, app, description, title);
@@ -671,7 +637,7 @@ public class MenuBuilder {
 		textView.setTextColor(ColorUtilities.getPrimaryTextColor(app, !light));
 		textView.setText(text);
 
-		int linkTextColor = ContextCompat.getColor(view.getContext(), light ? R.color.ctx_menu_bottom_view_url_color_light : R.color.ctx_menu_bottom_view_url_color_dark);
+		int linkTextColor = ContextCompat.getColor(view.getContext(), light ? R.color.active_color_primary_light : R.color.active_color_primary_dark);
 
 		if (isUrl || isNumber || isEmail) {
 			textView.setTextColor(linkTextColor);
@@ -796,7 +762,9 @@ public class MenuBuilder {
 
 	public View buildDescriptionRow(View view, String description) {
 		String descriptionLabel = app.getString(R.string.shared_string_description);
-		View.OnClickListener onClickListener = v -> showDescriptionDialog(view.getContext(), description, descriptionLabel);
+		View.OnClickListener onClickListener = v -> {
+			showDescriptionDialog(view.getContext(), description, descriptionLabel);
+		};
 
 		if (!isFirstRow()) {
 			buildRowDivider(view);
@@ -855,7 +823,7 @@ public class MenuBuilder {
 		if (customization.isFeatureEnabled(CONTEXT_MENU_LINKS_ID) && Linkify.addLinks(textView, Linkify.ALL)) {
 			textView.setMovementMethod(null);
 			int linkTextColor = ContextCompat.getColor(view.getContext(), light ?
-					R.color.ctx_menu_bottom_view_url_color_light : R.color.ctx_menu_bottom_view_url_color_dark);
+					R.color.active_color_primary_light : R.color.active_color_primary_dark);
 			textView.setLinkTextColor(linkTextColor);
 			textView.setOnTouchListener(new ClickableSpanTouchListener());
 			AndroidUtils.removeLinkUnderline(textView);
@@ -962,7 +930,7 @@ public class MenuBuilder {
 			AndroidUtils.setMargins(llHorLineParams, dpToPx(64f), 0, 0, 0);
 		}
 		horizontalLine.setLayoutParams(llHorLineParams);
-		horizontalLine.setBackgroundColor(getColor(light ? R.color.ctx_menu_bottom_view_divider_light : R.color.ctx_menu_bottom_view_divider_dark));
+		horizontalLine.setBackgroundColor(getColor(light ? R.color.divider_color_light : R.color.divider_color_dark));
 		((LinearLayout) view).addView(horizontalLine, index);
 	}
 
@@ -1050,7 +1018,7 @@ public class MenuBuilder {
 
 	public Drawable getRowIcon(int iconId) {
 		UiUtilities iconsCache = app.getUIUtilities();
-		return iconsCache.getIcon(iconId, light ? R.color.ctx_menu_bottom_view_icon_light : R.color.ctx_menu_bottom_view_icon_dark);
+		return iconsCache.getIcon(iconId, light ? R.color.icon_color_secondary_light : R.color.icon_color_secondary_dark);
 	}
 
 	public Drawable getThemedIcon(int iconId) {
@@ -1063,7 +1031,7 @@ public class MenuBuilder {
 			d = DrawableCompat.wrap(d);
 			d.mutate();
 			d.setColorFilter(getColor(light
-					? R.color.ctx_menu_bottom_view_icon_light : R.color.ctx_menu_bottom_view_icon_dark), PorterDuff.Mode.SRC_IN);
+					? R.color.icon_color_secondary_light : R.color.icon_color_secondary_dark), PorterDuff.Mode.SRC_IN);
 			return d;
 		} else {
 			return null;
@@ -1076,7 +1044,7 @@ public class MenuBuilder {
 
 	public Drawable getCollapseIcon(boolean collapsed) {
 		return app.getUIUtilities().getIcon(collapsed ? R.drawable.ic_action_arrow_down : R.drawable.ic_action_arrow_up,
-				light ? R.color.ctx_menu_collapse_icon_color_light : R.color.ctx_menu_collapse_icon_color_dark);
+				light ? R.color.icon_color_default_light : R.color.icon_color_default_dark);
 	}
 
 	private View buildTransportRowItem(View view, TransportStopRoute route, OnClickListener listener) {
@@ -1123,7 +1091,7 @@ public class MenuBuilder {
 		int textColor = ColorUtilities.getPrimaryTextColor(app, !light);
 		titleView.setTextColor(textColor);
 		String desc = route.getDescription(getMapActivity().getMyApplication(), true);
-		Drawable arrow = app.getUIUtilities().getIcon(R.drawable.ic_arrow_right_16, light ? R.color.ctx_menu_route_icon_color_light : R.color.ctx_menu_route_icon_color_dark);
+		Drawable arrow = app.getUIUtilities().getIcon(R.drawable.ic_arrow_right_16, light ? R.color.icon_color_secondary_light : R.color.icon_color_secondary_dark);
 		arrow.setBounds(0, 0, arrow.getIntrinsicWidth(), arrow.getIntrinsicHeight());
 
 		titleView.setText(AndroidUtils.replaceCharsWithIcon(desc, arrow, arrowChars));
@@ -1205,14 +1173,15 @@ public class MenuBuilder {
 		return new View.OnClickListener() {
 			@Override
 			public void onClick(View arg0) {
+				OsmandMapTileView mapView = getMapActivity().getMapView();
 				MapContextMenu mm = getMapActivity().getContextMenu();
 				PointDescription pd = new PointDescription(PointDescription.POINT_TYPE_TRANSPORT_ROUTE,
 						r.getDescription(getMapActivity().getMyApplication(), false));
 				mm.show(latLon, pd, r);
 				TransportStopsLayer stopsLayer = getMapActivity().getMapLayers().getTransportStopsLayer();
 				stopsLayer.setRoute(r);
-				int cz = r.calculateZoom(0, getMapActivity().getMapView().getCurrentRotatedTileBox());
-				app.getOsmandMap().changeZoom(cz - getMapActivity().getMapView().getZoom());
+				int zoom = r.calculateZoom(0, mapView.getCurrentRotatedTileBox());
+				mapView.setIntZoom(zoom);
 			}
 		};
 	}
@@ -1273,7 +1242,7 @@ public class MenuBuilder {
 		buttonShowAll.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				mapActivity.showQuickSearch(filter, latLon);
+				mapActivity.getFragmentsHelper().showQuickSearch(filter, latLon);
 			}
 		});
 		return buttonShowAll;
@@ -1301,7 +1270,7 @@ public class MenuBuilder {
 				controller.setOnTitleClickListener(new OnClickListener() {
 					@Override
 					public void onClick(View v) {
-						mapActivity.showQuickSearch(filter);
+						mapActivity.getFragmentsHelper().showQuickSearch(filter);
 					}
 				});
 				controller.setOnCloseButtonClickListener(new OnClickListener() {
@@ -1312,7 +1281,7 @@ public class MenuBuilder {
 						mapActivity.refreshMap();
 					}
 				});
-				mapContextMenu.hideMenues();
+				mapContextMenu.hideMenus();
 				mapActivity.showTopToolbar(controller);
 				mapActivity.refreshMap();
 			}
@@ -1445,7 +1414,7 @@ public class MenuBuilder {
 	}
 
 	@ColorInt
-	protected int getColor(@ColorInt int resId) {
+	protected int getColor(@ColorRes int resId) {
 		return ColorUtilities.getColor(mapActivity, resId);
 	}
 

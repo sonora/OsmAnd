@@ -25,6 +25,7 @@ import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.MapInfoLayer.TextState;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.WidgetType;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgetstates.WidgetState;
 
 import java.util.List;
@@ -39,8 +40,7 @@ public abstract class MapWidget {
 	protected final RoutingHelper routingHelper;
 
 	protected final WidgetType widgetType;
-
-	private boolean nightMode;
+	protected boolean nightMode;
 
 	protected final View view;
 
@@ -64,11 +64,6 @@ public abstract class MapWidget {
 		return view;
 	}
 
-	@Nullable
-	public OsmandPreference<Boolean> getWidgetVisibilityPref() {
-		return null;
-	}
-
 	/**
 	 * @return preference that needs to be reset after deleting widget
 	 */
@@ -84,11 +79,12 @@ public abstract class MapWidget {
 		}
 	}
 
-	public void attachView(@NonNull ViewGroup container, int order, @NonNull List<MapWidget> followingWidgets) {
+	public void attachView(@NonNull ViewGroup container, @NonNull WidgetsPanel widgetsPanel,
+						   @NonNull List<MapWidget> followingWidgets) {
 		container.addView(view);
 	}
 
-	public void detachView() {
+	public void detachView(@NonNull WidgetsPanel widgetsPanel) {
 		ViewParent parent = view.getParent();
 		if (parent instanceof ViewGroup) {
 			((ViewGroup) parent).removeView(view);
@@ -130,8 +126,8 @@ public abstract class MapWidget {
 	}
 
 	public static void updateTextColor(@NonNull TextView text, @Nullable TextView textShadow,
-	                                   @ColorInt int textColor, @ColorInt int textShadowColor,
-	                                   boolean boldText, int shadowRadius) {
+									   @ColorInt int textColor, @ColorInt int textShadowColor,
+									   boolean boldText, int shadowRadius) {
 		int typefaceStyle = boldText ? Typeface.BOLD : Typeface.NORMAL;
 
 		if (textShadow != null) {

@@ -23,7 +23,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.slider.LabelFormatter;
 
-import net.osmand.plus.OsmandApplication;
+import net.osmand.core.jni.WeatherLayer;
+import net.osmand.core.jni.WeatherTileResourcesManager;
+import net.osmand.core.jni.WeatherType;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
@@ -33,6 +35,7 @@ import net.osmand.plus.plugins.weather.WeatherBand;
 import net.osmand.plus.plugins.weather.WeatherContour;
 import net.osmand.plus.plugins.weather.WeatherHelper;
 import net.osmand.plus.plugins.weather.WeatherPlugin;
+import net.osmand.plus.plugins.weather.WeatherUtils;
 import net.osmand.plus.plugins.weather.widgets.WeatherWidgetsPanel;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -40,15 +43,17 @@ import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.OsmAndFormatter.TimeFormatter;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.MapLayers;
+import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.controls.maphudbuttons.MyLocationButton;
 import net.osmand.plus.views.controls.maphudbuttons.ZoomInButton;
 import net.osmand.plus.views.controls.maphudbuttons.ZoomOutButton;
 import net.osmand.plus.views.layers.MapControlsLayer;
 import net.osmand.plus.views.layers.MapInfoLayer;
 import net.osmand.plus.views.mapwidgets.widgets.RulerWidget;
-import net.osmand.plus.widgets.popup.PopUpMenuHelper;
-import net.osmand.plus.widgets.popup.PopUpMenuHelper.PopUpMenuWidthType;
+import net.osmand.plus.widgets.popup.PopUpMenu;
+import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
 import net.osmand.plus.widgets.popup.PopUpMenuItem;
+import net.osmand.plus.widgets.popup.PopUpMenuWidthMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +71,6 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 	private static final String PREVIOUS_WEATHER_CONTOUR_KEY = "previous_weather_contour";
 	private static final long MIN_UTC_HOURS_OFFSET = 24 * 60 * 60 * 1000;
 
-	private OsmandApplication app;
 	private WeatherHelper weatherHelper;
 	private WeatherPlugin plugin;
 
@@ -82,7 +86,6 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 
 	private WeatherContour previousWeatherContour;
 
-	private boolean nightMode;
 
 	@Override
 	public int getStatusBarColorId() {
@@ -90,29 +93,56 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 	}
 
 	@Override
+	protected boolean isUsedOnMap() {
+		return true;
+	}
+
+	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		weatherHelper = app.getWeatherHelper();
-		nightMode = app.getDaynightHelper().isNightModeForMapControls();
 		plugin = PluginsHelper.getPlugin(WeatherPlugin.class);
 
-		currentDate.setTimeInMillis(WeatherHelper.roundForecastTimeToHour(System.currentTimeMillis()));
+		currentDate.setTimeInMillis(WeatherUtils.roundForecastTimeToHour(System.currentTimeMillis()));
 		selectedDate.setTime(currentDate.getTime());
 
 		if (savedInstanceState != null) {
 			previousWeatherContour = WeatherContour.valueOf(savedInstanceState.getString(PREVIOUS_WEATHER_CONTOUR_KEY, WeatherContour.TEMPERATURE.name()));
 		} else {
 			previousWeatherContour = plugin.getSelectedContoursType();
+			zoomOutToMaxLayersZoom();
 		}
 		plugin.setContoursType(plugin.getSelectedForecastContoursType());
+	}
+
+	private void zoomOutToMaxLayersZoom() {
+		WeatherTileResourcesManager weatherResourcesManager = weatherHelper.getWeatherResourcesManager();
+		if (weatherResourcesManager == null) {
+			return;
+		}
+
+		int maxWeatherLayerZoom = -1;
+
+		int maxContoursZoom = weatherResourcesManager.getMaxTileZoom(WeatherType.Contour, WeatherLayer.High).swigValue();
+		int maxContoursOverZoom = weatherResourcesManager.getMaxMissingDataZoomShift(WeatherType.Contour, WeatherLayer.High);
+		maxWeatherLayerZoom = Math.max(maxWeatherLayerZoom, maxContoursZoom + maxContoursOverZoom);
+
+		int maxRasterZoom = weatherResourcesManager.getMaxTileZoom(WeatherType.Raster, WeatherLayer.High).swigValue();
+		int maxRasterOverZoom = weatherResourcesManager.getMaxMissingDataZoomShift(WeatherType.Raster, WeatherLayer.High);
+		maxWeatherLayerZoom = Math.max(maxWeatherLayerZoom, maxRasterZoom + maxRasterOverZoom);
+
+		OsmandMapTileView mapView = app.getOsmandMap().getMapView();
+		if (maxWeatherLayerZoom != -1 && maxWeatherLayerZoom < mapView.getZoom()) {
+			mapView.setIntZoom(maxWeatherLayerZoom);
+		}
 	}
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		updateNightMode();
 		MapActivity activity = requireMapActivity();
-		View view = UiUtilities.getInflater(activity, nightMode).inflate(R.layout.fragment_weather_forecast, container, false);
+		View view = themedInflater.inflate(R.layout.fragment_weather_forecast, container, false);
 		AndroidUtils.addStatusBarPadding21v(activity, view);
 
 		widgetsPanel = view.findViewById(R.id.weather_widgets_panel);
@@ -136,7 +166,9 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 		Calendar calendar = getDefaultCalendar();
 		timeSlider.addOnChangeListener((slider, value, fromUser) -> {
 			calendar.setTime(selectedDate.getTime());
-			calendar.set(Calendar.HOUR_OF_DAY, (int) value);
+			int hour = (int) value;
+			calendar.set(Calendar.HOUR_OF_DAY, hour);
+			calendar.set(Calendar.MINUTE, (int) ((value - (float) hour) * 60.0f));
 
 			updateSelectedDate(calendar.getTime());
 		});
@@ -159,8 +191,7 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 	private void updateTimeSlider() {
 		boolean today = OsmAndFormatter.isSameDay(selectedDate, currentDate);
 		timeSlider.setValue(today ? currentDate.get(Calendar.HOUR_OF_DAY) : 12);
-		timeSlider.setStepSize(today ? 1 : 3);
-		timeSlider.setCurrentDate(today ? currentDate : null);
+		timeSlider.setStepSize(today ? 1.0f / 6.0f : 3.0f / 9.0f); // today ? 10 minutes : 20 minutes
 	}
 
 	private void buildZoomButtons(@NonNull View view) {
@@ -210,9 +241,11 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 	}
 
 	public void updateSelectedDate(@Nullable Date date) {
+		plugin.setForecastDate(date);
+		if (date != null)
+			date.setTime(WeatherUtils.roundForecastTimeToHour(date.getTime()));
 		checkDateOffset(date);
 		widgetsPanel.setSelectedDate(date);
-		plugin.setForecastDate(date);
 		requireMapActivity().refreshMap();
 	}
 
@@ -236,7 +269,7 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 		int toolbarHeight = getDimensionPixelSize(R.dimen.toolbar_height);
 		int topMargin = getDimensionPixelSize(R.dimen.map_small_button_margin);
 		int startMargin = getDimensionPixelSize(R.dimen.map_button_margin);
-		AndroidUtils.setMargins(params, startMargin,topMargin + toolbarHeight, 0, 0);
+		AndroidUtils.setMargins(params, startMargin, topMargin + toolbarHeight, 0, 0);
 
 		MapActivity activity = getMapActivity();
 		if (activity != null) {
@@ -335,17 +368,22 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 					.create()
 			);
 		}
-		new PopUpMenuHelper.Builder(view, items, nightMode).setWidthType(PopUpMenuWidthType.STANDARD).show();
+
+		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+		displayData.anchorView = view;
+		displayData.menuItems = items;
+		displayData.nightMode = nightMode;
+		displayData.widthMode = PopUpMenuWidthMode.STANDARD;
+		PopUpMenu.show(displayData);
 	}
 
 	private void chooseLayers(@NonNull View view) {
 		int activeColor = ColorUtilities.getActiveColor(app, nightMode);
-		List<PopUpMenuItem> items = new ArrayList<>();
-
+		List<PopUpMenuItem> menuItems = new ArrayList<>();
 		for (WeatherBand band : weatherHelper.getWeatherBands()) {
 			boolean selected = band.isForecastBandVisible();
 			Drawable icon = selected ? getIcon(band.getIconId(), ColorUtilities.getActiveColorId(nightMode)) : getContentIcon(band.getIconId());
-			items.add(new PopUpMenuItem.Builder(app)
+			menuItems.add(new PopUpMenuItem.Builder(app)
 					.setTitle(band.getMeasurementName())
 					.setIcon(icon)
 					.showCompoundBtn(activeColor)
@@ -358,7 +396,13 @@ public class WeatherForecastFragment extends BaseOsmAndFragment {
 					.create()
 			);
 		}
-		new PopUpMenuHelper.Builder(view, items, nightMode, R.layout.popup_menu_item_checkbox).setWidthType(PopUpMenuWidthType.STANDARD).show();
+		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+		displayData.anchorView = view;
+		displayData.menuItems = menuItems;
+		displayData.nightMode = nightMode;
+		displayData.layoutId = R.layout.popup_menu_item_checkbox;
+		displayData.widthMode = PopUpMenuWidthMode.STANDARD;
+		PopUpMenu.show(displayData);
 	}
 
 	@Nullable

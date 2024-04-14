@@ -1,5 +1,8 @@
 package net.osmand.plus.mapcontextmenu.builders;
 
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_LINKS_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_PHONE_ID;
+import static net.osmand.data.Amenity.ALT_NAME_WITH_LANG_PREFIX;
 import static net.osmand.gpx.GPXUtilities.ADDRESS_EXTENSION;
 import static net.osmand.gpx.GPXUtilities.AMENITY_ORIGIN_EXTENSION;
 import static net.osmand.gpx.GPXUtilities.AMENITY_PREFIX;
@@ -7,8 +10,15 @@ import static net.osmand.gpx.GPXUtilities.BACKGROUND_TYPE_EXTENSION;
 import static net.osmand.gpx.GPXUtilities.COLOR_NAME_EXTENSION;
 import static net.osmand.gpx.GPXUtilities.ICON_NAME_EXTENSION;
 import static net.osmand.gpx.GPXUtilities.PROFILE_TYPE_EXTENSION;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_LINKS_ID;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_PHONE_ID;
+import static net.osmand.plus.settings.enums.MetricsConstants.KILOMETERS_AND_METERS;
+import static net.osmand.plus.settings.enums.MetricsConstants.MILES_AND_FEET;
+import static net.osmand.plus.settings.enums.MetricsConstants.MILES_AND_YARDS;
+import static net.osmand.plus.settings.enums.MetricsConstants.NAUTICAL_MILES_AND_FEET;
+import static net.osmand.plus.utils.OsmAndFormatter.FEET_IN_ONE_METER;
+import static net.osmand.plus.utils.OsmAndFormatter.YARDS_IN_ONE_METER;
+import static net.osmand.plus.wikipedia.WikiAlgorithms.WIKIPEDIA;
+import static net.osmand.plus.wikipedia.WikiAlgorithms.WIKI_LINK;
+import static net.osmand.util.Algorithms.isUrl;
 
 import android.content.Context;
 import android.content.Intent;
@@ -27,7 +37,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Pair;
+import androidx.core.util.PatternsCompat;
 
+import net.osmand.data.LatLon;
 import net.osmand.gpx.GPXUtilities;
 import net.osmand.PlatformUtil;
 import net.osmand.data.Amenity;
@@ -36,7 +48,6 @@ import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
 import net.osmand.osm.PoiType;
 import net.osmand.plus.R;
-import net.osmand.plus.Version;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.mapcontextmenu.CollapsableView;
 import net.osmand.plus.mapcontextmenu.MenuBuilder;
@@ -50,18 +61,15 @@ import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.views.layers.POIMapLayer;
 import net.osmand.plus.widgets.TextViewEx;
 import net.osmand.plus.widgets.tools.ClickableSpanTouchListener;
+import net.osmand.plus.wikipedia.WikiAlgorithms;
 import net.osmand.plus.wikipedia.WikiArticleHelper;
-import net.osmand.plus.wikipedia.WikipediaArticleWikiLinkFragment;
 import net.osmand.plus.wikipedia.WikipediaDialogFragment;
 import net.osmand.util.Algorithms;
+import net.osmand.util.CollectionUtils;
 import net.osmand.util.OpeningHoursParser;
 
 import org.apache.commons.logging.Log;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -78,7 +86,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 
 
 public class AmenityUIHelper extends MenuBuilder {
@@ -88,9 +95,6 @@ public class AmenityUIHelper extends MenuBuilder {
 	public static final String COLLAPSABLE_PREFIX = "collapsable_";
 	public static final List<String> HIDING_EXTENSIONS_AMENITY_TAGS = Arrays.asList("phone", "website");
 
-	private static final String WIKIPEDIA = "wikipedia";
-	private static final String WIKIPEDIA_DOMAIN = ".wikipedia.org/";
-	private static final String WIKI_LINK = WIKIPEDIA_DOMAIN + "wiki/";
 	private static final DecimalFormat DISTANCE_FORMAT = new DecimalFormat("#.##");
 
 	private final MetricsConstants metricSystem;
@@ -160,7 +164,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			String key = e.getKey();
 			String vl = e.getValue();
 
-			if (key.startsWith(COLLAPSABLE_PREFIX)) {
+			if (key.startsWith(COLLAPSABLE_PREFIX) || key.startsWith(ALT_NAME_WITH_LANG_PREFIX)) {
 				continue;
 			}
 			if (key.equals("image")
@@ -182,7 +186,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			boolean isWiki = false;
 			boolean isText = false;
 			boolean isDescription = false;
-			boolean needLinks = !("population".equals(key) || "height".equals(key) || Amenity.OPENING_HOURS.equals(key));
+			boolean needLinks = !(CollectionUtils.equalsToAny(key, Amenity.OPENING_HOURS, "population", "height"));
 			boolean needIntFormatting = "population".equals(key);
 			boolean isPhoneNumber = false;
 			boolean isUrl = false;
@@ -207,7 +211,7 @@ public class AmenityUIHelper extends MenuBuilder {
 
 			isUrl = isUrl(vl);
 			if (key.contains(WIKIPEDIA)) {
-				Pair<String, String> wikiParams = getWikipediaParams(key, vl);
+				Pair<String, String> wikiParams = WikiAlgorithms.getWikiParams(key, vl);
 				vl = wikiParams.first;
 				hiddenUrl = wikiParams.second;
 				isWikipediaLink = isUrl = true;
@@ -237,6 +241,7 @@ public class AmenityUIHelper extends MenuBuilder {
 					wikiAmenity.setType(type);
 					wikiAmenity.setSubType(subtype);
 					wikiAmenity.setAdditionalInfo(additionalInfoFiltered);
+					wikiAmenity.setLocation(getLatLon());
 					String name = additionalInfoFiltered.get("name");
 					if (Algorithms.isEmpty(name)) {
 						wikiAmenity.setName(name);
@@ -374,10 +379,10 @@ public class AmenityUIHelper extends MenuBuilder {
 					float distance = Float.parseFloat(vl);
 					vl = OsmAndFormatter.getFormattedAlt(distance, app, metricSystem);
 					String collapsibleVal;
-					if (metricSystem == MetricsConstants.MILES_AND_FEET || metricSystem == MetricsConstants.MILES_AND_YARDS || metricSystem ==  MetricsConstants.NAUTICAL_MILES_AND_FEET) {
-						collapsibleVal = OsmAndFormatter.getFormattedAlt(distance, app, MetricsConstants.KILOMETERS_AND_METERS);
+					if (metricSystem == MILES_AND_FEET || metricSystem == MILES_AND_YARDS || metricSystem == NAUTICAL_MILES_AND_FEET) {
+						collapsibleVal = OsmAndFormatter.getFormattedAlt(distance, app, KILOMETERS_AND_METERS);
 					} else {
-						collapsibleVal = OsmAndFormatter.getFormattedAlt(distance, app, MetricsConstants.MILES_AND_FEET);
+						collapsibleVal = OsmAndFormatter.getFormattedAlt(distance, app, MILES_AND_FEET);
 					}
 					Set<String> elevationData = new HashSet<>();
 					elevationData.add(collapsibleVal);
@@ -451,9 +456,9 @@ public class AmenityUIHelper extends MenuBuilder {
 					if (icon == null) {
 						icon = getRowIcon(R.drawable.ic_action_note_dark);
 					}
-
-					boolean cuisineOrDish = e.getKey().endsWith(Amenity.CUISINE) || e.getKey().endsWith(Amenity.DISH);
-					CollapsableView collapsableView = getPoiTypeCollapsableView(view.getContext(), true, categoryTypes, false, cuisineOrDish ? cuisineRow : null, type);
+					boolean cuisineOrDish = CollectionUtils.equalsToAny(e.getKey(), Amenity.CUISINE, Amenity.DISH);
+					CollapsableView collapsableView = getPoiTypeCollapsableView(view.getContext(), true,
+							categoryTypes, true, cuisineOrDish ? cuisineRow : null, type);
 					infoRows.add(new AmenityInfoRow(poiAdditionalCategoryName, icon,
 							pType.getPoiAdditionalCategoryTranslation(), sb.toString(), null,
 							true, collapsableView, 0, false, false,
@@ -516,50 +521,6 @@ public class AmenityUIHelper extends MenuBuilder {
 		}
 	}
 
-	private Pair<String, String> getWikipediaParams(String key, String value) {
-		String title = null;
-		String langCode = "en";
-		// Full OpenStreetMap Wikipedia tag pattern looks like "operator:wikipedia:lang_code",
-		// "operator" and "lang_code" is optional parameters and may be skipped.
-		if (key.contains(":")) {
-			String[] tagParts = key.split(":");
-			if (tagParts.length == 3) {
-				// In this case tag contains all 3 parameters: "operator", "wikipedia" and "lang_code".
-				langCode = tagParts[2];
-			} else if (tagParts.length == 2) {
-				// In this case one of the optional parameters was skipped.
-				// Parameters never change their order and parameter "wikipedia" is always present.
-				if (WIKIPEDIA.equals(tagParts[0])) {
-					// So if "wikipedia" is the first parameter, then parameter "operator" was skipped.
-					// And the second parameter is "lang_code".
-					langCode = tagParts[1];
-				}
-			}
-		}
-		// Value of an Wikipedia item can be an URL, but it is not recommended.
-		// OSM users should use the following pattern "lang_code:article_title" instead.
-		// Where "lang_code" is optional parameter for multilingual wikipedia tags.
-		String url;
-		if (isUrl(value)) {
-			// In this case a value is already represented as an URL.
-			url = value;
-		} else {
-			if (value.contains(":")) {
-				// If value contains a sign ":" it means that "lang_code" is also present in value.
-				String[] valueParts = value.split(":");
-				langCode = valueParts[0];
-				title = valueParts[1];
-			} else {
-				title = value;
-			}
-			// Full article URL has a pattern: "http://lang_code.wikipedia.org/wiki/article_name"
-			String formattedTitle = title.replaceAll(" ", "_");
-			url = "http://" + langCode + WIKI_LINK + formattedTitle;
-		}
-		String text = title != null ? title : value;
-		return new Pair<>(text, url);
-	}
-
 	@Nullable
 	private String getSocialMediaUrl(String key, String value) {
 		// Remove leading and closing slashes
@@ -573,7 +534,7 @@ public class AmenityUIHelper extends MenuBuilder {
 		}
 
 		// It cannot be username
-		if (sb.indexOf("/") != -1) {
+		if (PatternsCompat.AUTOLINK_WEB_URL.matcher(sb.toString()).matches()) {
 			return "https://" + value;
 		}
 
@@ -591,11 +552,6 @@ public class AmenityUIHelper extends MenuBuilder {
 		} else {
 			return null;
 		}
-	}
-
-	private boolean isUrl(String vl) {
-		String[] urlPrefixes = new String[] {"http://", "https://", "HTTP://", "HTTPS://"};
-		return Algorithms.startsWithAny(vl, urlPrefixes);
 	}
 
 	private String getFormattedInt(String value) {
@@ -619,56 +575,53 @@ public class AmenityUIHelper extends MenuBuilder {
 			case "width":
 			case "height":
 				if (key.equals("width")) {
-					formattedPrefix = mapActivity.getResources().getString(R.string.shared_string_width);
+					formattedPrefix = app.getString(R.string.shared_string_width);
 				} else {
-					formattedPrefix = mapActivity.getResources().getString(R.string.shared_string_height);
+					formattedPrefix = app.getString(R.string.shared_string_height);
 				}
 			case "depth":
 			case "seamark_height":
-				if (Algorithms.isFloat(value)) {
-					double valueAsDouble = Double.valueOf(value);
-					if (metricSystem == MetricsConstants.MILES_AND_FEET || metricSystem == MetricsConstants.NAUTICAL_MILES_AND_FEET) {
-						formattedValue = DISTANCE_FORMAT.format(valueAsDouble * OsmAndFormatter.FEET_IN_ONE_METER)
-								+ " " + mapActivity.getResources().getString(R.string.foot);
-					} else if (metricSystem == MetricsConstants.MILES_AND_YARDS) {
-						formattedValue = DISTANCE_FORMAT.format(valueAsDouble * OsmAndFormatter.YARDS_IN_ONE_METER)
-								+ " " + mapActivity.getResources().getString(R.string.yard);
+				try {
+					double valueAsDouble = Double.parseDouble(value);
+					if (metricSystem == MILES_AND_FEET || metricSystem == NAUTICAL_MILES_AND_FEET) {
+						formattedValue = DISTANCE_FORMAT.format(valueAsDouble * FEET_IN_ONE_METER) + " " + app.getString(R.string.foot);
+					} else if (metricSystem == MILES_AND_YARDS) {
+						formattedValue = DISTANCE_FORMAT.format(valueAsDouble * YARDS_IN_ONE_METER) + " " + app.getString(R.string.yard);
 					} else {
-						formattedValue = value + " " + mapActivity.getResources().getString(R.string.m);
+						formattedValue = value + " " + app.getString(R.string.m);
 					}
+				} catch (RuntimeException e) {
+					LOG.error(e.getMessage(), e);
 				}
 				break;
 			case "distance":
-				if (Algorithms.isFloat(value)) {
+				try {
 					float valueAsFloatInMeters = Float.parseFloat(value) * 1000;
-					if (metricSystem == MetricsConstants.KILOMETERS_AND_METERS) {
-						formattedValue =
-								value + " " + mapActivity.getResources().getString(R.string.km);
+					if (metricSystem == KILOMETERS_AND_METERS) {
+						formattedValue = value + " " + app.getString(R.string.km);
 					} else {
-						formattedValue = OsmAndFormatter.getFormattedDistance(valueAsFloatInMeters,
-								mapActivity.getMyApplication());
+						formattedValue = OsmAndFormatter.getFormattedDistance(valueAsFloatInMeters, app);
 					}
-					formattedPrefix = formatPrefix(prefix,
-							mapActivity.getResources().getString(R.string.distance));
-					break;
+					formattedPrefix = formatPrefix(prefix, app.getString(R.string.distance));
+				} catch (RuntimeException e) {
+					LOG.error(e.getMessage(), e);
 				}
+				break;
 			case "capacity":
 				if (subtype.equals("water_tower") || subtype.equals("storage_tank")) {
-					if (Algorithms.isFloat(value)) {
-						formattedValue = value + " " + mapActivity.getResources().getString(R.string.cubic_m);
-					}
+					formattedValue = value + " " + app.getString(R.string.cubic_m);
 				}
 				break;
 			case "maxweight":
 				if (Algorithms.isInt(value)) {
-					formattedValue = value + " " + mapActivity.getResources().getString(R.string.metric_ton);
+					formattedValue = value + " " + app.getString(R.string.metric_ton);
 				}
 				break;
 			case "students":
 			case "spots":
 			case "seats":
 				if (Algorithms.isInt(value)) {
-					formattedPrefix = formatPrefix(prefix, mapActivity.getResources().getString(R.string.shared_string_capacity));
+					formattedPrefix = formatPrefix(prefix, app.getString(R.string.shared_string_capacity));
 				}
 				break;
 			case "wikipedia":
@@ -753,7 +706,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			AndroidUtils.setMargins(llTextParams, icon == null ? dpToPx(16f) : 0, dpToPx(8f), 0, 0);
 			textPrefixView.setLayoutParams(llTextParams);
 			textPrefixView.setTextSize(12);
-			textPrefixView.setTextColor(getColor(R.color.ctx_menu_buttons_text_color));
+			textPrefixView.setTextColor(getColor(R.color.text_color_secondary_light));
 			textPrefixView.setEllipsize(TextUtils.TruncateAt.END);
 			textPrefixView.setMinLines(1);
 			textPrefixView.setMaxLines(1);
@@ -768,7 +721,7 @@ public class AmenityUIHelper extends MenuBuilder {
 		textView.setTextSize(16);
 		textView.setTextColor(ColorUtilities.getPrimaryTextColor(app, !light));
 
-		int linkTextColor = ContextCompat.getColor(view.getContext(), light ? R.color.ctx_menu_bottom_view_url_color_light : R.color.ctx_menu_bottom_view_url_color_dark);
+		int linkTextColor = ContextCompat.getColor(view.getContext(), light ? R.color.active_color_primary_light : R.color.active_color_primary_dark);
 
 		if (isPhoneNumber || isUrl) {
 			textView.setTextColor(linkTextColor);
@@ -857,17 +810,13 @@ public class AmenityUIHelper extends MenuBuilder {
 		} else if (isUrl) {
 			ll.setOnClickListener(v -> {
 				if (customization.isFeatureEnabled(CONTEXT_MENU_LINKS_ID)) {
-					if (text.contains(WIKI_LINK) && wikiAmenity != null) {
-						if (Version.isPaidVersion(app)) {
-							WikiArticleHelper wikiArticleHelper = new WikiArticleHelper(mapActivity, !light);
-							wikiArticleHelper.showWikiArticle(wikiAmenity.getLocation(), text);
-						} else {
-							WikipediaArticleWikiLinkFragment.showInstance(mapActivity.getSupportFragmentManager(), text);
-						}
+					String url = hiddenUrl == null ? text : hiddenUrl;
+					if (url.contains(WIKI_LINK)) {
+						LatLon location = wikiAmenity != null ? wikiAmenity.getLocation() : getLatLon();
+						WikiArticleHelper.askShowArticle(mapActivity, !light, location, url);
 					} else {
-						String uri = hiddenUrl == null ? text : hiddenUrl;
 						Intent intent = new Intent(Intent.ACTION_VIEW);
-						intent.setData(Uri.parse(uri));
+						intent.setData(Uri.parse(url));
 						AndroidUtils.startActivityIfSafe(v.getContext(), intent);
 					}
 				}
@@ -893,7 +842,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			AndroidUtils.setMargins(llHorLineParams, icon != null ? dpToPx(64f) : 0, 0, 0, 0);
 
 			horizontalLine.setLayoutParams(llHorLineParams);
-			horizontalLine.setBackgroundColor(getColor(light ? R.color.ctx_menu_bottom_view_divider_light : R.color.ctx_menu_bottom_view_divider_dark));
+			horizontalLine.setBackgroundColor(getColor(light ? R.color.divider_color_light : R.color.divider_color_dark));
 			((LinearLayout) view).addView(horizontalLine);
 		}
 		boolean collapsable = collapsableView != null;
@@ -944,7 +893,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			AndroidUtils.setMargins(llTextParams, topMargin, dpToPx(8f), 0, 0);
 			textPrefixView.setLayoutParams(llTextParams);
 			textPrefixView.setTextSize(12);
-			textPrefixView.setTextColor(getColor(R.color.ctx_menu_buttons_text_color));
+			textPrefixView.setTextColor(getColor(R.color.text_color_secondary_light));
 			textPrefixView.setEllipsize(TextUtils.TruncateAt.END);
 			textPrefixView.setMinLines(1);
 			textPrefixView.setMaxLines(1);
@@ -1052,7 +1001,7 @@ public class AmenityUIHelper extends MenuBuilder {
 							accept.add(pt.getKeyName());
 							filter.selectSubTypesToAccept(type, accept);
 						}
-						getMapActivity().showQuickSearch(filter);
+						getMapActivity().getFragmentsHelper().showQuickSearch(filter);
 					}
 				}
 			});
@@ -1080,6 +1029,7 @@ public class AmenityUIHelper extends MenuBuilder {
 					}
 				}
 				button.setVisibility(View.GONE);
+				notifyCollapseExpand(false);
 			});
 			view.addView(button);
 		}
@@ -1099,40 +1049,7 @@ public class AmenityUIHelper extends MenuBuilder {
 			return null;
 		}
 		String str = additionalInfo.get(key);
-		str = unzipContent(str);
+		str = Amenity.unzipContent(str);
 		return str;
-	}
-
-	String unzipContent(String str) {
-		if (isContentZipped(str)) {
-			try {
-				int ind = 4;
-				byte[] bytes = new byte[str.length() - ind];
-				for (int i = ind; i < str.length(); i++) {
-					char ch = str.charAt(i);
-					bytes[i - ind] = (byte) ((int) ch - 128 - 32);
-				}
-				GZIPInputStream gzn = new GZIPInputStream(new ByteArrayInputStream(bytes));
-				BufferedReader br = new BufferedReader(new InputStreamReader(gzn, "UTF-8"));
-				StringBuilder bld = new StringBuilder();
-				String s;
-				while ((s = br.readLine()) != null) {
-					bld.append(s);
-				}
-				br.close();
-				str = bld.toString();
-				// ugly fix of temporary problem of map generation
-				if (isContentZipped(str)) {
-					str = unzipContent(str);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return str;
-	}
-
-	boolean isContentZipped(String str) {
-		return str != null && str.startsWith(" gz ");
 	}
 }

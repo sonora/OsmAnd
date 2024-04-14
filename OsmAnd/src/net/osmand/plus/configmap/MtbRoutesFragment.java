@@ -1,6 +1,6 @@
 package net.osmand.plus.configmap;
 
-import static net.osmand.plus.configmap.ConfigureMapMenu.SHOW_MTB_ROUTES;
+import static net.osmand.osm.OsmRouteType.MTB;
 import static net.osmand.plus.configmap.ConfigureMapMenu.SHOW_MTB_SCALE_IMBA_TRAILS;
 
 import android.graphics.drawable.Drawable;
@@ -16,7 +16,6 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.widget.AppCompatRadioButton;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
@@ -34,25 +33,23 @@ public class MtbRoutesFragment extends BaseOsmAndFragment {
 
 	public static final String TAG = MtbRoutesFragment.class.getSimpleName();
 
-	private OsmandApplication app;
-	private OsmandSettings settings;
-
 	private CommonPreference<Boolean> showMtbRoutesPref;
 	private final List<View> itemsViews = new ArrayList<>();
-	private boolean nightMode;
+
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
+	}
 
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
-		settings = app.getSettings();
-		nightMode = app.getDaynightHelper().isNightModeForMapControls();
-		showMtbRoutesPref = settings.getCustomRenderBooleanProperty(SHOW_MTB_ROUTES);
+		showMtbRoutesPref = settings.getCustomRenderBooleanProperty(MTB.getRenderingPropertyAttr());
 	}
 
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(requireContext(), nightMode);
+		updateNightMode();
 		View view = themedInflater.inflate(R.layout.fragment_mtb_routes, container, false);
 
 		setupHeader(view);

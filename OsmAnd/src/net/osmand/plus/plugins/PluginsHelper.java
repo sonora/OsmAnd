@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.AsyncTask;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,33 +12,45 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
+import com.github.mikephil.charting.charts.LineChart;
+
 import net.osmand.IProgress;
 import net.osmand.Location;
 import net.osmand.PlatformUtil;
 import net.osmand.core.android.MapRendererContext;
 import net.osmand.data.Amenity;
 import net.osmand.data.MapObject;
+import net.osmand.gpx.GPXTrackAnalysis;
+import net.osmand.gpx.GPXTrackAnalysis.TrackPointsAnalyser;
 import net.osmand.map.WorldRegion;
+import net.osmand.plus.AppInitializeListener;
 import net.osmand.plus.AppInitializer;
-import net.osmand.plus.AppInitializer.AppInitializeListener;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.Version;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.activities.TabActivity.TabItem;
 import net.osmand.plus.api.SettingsAPI;
+import net.osmand.plus.charts.GPXDataSetAxisType;
+import net.osmand.plus.charts.GPXDataSetType;
+import net.osmand.plus.charts.OrderedLineDataSet;
+import net.osmand.plus.configmap.tracks.TrackItem;
 import net.osmand.plus.dashboard.tools.DashFragmentData;
-import net.osmand.plus.download.CustomRegion;
 import net.osmand.plus.download.IndexItem;
+import net.osmand.plus.keyevent.assignment.KeyAssignment;
+import net.osmand.plus.keyevent.commands.KeyEventCommand;
 import net.osmand.plus.mapcontextmenu.builders.cards.ImageCard.GetImageCardsTask.GetImageCardsListener;
 import net.osmand.plus.mapcontextmenu.builders.cards.ImageCard.ImageCardsHolder;
-import net.osmand.plus.myplaces.ui.FavoritesActivity;
+import net.osmand.plus.myplaces.MyPlacesActivity;
+import net.osmand.plus.plugins.OsmandPlugin.PluginInstallListener;
 import net.osmand.plus.plugins.accessibility.AccessibilityPlugin;
-import net.osmand.plus.plugins.antplus.AntPlusPlugin;
 import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin;
+import net.osmand.plus.plugins.custom.CustomOsmandPlugin;
+import net.osmand.plus.plugins.custom.CustomRegion;
 import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
+import net.osmand.plus.plugins.externalsensors.ExternalSensorsPlugin;
 import net.osmand.plus.plugins.mapillary.MapillaryPlugin;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
-import net.osmand.plus.plugins.openplacereviews.OpenPlaceReviewsPlugin;
+import net.osmand.plus.plugins.online.OnlineOsmandPlugin;
 import net.osmand.plus.plugins.openseamaps.NauticalMapsPlugin;
 import net.osmand.plus.plugins.osmedit.OsmEditingPlugin;
 import net.osmand.plus.plugins.parking.ParkingPositionPlugin;
@@ -47,14 +60,17 @@ import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.plugins.weather.WeatherPlugin;
 import net.osmand.plus.poi.PoiUIFilter;
 import net.osmand.plus.quickaction.QuickActionType;
-import net.osmand.plus.search.QuickSearchDialogFragment;
+import net.osmand.plus.search.dialogs.QuickSearchDialogFragment;
 import net.osmand.plus.settings.backend.ApplicationMode;
+import net.osmand.plus.utils.AndroidNetworkUtils;
 import net.osmand.plus.views.MapLayers;
 import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.WidgetType;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgets.MapWidget;
 import net.osmand.plus.widgets.ctxmenu.ContextMenuAdapter;
+import net.osmand.plus.widgets.popup.PopUpMenuItem;
 import net.osmand.plus.wikipedia.WikipediaPlugin;
 import net.osmand.render.RenderingRuleProperty;
 import net.osmand.render.RenderingRulesStorage;
@@ -68,6 +84,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -76,12 +93,19 @@ import java.util.Set;
 
 public class PluginsHelper {
 
-	private static final Log log = PlatformUtil.getLog(PluginsHelper.class);
+	private static final Log LOG = PlatformUtil.getLog(PluginsHelper.class);
 
 	private static final String CUSTOM_PLUGINS_KEY = "custom_plugins";
 	private static final String PLUGINS_PREFERENCES_NAME = "net.osmand.plugins";
+	public static final String ONLINE_PLUGINS_URL = "https://osmand.net/api/plugins/list";
+	public static final String OSMAND_URL = "https://osmand.net";
 
 	private static final List<OsmandPlugin> allPlugins = new ArrayList<>();
+	private static List<OnlineOsmandPlugin> onlinePlugins = new ArrayList<>();
+
+	public interface OnlinePluginsCallback {
+		void onFetchComplete(@NonNull List<OnlineOsmandPlugin> plugins);
+	}
 
 	public static void initPlugins(@NonNull OsmandApplication app) {
 		Set<String> enabledPlugins = app.getSettings().getEnabledPlugins();
@@ -97,9 +121,10 @@ public class PluginsHelper {
 		allPlugins.add(new AudioVideoNotesPlugin(app));
 		checkMarketPlugin(app, new ParkingPositionPlugin(app));
 		allPlugins.add(new OsmEditingPlugin(app));
-		allPlugins.add(new OpenPlaceReviewsPlugin(app));
+		// OpenPlaceReviews has been discontinued in 15 June 2023 (schedule to delete the code).
+		// allPlugins.add(new OpenPlaceReviewsPlugin(app));
 		allPlugins.add(new MapillaryPlugin(app));
-		allPlugins.add(new AntPlusPlugin(app));
+		allPlugins.add(new ExternalSensorsPlugin(app));
 		allPlugins.add(new AccessibilityPlugin(app));
 		allPlugins.add(new OsmandDevelopmentPlugin(app));
 
@@ -142,7 +167,7 @@ public class PluginsHelper {
 					allPlugins.add(plugin);
 				}
 			} catch (JSONException e) {
-				e.printStackTrace();
+				LOG.error(e);
 			}
 		}
 	}
@@ -161,7 +186,7 @@ public class PluginsHelper {
 				plugin.writeDependentFilesJson(json);
 				itemsJson.put(json);
 			} catch (JSONException e) {
-				e.printStackTrace();
+				LOG.error(e);
 			}
 		}
 		String jsonStr = itemsJson.toString();
@@ -171,7 +196,7 @@ public class PluginsHelper {
 	}
 
 	private static void enablePluginsByDefault(@NonNull OsmandApplication app, @NonNull Set<String> enabledPlugins) {
-		for (OsmandPlugin plugin : allPlugins) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
 			if (plugin.isEnableByDefault()
 					&& !enabledPlugins.contains(plugin.getId())
 					&& !isPluginDisabledManually(app, plugin)) {
@@ -182,12 +207,12 @@ public class PluginsHelper {
 	}
 
 	private static void activatePlugins(OsmandApplication app, Set<String> enabledPlugins) {
-		for (OsmandPlugin plugin : allPlugins) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
 			if (enabledPlugins.contains(plugin.getId()) || plugin.isEnabled()) {
 				initPlugin(app, plugin);
 			}
 		}
-		app.getQuickActionRegistry().updateActionTypes();
+		app.getMapButtonsHelper().updateActionTypes();
 	}
 
 	private static void initPlugin(OsmandApplication app, OsmandPlugin plugin) {
@@ -196,7 +221,7 @@ public class PluginsHelper {
 				plugin.setEnabled(true);
 			}
 		} catch (Exception e) {
-			log.error("Plugin initialization failed " + plugin.getId(), e);
+			LOG.error("Plugin initialization failed " + plugin.getId(), e);
 		}
 	}
 
@@ -235,7 +260,7 @@ public class PluginsHelper {
 			}
 			updateMarketPlugin(app, plugin);
 		}
-		app.getQuickActionRegistry().updateActionTypes();
+		app.getMapButtonsHelper().updateActionTypes();
 	}
 
 
@@ -273,7 +298,7 @@ public class PluginsHelper {
 			plugin.setEnabled(false);
 		}
 		app.getSettings().enablePlugin(plugin.getId(), enable);
-		app.getQuickActionRegistry().updateActionTypes();
+		app.getMapButtonsHelper().updateActionTypes();
 		if (activity != null) {
 			if (activity instanceof MapActivity) {
 				MapActivity mapActivity = (MapActivity) activity;
@@ -303,6 +328,12 @@ public class PluginsHelper {
 		return true;
 	}
 
+	public static void installPlugin(@Nullable FragmentActivity activity,
+	                                 @NonNull OsmandPlugin plugin,
+	                                 @Nullable PluginInstallListener installListener) {
+		plugin.install(activity, installListener);
+	}
+
 	private static void registerAppInitializingDependedProperties(@NonNull OsmandApplication app) {
 		app.getAppInitializer().addListener(new AppInitializeListener() {
 
@@ -330,62 +361,71 @@ public class PluginsHelper {
 
 	@NonNull
 	public static List<OsmandPlugin> getAvailablePlugins() {
-		return allPlugins;
+		return new ArrayList<>(allPlugins);
+	}
+
+	public static List<OnlineOsmandPlugin> getOnlinePlugins() {
+		return new ArrayList<>(onlinePlugins);
 	}
 
 	@NonNull
 	public static List<OsmandPlugin> getEnabledPlugins() {
-		ArrayList<OsmandPlugin> lst = new ArrayList<>(allPlugins.size());
-		for (OsmandPlugin p : allPlugins) {
-			if (p.isEnabled()) {
-				lst.add(p);
+		List<OsmandPlugin> availablePlugins = getAvailablePlugins();
+		List<OsmandPlugin> plugins = new ArrayList<>(availablePlugins.size());
+		for (OsmandPlugin plugin : availablePlugins) {
+			if (plugin.isEnabled()) {
+				plugins.add(plugin);
 			}
 		}
-		return lst;
+		return plugins;
 	}
 
 	@NonNull
 	public static List<OsmandPlugin> getActivePlugins() {
-		ArrayList<OsmandPlugin> lst = new ArrayList<>(allPlugins.size());
-		for (OsmandPlugin p : allPlugins) {
-			if (p.isActive()) {
-				lst.add(p);
+		List<OsmandPlugin> availablePlugins = getAvailablePlugins();
+		List<OsmandPlugin> plugins = new ArrayList<>(availablePlugins.size());
+		for (OsmandPlugin plugin : availablePlugins) {
+			if (plugin.isActive()) {
+				plugins.add(plugin);
 			}
 		}
-		return lst;
+		return plugins;
 	}
 
 	@NonNull
 	public static List<OsmandPlugin> getNotActivePlugins() {
-		ArrayList<OsmandPlugin> lst = new ArrayList<>(allPlugins.size());
-		for (OsmandPlugin p : allPlugins) {
-			if (!p.isActive()) {
-				lst.add(p);
+		List<OsmandPlugin> availablePlugins = getAvailablePlugins();
+		List<OsmandPlugin> plugins = new ArrayList<>(availablePlugins.size());
+		for (OsmandPlugin plugin : availablePlugins) {
+			if (!plugin.isActive()) {
+				plugins.add(plugin);
 			}
 		}
-		return lst;
+		return plugins;
 	}
 
 	@NonNull
 	public static List<OsmandPlugin> getMarketPlugins() {
-		ArrayList<OsmandPlugin> lst = new ArrayList<>(allPlugins.size());
-		for (OsmandPlugin p : allPlugins) {
-			if (p.isMarketPlugin()) {
-				lst.add(p);
+		List<OsmandPlugin> availablePlugins = getAvailablePlugins();
+		List<OsmandPlugin> plugins = new ArrayList<>(availablePlugins.size());
+		for (OsmandPlugin plugin : availablePlugins) {
+			if (plugin.isMarketPlugin()) {
+				plugins.add(plugin);
 			}
 		}
-		return lst;
+		return plugins;
 	}
 
 	@NonNull
 	public static List<CustomOsmandPlugin> getCustomPlugins() {
-		ArrayList<CustomOsmandPlugin> lst = new ArrayList<>(allPlugins.size());
-		for (OsmandPlugin plugin : allPlugins) {
+		List<OsmandPlugin> availablePlugins = getAvailablePlugins();
+		List<CustomOsmandPlugin> customPlugins = new ArrayList<>(availablePlugins.size());
+		for (OsmandPlugin plugin : availablePlugins) {
 			if (plugin instanceof CustomOsmandPlugin) {
-				lst.add((CustomOsmandPlugin) plugin);
+				customPlugins.add((CustomOsmandPlugin) plugin);
 			}
 		}
-		return lst;
+		return customPlugins;
 	}
 
 	@NonNull
@@ -438,6 +478,15 @@ public class PluginsHelper {
 		return null;
 	}
 
+	public static OsmandPlugin getOnlinePlugin(String id) {
+		for (OsmandPlugin plugin : getOnlinePlugins()) {
+			if (plugin.getId().equals(id)) {
+				return plugin;
+			}
+		}
+		return null;
+	}
+
 	public static <T extends OsmandPlugin> boolean isEnabled(Class<T> clz) {
 		return getEnabledPlugin(clz) != null;
 	}
@@ -458,12 +507,13 @@ public class PluginsHelper {
 		return l;
 	}
 
+	@NonNull
 	public static List<IndexItem> getCustomDownloadItems() {
-		List<IndexItem> l = new ArrayList<>();
+		List<IndexItem> items = new ArrayList<>();
 		for (WorldRegion region : getCustomDownloadRegions()) {
-			collectIndexItemsFromSubregion(region, l);
+			collectIndexItemsFromSubregion(region, items);
 		}
-		return l;
+		return items;
 	}
 
 	public static void collectIndexItemsFromSubregion(WorldRegion region, List<IndexItem> items) {
@@ -475,13 +525,13 @@ public class PluginsHelper {
 		}
 	}
 
-	public static void attachAdditionalInfoToRecordedTrack(Location location, JSONObject json) {
+	public static void attachAdditionalInfoToRecordedTrack(@NonNull Location location, @NonNull JSONObject json) {
 		try {
 			for (OsmandPlugin plugin : getEnabledPlugins()) {
 				plugin.attachAdditionalInfoToRecordedTrack(location, json);
 			}
 		} catch (JSONException e) {
-			log.error(e);
+			LOG.error(e);
 		}
 	}
 
@@ -567,9 +617,9 @@ public class PluginsHelper {
 	}
 
 	@Nullable
-	public static MapWidget createMapWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType) {
+	public static MapWidget createMapWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
 		for (OsmandPlugin plugin : getEnabledPlugins()) {
-			MapWidget widget = plugin.createMapWidgetForParams(mapActivity, widgetType);
+			MapWidget widget = plugin.createMapWidgetForParams(mapActivity, widgetType, customId, widgetsPanel);
 			if (widget != null) {
 				return widget;
 			}
@@ -626,9 +676,9 @@ public class PluginsHelper {
 		}
 	}
 
-	public static void onOptionsMenuActivity(FragmentActivity activity, Fragment fragment, ContextMenuAdapter optionsMenuAdapter) {
+	public static void onOptionsMenuActivity(FragmentActivity activity, Fragment fragment, Set<TrackItem> selectedItems, List<PopUpMenuItem> items) {
 		for (OsmandPlugin plugin : getEnabledPlugins()) {
-			plugin.optionsMenuFragment(activity, fragment, optionsMenuAdapter);
+			plugin.optionsMenuFragment(activity, fragment, selectedItems, items);
 		}
 	}
 
@@ -717,17 +767,26 @@ public class PluginsHelper {
 		try {
 			installed = ctx.getPackageManager().getPackageInfo(packageInfo, 0) != null;
 		} catch (NameNotFoundException e) {
-			log.info("Package not found: " + packageInfo);
+			LOG.info("Package not found: " + packageInfo);
 		}
 		return installed;
 	}
 
-	public static boolean onMapActivityKeyUp(MapActivity mapActivity, int keyCode) {
-		for (OsmandPlugin p : getEnabledPlugins()) {
-			if (p.mapActivityKeyUp(mapActivity, keyCode))
-				return true;
+	public static void addCommonKeyEventAssignments(@NonNull List<KeyAssignment> assignments) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
+			plugin.addCommonKeyEventAssignments(assignments);
 		}
-		return false;
+	}
+
+	@Nullable
+	public static KeyEventCommand createKeyEventCommand(@NonNull String commandId) {
+		for (OsmandPlugin plugin : getEnabledPlugins()) {
+			KeyEventCommand command = plugin.createKeyEventCommand(commandId);
+			if (command != null) {
+				return command;
+			}
+		}
+		return null;
 	}
 
 	public static boolean layerShouldBeDisabled(@NonNull OsmandMapLayer layer) {
@@ -760,9 +819,9 @@ public class PluginsHelper {
 		return getEnabledPlugin(OsmandDevelopmentPlugin.class) != null;
 	}
 
-	public static void addMyPlacesTabPlugins(FavoritesActivity favoritesActivity, List<TabItem> mTabs, Intent intent) {
+	public static void addMyPlacesTabPlugins(MyPlacesActivity myPlacesActivity, List<TabItem> mTabs, Intent intent) {
 		for (OsmandPlugin p : getEnabledPlugins()) {
-			p.addMyPlacesTab(favoritesActivity, mTabs, intent);
+			p.addMyPlacesTab(myPlacesActivity, mTabs, intent);
 		}
 	}
 
@@ -770,5 +829,96 @@ public class PluginsHelper {
 		for (OsmandPlugin p : getEnabledPlugins()) {
 			p.updateMapPresentationEnvironment(mapRendererContext);
 		}
+	}
+
+	public static TrackPointsAnalyser getTrackPointsAnalyser() {
+		List<TrackPointsAnalyser> trackPointsAnalysers = new ArrayList<>();
+		for (OsmandPlugin plugin : getActivePlugins()) {
+			TrackPointsAnalyser analyser = plugin.getTrackPointsAnalyser();
+			if (analyser != null) {
+				trackPointsAnalysers.add(analyser);
+			}
+		}
+		if(!isActive(ExternalSensorsPlugin.class)) {
+			OsmandPlugin plugin = getPlugin(ExternalSensorsPlugin.class);
+			if(plugin != null) {
+				trackPointsAnalysers.add(plugin.getTrackPointsAnalyser());
+			}
+		}
+		return (gpxTrackAnalysis, wptPt, pointAttributes) -> {
+			for (TrackPointsAnalyser analyser : trackPointsAnalysers) {
+				analyser.onAnalysePoint(gpxTrackAnalysis, wptPt, pointAttributes);
+			}
+		};
+	}
+
+	@Nullable
+	public static OrderedLineDataSet getOrderedLineDataSet(@NonNull LineChart chart,
+	                                                       @NonNull GPXTrackAnalysis analysis,
+	                                                       @NonNull GPXDataSetType graphType,
+	                                                       @NonNull GPXDataSetAxisType axisType,
+	                                                       boolean calcWithoutGaps, boolean useRightAxis) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
+			OrderedLineDataSet dataSet = plugin.getOrderedLineDataSet(chart, analysis, graphType, axisType, calcWithoutGaps, useRightAxis);
+			if (dataSet != null) {
+				return dataSet;
+			}
+		}
+		return null;
+	}
+
+	public static void getAvailableGPXDataSetTypes(@NonNull GPXTrackAnalysis analysis, @NonNull List<GPXDataSetType[]> availableTypes) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
+			plugin.getAvailableGPXDataSetTypes(analysis, availableTypes);
+		}
+	}
+
+	public static void onIndexItemDownloaded(@NonNull IndexItem item, boolean updatingFile) {
+		for (OsmandPlugin plugin : getAvailablePlugins()) {
+			plugin.onIndexItemDownloaded(item, updatingFile);
+		}
+	}
+
+	public static void fetchOnlinePlugins(@NonNull OsmandApplication app, @Nullable OnlinePluginsCallback callback) {
+		Map<String, String> params = new HashMap<>();
+		params.put("nightly", Version.isDeveloperBuild(app) ? "true" : "false");
+		params.put("os", "android");
+		params.put("version", Version.getAppVersion(app));
+		params.put("lang", app.getLocaleHelper().getLanguage());
+		params.put("nd", String.valueOf(app.getAppInitializer().getFirstInstalledDays()));
+		params.put("ns", String.valueOf(app.getAppInitializer().getNumberOfStarts()));
+		if (app.isUserAndroidIdAllowed()) {
+			params.put("aid", app.getUserAndroidId());
+		}
+		AndroidNetworkUtils.sendRequestAsync(app, ONLINE_PLUGINS_URL, params, null,
+				false, false, (resultJson, error, resultCode) -> {
+					new AsyncTask<Void, Void, List<OnlineOsmandPlugin>>() {
+						@Override
+						protected List<OnlineOsmandPlugin> doInBackground(Void... voids) {
+							List<OnlineOsmandPlugin> plugins = new ArrayList<>();
+							if (!Algorithms.isEmpty(resultJson)) {
+								try {
+									JSONObject res = new JSONObject(resultJson);
+									JSONArray pluginsArray = res.getJSONArray("plugins");
+									for (int i = 0; i < pluginsArray.length(); i++) {
+										JSONObject pluginObj = pluginsArray.getJSONObject(i);
+										plugins.add(new OnlineOsmandPlugin(app, pluginObj));
+									}
+								} catch (JSONException e) {
+									LOG.error(e);
+								}
+							}
+							return plugins;
+						}
+
+						@Override
+						protected void onPostExecute(List<OnlineOsmandPlugin> plugins) {
+							onlinePlugins = plugins;
+							if (callback != null) {
+								callback.onFetchComplete(plugins);
+							}
+						}
+					}.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void) null);
+				});
 	}
 }

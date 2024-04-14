@@ -23,9 +23,9 @@ import net.osmand.plus.mapcontextmenu.editors.FavoritePointEditor;
 import net.osmand.plus.mapcontextmenu.editors.FavoritePointEditorFragment;
 import net.osmand.plus.mapmarkers.MapMarker;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
-import net.osmand.plus.myplaces.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.FavouritesHelper;
 import net.osmand.plus.transport.TransportStopRoute;
-import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
 import net.osmand.util.Algorithms;
 import net.osmand.util.OpeningHoursParser;
@@ -132,7 +132,7 @@ public class FavouritePointMenuController extends MenuController {
 	public Drawable getRightIcon() {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			return PointImageDrawable.getFromFavorite(mapActivity.getMyApplication(),
+			return PointImageUtils.getFromPoint(mapActivity.getMyApplication(),
 					mapActivity.getMyApplication().getFavoritesHelper().getColorWithCategory(fav,
 							ContextCompat.getColor(mapActivity, R.color.color_favorite)), false, fav);
 		} else {
@@ -184,7 +184,7 @@ public class FavouritePointMenuController extends MenuController {
 				gravityIcon.setBoundsFrom(line2icon);
 				return gravityIcon;
 			} else {
-				int colorId = isLight() ? R.color.icon_color_default_light : R.color.ctx_menu_bottom_view_icon_dark;
+				int colorId = isLight() ? R.color.icon_color_default_light : R.color.icon_color_secondary_dark;
 				return getIcon(R.drawable.ic_action_group_name_16, colorId);
 			}
 		}

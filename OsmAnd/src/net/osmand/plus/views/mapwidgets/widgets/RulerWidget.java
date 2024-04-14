@@ -26,7 +26,7 @@ public class RulerWidget {
 	private final TextView textShadow;
 
 	private final int maxWidth;
-	private int cacheRulerZoom;
+	private float cacheRulerZoom;
 	private float cacheMapDensity;
 	private double cacheRulerTileX;
 	private double cacheRulerTileY;
@@ -55,13 +55,12 @@ public class RulerWidget {
 		// update cache
 		if (view.isZooming()) {
 			visible = false;
-		} else if (!tb.isZoomAnimated()
-				&& (tb.getZoom() != cacheRulerZoom
+		} else if ((tb.getZoom() + tb.getZoomFloatPart() != cacheRulerZoom
 				|| Math.abs(tb.getCenterTileX() - cacheRulerTileX) > 1
 				|| Math.abs(tb.getCenterTileY() - cacheRulerTileY) > 1
 				|| mapDensity != cacheMapDensity)
 				&& tb.getPixWidth() > 0 && maxWidth > 0) {
-			cacheRulerZoom = tb.getZoom();
+			cacheRulerZoom = (float) (tb.getZoom() + tb.getZoomFloatPart());
 			cacheRulerTileX = tb.getCenterTileX();
 			cacheRulerTileY = tb.getCenterTileY();
 			cacheMapDensity = mapDensity;
@@ -70,7 +69,7 @@ public class RulerWidget {
 			double roundedDist = OsmAndFormatter.calculateRoundedDist(maxWidth / pixDensity, app);
 
 			int cacheRulerDistPix = (int) (pixDensity * roundedDist);
-			String cacheRulerText = OsmAndFormatter.getFormattedDistance((float) roundedDist, app, false);
+			String cacheRulerText = OsmAndFormatter.getFormattedDistance((float) roundedDist, app, OsmAndFormatter.OsmAndFormatterParams.NO_TRAILING_ZEROS);
 			textShadow.setText(cacheRulerText);
 			text.setText(cacheRulerText);
 			ViewGroup.LayoutParams lp = layout.getLayoutParams();

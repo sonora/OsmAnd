@@ -2,39 +2,45 @@ package net.osmand.plus.charts;
 
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.interfaces.datasets.IOrderedLineDataSet;
 
-import net.osmand.plus.charts.ChartUtils.GPXDataSetAxisType;
-import net.osmand.plus.charts.ChartUtils.GPXDataSetType;
+import net.osmand.plus.charts.GpxMarkerView.MarkerValueFormatter;
+import net.osmand.plus.utils.OsmAndFormatter;
 
 import java.util.List;
 
-public class OrderedLineDataSet extends LineDataSet {
+import androidx.annotation.NonNull;
+
+public class OrderedLineDataSet extends LineDataSet implements IOrderedLineDataSet {
 
 	private final GPXDataSetType dataSetType;
 	private final GPXDataSetAxisType dataSetAxisType;
 
 	private final boolean leftAxis;
 
-	float priority;
-	String units;
-	float divX = 1f;
-	float divY = 1f;
-	float mulY = 1f;
+	private String units;
+	private float priority;
+	private float divX = 1f;
 
-	OrderedLineDataSet(List<Entry> yVals, String label, ChartUtils.GPXDataSetType dataSetType,
-	                   ChartUtils.GPXDataSetAxisType dataSetAxisType, boolean leftAxis) {
+	@NonNull
+	private MarkerValueFormatter markerValueFormatter;
+
+	public OrderedLineDataSet(List<Entry> yVals, String label, GPXDataSetType dataSetType,
+	                          GPXDataSetAxisType dataSetAxisType, boolean leftAxis) {
 		super(yVals, label);
 		setHighlightLineWidth(1);
 		this.dataSetType = dataSetType;
 		this.dataSetAxisType = dataSetAxisType;
 		this.leftAxis = leftAxis;
+		this.markerValueFormatter = (app, value) ->
+				OsmAndFormatter.formatIntegerValue((int) (value + 0.5f), "", app).value + " ";
 	}
 
-	public ChartUtils.GPXDataSetType getDataSetType() {
+	public GPXDataSetType getDataSetType() {
 		return dataSetType;
 	}
 
-	public ChartUtils.GPXDataSetAxisType getDataSetAxisType() {
+	public GPXDataSetAxisType getDataSetAxisType() {
 		return dataSetAxisType;
 	}
 
@@ -42,23 +48,37 @@ public class OrderedLineDataSet extends LineDataSet {
 		return priority;
 	}
 
+	public void setPriority(float priority) {
+		this.priority = priority;
+	}
+
 	public float getDivX() {
 		return divX;
 	}
 
-	public float getDivY() {
-		return divY;
-	}
-
-	public float getMulY() {
-		return mulY;
+	public void setDivX(float divX) {
+		this.divX = divX;
 	}
 
 	public String getUnits() {
 		return units;
 	}
 
+	public void setUnits(String units) {
+		this.units = units;
+	}
+
+	@Override
 	public boolean isLeftAxis() {
 		return leftAxis;
+	}
+
+	@NonNull
+	public MarkerValueFormatter getMarkerValueFormatter() {
+		return markerValueFormatter;
+	}
+
+	public void setAxisValueFormatter(@NonNull MarkerValueFormatter markerValueFormatter) {
+		this.markerValueFormatter = markerValueFormatter;
 	}
 }

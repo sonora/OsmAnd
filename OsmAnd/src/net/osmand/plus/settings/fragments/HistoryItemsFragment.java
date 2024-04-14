@@ -1,5 +1,9 @@
 package net.osmand.plus.settings.fragments;
 
+import static net.osmand.plus.settings.enums.HistorySource.NAVIGATION;
+import static net.osmand.plus.settings.enums.HistorySource.SEARCH;
+import static net.osmand.plus.utils.UiUtilities.CompoundButtonType.TOOLBAR;
+
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -23,18 +27,18 @@ import net.osmand.Location;
 import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndCompassListener;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndLocationListener;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.backup.ui.DeleteAllDataConfirmationBottomSheet.OnConfirmDeletionListener;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.enums.HistorySource;
 import net.osmand.plus.settings.fragments.HistoryAdapter.OnItemSelectedListener;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.util.MapUtils;
 
 import java.util.ArrayList;
@@ -44,21 +48,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static net.osmand.plus.utils.UiUtilities.CompoundButtonType.TOOLBAR;
-
 public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment implements OnItemSelectedListener,
 		OsmAndCompassListener, OsmAndLocationListener, OnConfirmDeletionListener {
-
-	protected OsmandApplication app;
-	protected OsmandSettings settings;
 
 	protected final List<Object> items = new ArrayList<>();
 	protected final Set<Object> selectedItems = new HashSet<>();
 	protected final Map<Integer, List<?>> itemsGroups = new HashMap<>();
 
 	protected View appbar;
-	protected View deleteButton;
-	protected View selectAllButton;
+	protected DialogButton deleteButton;
+	protected DialogButton selectAllButton;
 	protected ImageView shareButton;
 	protected HistoryAdapter adapter;
 	protected RecyclerView recyclerView;
@@ -68,22 +67,19 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 	private Location location;
 	private boolean locationUpdateStarted;
 	private boolean compassUpdateAllowed = true;
-	protected boolean nightMode;
 
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = getMyApplication();
-		settings = app.getSettings();
-		nightMode = !app.getSettings().isLightContent();
 		updateHistoryItems();
 	}
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		updateNightMode();
 		MapActivity mapActivity = (MapActivity) requireActivity();
-		View view = UiUtilities.getInflater(mapActivity, nightMode).inflate(R.layout.history_preferences_fragment, container, false);
+		View view = themedInflater.inflate(R.layout.history_preferences_fragment, container, false);
 
 		appbar = view.findViewById(R.id.appbar);
 		recyclerView = view.findViewById(R.id.list);
@@ -95,7 +91,7 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 			}
 		});
 
-		adapter = new HistoryAdapter(app, this, nightMode);
+		adapter = new HistoryAdapter(mapActivity, this, nightMode);
 		adapter.updateSettingsItems(items, itemsGroups, selectedItems);
 		recyclerView.setAdapter(adapter);
 
@@ -174,6 +170,8 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 		buttonsContainer.setBackgroundColor(AndroidUtils.getColorFromAttr(view.getContext(), R.attr.bg_color));
 
 		deleteButton = view.findViewById(R.id.right_bottom_button);
+		deleteButton.setButtonType(DialogButtonType.PRIMARY);
+		deleteButton.setTitleId(R.string.shared_string_delete);
 		deleteButton.setOnClickListener(v -> {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
@@ -181,6 +179,8 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 			}
 		});
 		selectAllButton = view.findViewById(R.id.dismiss_button);
+		selectAllButton.setButtonType(DialogButtonType.SECONDARY);
+		selectAllButton.setTitleId(R.string.shared_string_select_all);
 		selectAllButton.setOnClickListener(v -> {
 			if (isAllItemsSelected()) {
 				selectedItems.clear();
@@ -192,9 +192,6 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 			adapter.notifyDataSetChanged();
 		});
 		updateSelectAllButton();
-
-		UiUtilities.setupDialogButton(nightMode, selectAllButton, DialogButtonType.SECONDARY, R.string.shared_string_select_all);
-		UiUtilities.setupDialogButton(nightMode, deleteButton, DialogButtonType.PRIMARY, R.string.shared_string_delete);
 
 		AndroidUiHelper.updateVisibility(deleteButton, true);
 		AndroidUiHelper.updateVisibility(view.findViewById(R.id.buttons_divider), true);
@@ -219,8 +216,7 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 	}
 
 	private void updateSelectAllButton() {
-		TextView tvTitle = selectAllButton.findViewById(R.id.button_text);
-		tvTitle.setText(isAllItemsSelected() ?
+		selectAllButton.setTitleId(isAllItemsSelected() ?
 				R.string.shared_string_deselect_all :
 				R.string.shared_string_select_all);
 	}
@@ -319,8 +315,7 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 	}
 
 	private void startLocationUpdate() {
-		OsmandApplication app = getMyApplication();
-		if (app != null && !locationUpdateStarted) {
+		if (!locationUpdateStarted) {
 			locationUpdateStarted = true;
 			OsmAndLocationProvider locationProvider = app.getLocationProvider();
 			locationProvider.removeCompassListener(locationProvider.getNavigationInfo());
@@ -331,13 +326,20 @@ public abstract class HistoryItemsFragment extends BaseOsmAndDialogFragment impl
 	}
 
 	private void stopLocationUpdate() {
-		OsmandApplication app = getMyApplication();
-		if (app != null && locationUpdateStarted) {
+		if (locationUpdateStarted) {
 			locationUpdateStarted = false;
 			OsmAndLocationProvider locationProvider = app.getLocationProvider();
 			locationProvider.removeLocationListener(this);
 			locationProvider.removeCompassListener(this);
 			locationProvider.addCompassListener(locationProvider.getNavigationInfo());
+		}
+	}
+
+	public static void showInstance(@NonNull FragmentManager manager, @NonNull HistorySource source, @Nullable Fragment target) {
+		if (source == NAVIGATION) {
+			NavigationHistorySettingsFragment.showInstance(manager, target);
+		} else if (source == SEARCH) {
+			SearchHistorySettingsFragment.showInstance(manager, target);
 		}
 	}
 }

@@ -1,11 +1,12 @@
 package net.osmand.plus.plugins.monitoring;
 
-import static net.osmand.plus.myplaces.ui.FavoritesActivity.TAB_ID;
+import static net.osmand.plus.myplaces.MyPlacesActivity.TAB_ID;
 import static net.osmand.plus.plugins.PluginInfoFragment.PLUGIN_INFO;
 import static net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin.MINUTES;
 import static net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin.SECONDS;
 import static net.osmand.plus.settings.backend.OsmandSettings.MONTHLY_DIRECTORY;
 import static net.osmand.plus.settings.backend.OsmandSettings.REC_DIRECTORY;
+import static net.osmand.plus.settings.controllers.BatteryOptimizationController.isIgnoringBatteryOptimizations;
 
 import android.content.Intent;
 import android.graphics.Typeface;
@@ -16,20 +17,24 @@ import android.text.SpannableStringBuilder;
 import android.view.LayoutInflater;
 import android.view.View;
 
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceViewHolder;
 import androidx.preference.SwitchPreferenceCompat;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.helpers.FontCache;
-import net.osmand.plus.myplaces.ui.FavoritesActivity;
+import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.externalsensors.ExternalSensorTrackDataType;
+import net.osmand.plus.plugins.externalsensors.ExternalSensorsPlugin;
 import net.osmand.plus.profiles.SelectCopyAppModeBottomSheet;
 import net.osmand.plus.profiles.SelectCopyAppModeBottomSheet.CopyAppModePrefsListener;
 import net.osmand.plus.settings.backend.ApplicationMode;
@@ -39,20 +44,25 @@ import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.settings.bottomsheets.ResetProfilePrefsBottomSheet;
 import net.osmand.plus.settings.bottomsheets.ResetProfilePrefsBottomSheet.ResetAppModePrefsListener;
 import net.osmand.plus.settings.bottomsheets.SingleSelectPreferenceBottomSheet;
+import net.osmand.plus.settings.controllers.BatteryOptimizationController;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
 import net.osmand.plus.settings.preferences.ListPreferenceEx;
 import net.osmand.plus.settings.preferences.SwitchPreferenceEx;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
+import net.osmand.util.Algorithms;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 
-public class MonitoringSettingsFragment extends BaseSettingsFragment
-		implements CopyAppModePrefsListener, ResetAppModePrefsListener {
+public class MonitoringSettingsFragment extends BaseSettingsFragment implements CopyAppModePrefsListener, ResetAppModePrefsListener {
 
+	private static final String DISABLE_BATTERY_OPTIMIZATION = "disable_battery_optimization";
 	private static final String COPY_PLUGIN_SETTINGS = "copy_plugin_settings";
 	private static final String RESET_TO_DEFAULT = "reset_to_default";
 	private static final String OPEN_TRACKS = "open_tracks";
+	private static final String EXTERNAL_SENSORS = "open_sensor_settings";
 	private static final String SAVE_GLOBAL_TRACK_INTERVAL = "save_global_track_interval";
 
 	boolean showSwitchProfile;
@@ -86,6 +96,7 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 
 	@Override
 	protected void setupPreferences() {
+		setupDisableBatteryOptimizationPref();
 		setupShowStartDialog();
 
 		setupSaveTrackToGpxPref();
@@ -97,9 +108,9 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		setupSaveTrackMinSpeedPref();
 		setupAutoSplitRecordingPref();
 		setupDisableRecordingOnceAppKilledPref();
-		setupSaveHeadingToGpxPref();
 
 		setupTrackStorageDirectoryPref();
+		setupExternalSensorsPref();
 		setupShowTripRecNotificationPref();
 		setupLiveMonitoringPref();
 
@@ -108,6 +119,12 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 
 		setupCopyProfileSettingsPref();
 		setupResetToDefaultPref();
+	}
+
+	private void setupDisableBatteryOptimizationPref() {
+		Preference preference = findPreference(DISABLE_BATTERY_OPTIMIZATION);
+		preference.setIcon(getIcon(R.drawable.ic_action_warning_colored));
+		preference.setVisible(!isIgnoringBatteryOptimizations(app));
 	}
 
 	private void setupShowStartDialog() {
@@ -233,11 +250,6 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		disableRecordingOnceAppKilled.setDescription(getString(R.string.disable_recording_once_app_killed_descrp));
 	}
 
-	private void setupSaveHeadingToGpxPref() {
-		SwitchPreferenceEx saveHeadingToGpx = findPreference(settings.SAVE_HEADING_TO_GPX.getId());
-		saveHeadingToGpx.setDescription(getString(R.string.save_heading_descr));
-	}
-
 	private void setupShowTripRecNotificationPref() {
 		SwitchPreferenceEx showTripRecNotification = findPreference(settings.SHOW_TRIP_REC_NOTIFICATION.getId());
 		showTripRecNotification.setDescription(getString(R.string.trip_rec_notification_settings_desc));
@@ -256,6 +268,68 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		trackStorageDirectory.setEntryValues(entryValues);
 		trackStorageDirectory.setDescription(R.string.track_storage_directory_descrp);
 		trackStorageDirectory.setIcon(getActiveIcon(R.drawable.ic_action_folder));
+	}
+
+	private void setupExternalSensorsPref() {
+		Preference openExternalSensors = findPreference(EXTERNAL_SENSORS);
+		if (openExternalSensors != null) {
+			if (PluginsHelper.isEnabled(ExternalSensorsPlugin.class)) {
+				openExternalSensors.setVisible(true);
+				setPreferenceVisible("logging_data", true);
+				setPreferenceVisible("logging_data_divider", true);
+				List<String> linkedSensorNames = getLinkedSensorNames();
+				if (linkedSensorNames.isEmpty()) {
+					@ColorRes int iconColor = isNightMode() ? R.color.icon_color_default_light : R.color.icon_color_default_dark;
+					openExternalSensors.setIcon(getIcon(R.drawable.ic_action_sensor, iconColor));
+					openExternalSensors.setSummary(R.string.shared_string_none);
+				} else {
+					openExternalSensors.setIcon(getActiveIcon(R.drawable.ic_action_sensor));
+					StringBuilder summary = new StringBuilder();
+					for (String sensorName : linkedSensorNames) {
+						if (!Algorithms.isEmpty(summary)) {
+							summary.append(", ");
+						}
+						summary.append(sensorName);
+					}
+					openExternalSensors.setSummary(summary);
+				}
+			}
+		}
+	}
+
+	private void setPreferenceVisible(@NonNull String preferenceId, boolean isVisible) {
+		Preference preference = findPreference(preferenceId);
+		if (preference != null) {
+			preference.setVisible(isVisible);
+		}
+	}
+
+	@NonNull
+	private List<String> getLinkedSensorNames() {
+		List<String> names = new ArrayList<>();
+		ExternalSensorsPlugin plugin = PluginsHelper.getPlugin(ExternalSensorsPlugin.class);
+		if (plugin != null) {
+			ApplicationMode appMode = getSelectedAppMode();
+			for (ExternalSensorTrackDataType dataType : ExternalSensorTrackDataType.values()) {
+				CommonPreference<String> pref = plugin.getWriteToTrackDeviceIdPref(dataType);
+
+				String deviceId = pref.getModeValue(appMode);
+				if (!Algorithms.isEmpty(deviceId)) {
+					boolean sensorLinked = false;
+					if (!plugin.isAnyConnectedDeviceId(deviceId)) {
+						if (plugin.getDevice(deviceId) != null) {
+							sensorLinked = true;
+						}
+					} else if (plugin.getAnyDevice(dataType.getSensorType()) != null) {
+						sensorLinked = true;
+					}
+					if (sensorLinked) {
+						names.add(getString(dataType.getTitleId()));
+					}
+				}
+			}
+		}
+		return names;
 	}
 
 	private void setupLiveMonitoringPref() {
@@ -300,6 +374,12 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 	}
 
 	@Override
+	public void onResume() {
+		super.onResume();
+		setupDisableBatteryOptimizationPref();
+	}
+
+	@Override
 	public void onDestroy() {
 		FragmentActivity activity = getActivity();
 		if (activity != null && !activity.isChangingConfigurations()) {
@@ -312,14 +392,22 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 	}
 
 	@Override
+	protected void onBindPreferenceViewHolder(@NonNull Preference preference, @NonNull PreferenceViewHolder holder) {
+		super.onBindPreferenceViewHolder(preference, holder);
+		if (DISABLE_BATTERY_OPTIMIZATION.equals(preference.getKey())) {
+			setupPrefRoundedBg(holder);
+		}
+	}
+
+	@Override
 	public boolean onPreferenceClick(Preference preference) {
 		String prefId = preference.getKey();
 		if (OPEN_TRACKS.equals(prefId)) {
 			Bundle bundle = new Bundle();
-			bundle.putInt(TAB_ID, FavoritesActivity.GPX_TAB);
+			bundle.putInt(TAB_ID, MyPlacesActivity.GPX_TAB);
 
 			OsmAndAppCustomization appCustomization = app.getAppCustomization();
-			Intent favorites = new Intent(preference.getContext(), appCustomization.getFavoritesActivity());
+			Intent favorites = new Intent(preference.getContext(), appCustomization.getMyPlacesActivity());
 			favorites.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
 			favorites.putExtra(MapActivity.INTENT_PARAMS, bundle);
 			startActivity(favorites);
@@ -327,12 +415,17 @@ public class MonitoringSettingsFragment extends BaseSettingsFragment
 		} else if (COPY_PLUGIN_SETTINGS.equals(prefId)) {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
-				SelectCopyAppModeBottomSheet.showInstance(fragmentManager, this, false, getSelectedAppMode());
+				SelectCopyAppModeBottomSheet.showInstance(fragmentManager, this, getSelectedAppMode());
 			}
 		} else if (RESET_TO_DEFAULT.equals(prefId)) {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
-				ResetProfilePrefsBottomSheet.showInstance(fragmentManager, getSelectedAppMode(), this, false);
+				ResetProfilePrefsBottomSheet.showInstance(fragmentManager, getSelectedAppMode(), this);
+			}
+		} else if (DISABLE_BATTERY_OPTIMIZATION.endsWith(prefId)) {
+			MapActivity mapActivity = getMapActivity();
+			if (mapActivity != null) {
+				BatteryOptimizationController.showDialog(mapActivity, false, null);
 			}
 		}
 		return super.onPreferenceClick(preference);

@@ -17,14 +17,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import net.osmand.CallbackWithObject;
 import net.osmand.IndexConstants;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
-import net.osmand.plus.track.helpers.GpxUiHelper;
-import net.osmand.plus.track.helpers.GPXInfo;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.track.GpxTrackAdapter;
+import net.osmand.plus.track.data.GPXInfo;
+import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
@@ -36,16 +35,12 @@ public class SelectTrackFileDialogFragment extends BaseOsmAndDialogFragment {
 
 	public static final String TAG = SelectTrackFileDialogFragment.class.getSimpleName();
 
-	CallbackWithObject<String> onFileSelectListener;
-
-	void setListener(CallbackWithObject<String> onFileSelectListener) {
-		this.onFileSelectListener = onFileSelectListener;
-	}
+	private CallbackWithObject<String> fileSelectCallback;
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(requireContext(), isNightMode());
+		updateNightMode();
 		View view = themedInflater.inflate(R.layout.select_track_file_dialog_fragment, container, false);
 		setupToolbar(view);
 		setupRecyclerView(view);
@@ -54,23 +49,24 @@ public class SelectTrackFileDialogFragment extends BaseOsmAndDialogFragment {
 
 	private void setupToolbar(@NonNull View root) {
 		Toolbar toolbar = root.findViewById(R.id.toolbar);
-		int closeIconColor = ColorUtilities.getActiveButtonsAndLinksTextColorId(isNightMode());
+		int closeIconColor = ColorUtilities.getActiveButtonsAndLinksTextColorId(nightMode);
 		Drawable closeIcon = getIcon(R.drawable.ic_action_close, closeIconColor);
 		toolbar.setNavigationIcon(closeIcon);
 		toolbar.setNavigationOnClickListener(v -> dismiss());
 	}
 
 	private void setupRecyclerView(@NonNull View root) {
-		OsmandApplication app = getMyApplication();
 		Context context = root.getContext();
 
 		File gpxRootDir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
 		List<GPXInfo> gpxInfoList = GpxUiHelper.getSortedGPXFilesInfo(gpxRootDir, null, false);
 		boolean showCurrentGpx = PluginsHelper.isActive(OsmandMonitoringPlugin.class);
 		if (showCurrentGpx) {
-			gpxInfoList.add(0, new GPXInfo(getString(R.string.current_track), null));
+			gpxInfoList.add(0, new GPXInfo(getString(R.string.shared_string_currently_recording_track), null));
 		}
-		GpxTrackAdapter adapter = new GpxTrackAdapter(context, gpxInfoList, showCurrentGpx, true);
+		GpxTrackAdapter adapter = new GpxTrackAdapter(context, gpxInfoList);
+		adapter.setShowCurrentGpx(showCurrentGpx);
+		adapter.setShowFolderName(true);
 		adapter.setAdapterListener(position -> {
 			Fragment target = getTargetFragment();
 			CallbackWithObject<String> listener = target instanceof CallbackWithObject<?>
@@ -78,8 +74,8 @@ public class SelectTrackFileDialogFragment extends BaseOsmAndDialogFragment {
 					: null;
 			if (listener != null) {
 				processResult(gpxRootDir, gpxInfoList, showCurrentGpx, position, listener);
-			} else if (onFileSelectListener != null) {
-				processResult(gpxRootDir, gpxInfoList, showCurrentGpx, position, onFileSelectListener);
+			} else if (fileSelectCallback != null) {
+				processResult(gpxRootDir, gpxInfoList, showCurrentGpx, position, fileSelectCallback);
 			}
 			dismiss();
 		});
@@ -101,8 +97,9 @@ public class SelectTrackFileDialogFragment extends BaseOsmAndDialogFragment {
 		}
 	}
 
-	private boolean isNightMode() {
-		return isNightMode(true);
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
 	}
 
 	public static void showInstance(@NonNull FragmentManager fragmentManager,
@@ -112,10 +109,10 @@ public class SelectTrackFileDialogFragment extends BaseOsmAndDialogFragment {
 
 	public static void showInstance(@NonNull FragmentManager fragmentManager,
 	                                @Nullable Fragment target,
-	                                @Nullable CallbackWithObject<String> onFileSelectListener) {
+	                                @Nullable CallbackWithObject<String> fileSelectCallback) {
 		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
 			SelectTrackFileDialogFragment fragment = new SelectTrackFileDialogFragment();
-			fragment.setListener(onFileSelectListener);
+			fragment.fileSelectCallback = fileSelectCallback;
 			fragment.setRetainInstance(true);
 			fragment.setTargetFragment(target, 0);
 			fragment.show(fragmentManager, TAG);

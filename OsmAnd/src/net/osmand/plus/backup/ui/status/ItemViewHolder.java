@@ -2,7 +2,6 @@ package net.osmand.plus.backup.ui.status;
 
 import static net.osmand.plus.backup.NetworkSettingsHelper.BACKUP_ITEMS_KEY;
 import static net.osmand.plus.backup.NetworkSettingsHelper.RESTORE_ITEMS_KEY;
-import static net.osmand.plus.backup.NetworkSettingsHelper.SYNC_ITEMS_KEY;
 
 import android.graphics.drawable.Drawable;
 import android.view.View;
@@ -24,7 +23,6 @@ import net.osmand.plus.backup.ExportBackupTask;
 import net.osmand.plus.backup.ExportBackupTask.ItemProgressInfo;
 import net.osmand.plus.backup.ImportBackupTask;
 import net.osmand.plus.backup.NetworkSettingsHelper;
-import net.osmand.plus.backup.SyncBackupTask;
 import net.osmand.plus.backup.ui.ChangeItemActionsBottomSheet;
 import net.osmand.plus.backup.ui.ChangesTabFragment;
 import net.osmand.plus.backup.ui.ChangesTabFragment.CloudChangeItem;
@@ -75,8 +73,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
 		if (item.iconId != -1) {
 			icon.setImageDrawable(getContentIcon(item.iconId));
 		}
-		secondIcon.setImageDrawable(getContentIcon(R.drawable.ic_overflow_menu_white));
-
+		secondIcon.setImageDrawable(getContentIcon(item.synced ? R.drawable.ic_action_cloud_done : R.drawable.ic_overflow_menu_white, item.synced));
 		setupProgress(item);
 		OnClickListener listener = fragment != null ? view -> {
 			FragmentManager manager = fragment.getFragmentManager();
@@ -85,7 +82,7 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
 			}
 		} : null;
 		itemView.setOnClickListener(listener);
-		boolean enabled = listener != null && !isSyncing(item);
+		boolean enabled = listener != null && !settingsHelper.isSyncing(item.fileName);
 		itemView.setEnabled(enabled);
 		if (enabled) {
 			setupSelectableBackground();
@@ -100,9 +97,9 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
 			progressBar.setMax(progressInfo.getWork());
 			progressBar.setProgress(progressInfo.getValue());
 		}
-		boolean syncing = isSyncing(item);
-		AndroidUiHelper.updateVisibility(secondIcon, !syncing);
-		AndroidUiHelper.updateVisibility(progressBar, syncing);
+		boolean syncing = settingsHelper.isSyncing(item.fileName);
+		AndroidUiHelper.updateVisibility(secondIcon, item.synced || !syncing);
+		AndroidUiHelper.updateVisibility(progressBar, !item.synced && syncing);
 	}
 
 	private ItemProgressInfo getItemProgressInfo(@NonNull CloudChangeItem item) {
@@ -123,14 +120,6 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
 		return null;
 	}
 
-	private boolean isSyncing(@NonNull CloudChangeItem item) {
-		SyncBackupTask syncTask = settingsHelper.getSyncTask(item.fileName);
-		if (syncTask == null) {
-			syncTask = settingsHelper.getSyncTask(SYNC_ITEMS_KEY);
-		}
-		return syncTask != null;
-	}
-
 	private void setupSelectableBackground() {
 		int color = ColorUtilities.getActiveColor(app, nightMode);
 		AndroidUtils.setBackground(selectableView, UiUtilities.getColoredSelectableDrawable(app, color, 0.3f));
@@ -138,6 +127,11 @@ public class ItemViewHolder extends RecyclerView.ViewHolder {
 
 	@Nullable
 	private Drawable getContentIcon(@DrawableRes int icon) {
-		return app.getUIUtilities().getIcon(icon, ColorUtilities.getDefaultIconColorId(nightMode));
+		return getContentIcon(icon, false);
+	}
+
+	@Nullable
+	private Drawable getContentIcon(@DrawableRes int icon, boolean active) {
+		return app.getUIUtilities().getIcon(icon, active ? ColorUtilities.getActiveIconColorId(nightMode) : ColorUtilities.getDefaultIconColorId(nightMode));
 	}
 }

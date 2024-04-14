@@ -1,8 +1,23 @@
 package net.osmand.core.android;
 
+import static net.osmand.IndexConstants.GEOTIFF_DIR;
+import static net.osmand.IndexConstants.GEOTIFF_SQLITE_CACHE_DIR;
+import static net.osmand.plus.views.OsmandMapTileView.MAP_DEFAULT_COLOR;
+import static net.osmand.plus.views.OsmandMapTileView.FOG_DEFAULT_COLOR;
+import static net.osmand.plus.views.OsmandMapTileView.FOG_NIGHTMODE_COLOR;
+import static net.osmand.plus.views.OsmandMapTileView.SKY_DEFAULT_COLOR;
+import static net.osmand.plus.views.OsmandMapTileView.SKY_NIGHTMODE_COLOR;
+
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import net.osmand.core.jni.ElevationConfiguration;
+import net.osmand.core.jni.ElevationConfiguration.SlopeAlgorithm;
+import net.osmand.core.jni.ElevationConfiguration.VisualizationStyle;
 import net.osmand.core.jni.GeoTiffCollection;
+import net.osmand.core.jni.IGeoTiffCollection.RasterType;
 import net.osmand.core.jni.IMapTiledSymbolsProvider;
 import net.osmand.core.jni.IObfsCollection;
 import net.osmand.core.jni.IRasterMapLayerProvider;
@@ -10,42 +25,44 @@ import net.osmand.core.jni.MapObjectsSymbolsProvider;
 import net.osmand.core.jni.MapPresentationEnvironment;
 import net.osmand.core.jni.MapPresentationEnvironment.LanguagePreference;
 import net.osmand.core.jni.MapPrimitivesProvider;
+import net.osmand.core.jni.MapPrimitivesProvider.Mode;
 import net.osmand.core.jni.MapPrimitiviser;
 import net.osmand.core.jni.MapRasterLayerProvider_Software;
 import net.osmand.core.jni.MapStylesCollection;
 import net.osmand.core.jni.ObfMapObjectsProvider;
+import net.osmand.core.jni.ObfsCollection;
+import net.osmand.core.jni.PointI;
+import net.osmand.core.jni.QListFloat;
+import net.osmand.core.jni.QListPointI;
 import net.osmand.core.jni.QStringStringHash;
 import net.osmand.core.jni.ResolvedMapStyle;
 import net.osmand.core.jni.SqliteHeightmapTileProvider;
 import net.osmand.core.jni.SwigUtilities;
-import net.osmand.core.jni.TileSqliteDatabasesCollection;
+import net.osmand.core.jni.ZoomLevel;
+import net.osmand.data.LatLon;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
+import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.render.MapRenderRepositories;
 import net.osmand.plus.render.RendererRegistry;
 import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.render.RenderingRuleProperty;
 import net.osmand.render.RenderingRuleSearchRequest;
 import net.osmand.render.RenderingRuleStorageProperties;
 import net.osmand.render.RenderingRulesStorage;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import androidx.annotation.Nullable;
-
-import static net.osmand.IndexConstants.GEOTIFF_DIR;
-import static net.osmand.IndexConstants.GEOTIFF_SQLITE_CACHE_DIR;
-import static net.osmand.plus.views.OsmandMapTileView.MAP_DEFAULT_COLOR;
 
 /**
  * Context container and utility class for MapRendererView and derivatives.
@@ -56,6 +73,7 @@ public class MapRendererContext {
 	private static final String TAG = "MapRendererContext";
 
 	public static final int OBF_RASTER_LAYER = 0;
+	public static final int OBF_CONTOUR_LINES_RASTER_LAYER = 6000;
 	public static final int OBF_SYMBOL_SECTION = 1;
 	public static final int WEATHER_CONTOURS_SYMBOL_SECTION = 2;
 
@@ -63,7 +81,9 @@ public class MapRendererContext {
 
 	// input parameters
 	private MapStylesCollection mapStylesCollection;
-	private IObfsCollection obfsCollection;
+	private Map<ProviderType, ObfsCollection> obfsCollections;
+	@NonNull
+	private ProviderType providerType;
 
 	private boolean nightMode;
 	private boolean useAppLocale;
@@ -71,12 +91,15 @@ public class MapRendererContext {
 
 	// сached objects
 	private final Map<String, ResolvedMapStyle> mapStyles = new HashMap<>();
-	private CachedMapPresentation presentationObjectParams;
+	private CachedMapPresentation cachedMapPresentation;
 	private MapPresentationEnvironment mapPresentationEnvironment;
 	private MapPrimitiviser mapPrimitiviser;
+	private MapPrimitivesProvider mapPrimitivesProvider;
 
 	private IMapTiledSymbolsProvider obfMapSymbolsProvider;
 	private IRasterMapLayerProvider obfMapRasterLayerProvider;
+	@Nullable
+	private GeoTiffCollection geoTiffCollection;
 	private volatile MapRendererView mapRendererView;
 
 	private float cachedReferenceTileSize;
@@ -84,6 +107,7 @@ public class MapRendererContext {
 	public MapRendererContext(OsmandApplication app, float density) {
 		this.app = app;
 		this.density = density;
+		this.providerType = ProviderType.getProviderType(isVectorLayerEnabled());
 	}
 
 	/**
@@ -93,6 +117,8 @@ public class MapRendererContext {
 	 */
 	public void setMapRendererView(@Nullable MapRendererView mapRendererView) {
 		boolean update = (this.mapRendererView != mapRendererView);
+		if (update && this.mapRendererView != null)
+			this.mapRendererView.stopRenderer();
 		this.mapRendererView = mapRendererView;
 		if (!update) {
 			return;
@@ -102,6 +128,10 @@ public class MapRendererContext {
 		}
 	}
 
+	@Nullable
+	public MapRendererView getMapRendererView() {
+		return mapRendererView;
+	}
 	public boolean isVectorLayerEnabled() {
 		return !app.getSettings().MAP_ONLINE_DATA.get();
 	}
@@ -109,7 +139,7 @@ public class MapRendererContext {
 	public void setNightMode(boolean nightMode) {
 		if (nightMode != this.nightMode) {
 			this.nightMode = nightMode;
-			updateMapSettings();
+			updateMapSettings(true);
 		}
 	}
 
@@ -118,32 +148,30 @@ public class MapRendererContext {
 		boolean useAppLocale = MapRenderRepositories.useAppLocaleForMap(app, zoom);
 		if (this.useAppLocale != useAppLocale) {
 			this.useAppLocale = useAppLocale;
-			updateMapSettings();
+			updateMapSettings(false);
 		}
 	}
 
-	public void updateMapSettings() {
+	public void updateMapSettings(boolean forceUpdateProviders) {
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView instanceof AtlasMapRendererView && cachedReferenceTileSize != getReferenceTileSize()) {
 			((AtlasMapRendererView) mapRendererView).setReferenceTileSizeOnScreenInPixels(getReferenceTileSize());
 		}
 		if (mapPresentationEnvironment != null) {
-			updateMapPresentationEnvironment();
+			updateMapPresentationEnvironment(forceUpdateProviders);
 		}
 	}
 
-	/**
-	 * Setup OBF map on layer 0 with symbols
-	 *
-	 * @param obfsCollection OBFs collection
-	 */
-	public void setupObfMap(MapStylesCollection mapStylesCollection, IObfsCollection obfsCollection) {
-		this.obfsCollection = obfsCollection;
+	public void setupObfMap(@NonNull MapStylesCollection mapStylesCollection,
+	                        @NonNull Map<ProviderType, ObfsCollection> obfsCollections) {
 		this.mapStylesCollection = mapStylesCollection;
-		updateMapPresentationEnvironment();
-		if (isVectorLayerEnabled()) {
-			recreateRasterAndSymbolsProvider();
-		}
+		this.obfsCollections = obfsCollections;
+		updateMapPresentationEnvironment(false);
+		recreateRasterAndSymbolsProvider(providerType);
+	}
+
+	public float getDensity() {
+		return density;
 	}
 
 	protected int getRasterTileSize() {
@@ -157,7 +185,7 @@ public class MapRendererContext {
 	/**
 	 * Update map presentation environment and everything that depends on it
 	 */
-	private void updateMapPresentationEnvironment() {
+	private void updateMapPresentationEnvironment(boolean forceUpdateProviders) {
 		// Create new map presentation environment
 		OsmandSettings settings = app.getSettings();
 
@@ -177,8 +205,6 @@ public class MapRendererContext {
 			Log.d(TAG, "Style '" + rendName + "' not in cache");
 			if (mapStylesCollection.getStyleByName(rendName) == null) {
 				Log.d(TAG, "Unknown '" + rendName + "' style, need to load");
-
-				// Ensure parents are loaded (this may also trigger load)
 				loadRenderer(rendName);
 			}
 			ResolvedMapStyle mapStyle = mapStylesCollection.getResolvedStyleByName(rendName);
@@ -190,24 +216,37 @@ public class MapRendererContext {
 			}
 		}
 		ResolvedMapStyle mapStyle = mapStyles.get(rendName);
-		CachedMapPresentation pres = new CachedMapPresentation(langId, langPref, mapStyle, density,
-				settings.MAP_DENSITY.get(), settings.TEXT_SCALE.get());
-		if (this.presentationObjectParams == null || !this.presentationObjectParams.equalsFields(pres)) {
-			this.presentationObjectParams = pres;
-			mapPresentationEnvironment = new MapPresentationEnvironment(mapStyle, density,
-					settings.MAP_DENSITY.get(), settings.TEXT_SCALE.get(), langId,
-					langPref);
+		float mapDensity = settings.MAP_DENSITY.get();
+		float textScale = settings.TEXT_SCALE.get();
+
+		CachedMapPresentation pres = new CachedMapPresentation(langId, langPref, mapStyle, density, mapDensity, textScale);
+		boolean recreateMapPresentation = cachedMapPresentation == null
+				|| cachedMapPresentation.shouldRecreateMapPresentation(pres);
+		boolean languageParamsChanged = cachedMapPresentation != null
+				&& cachedMapPresentation.languageParamsChanged(pres);
+		cachedMapPresentation = pres;
+
+		if (recreateMapPresentation) {
+			mapPresentationEnvironment = new MapPresentationEnvironment(mapStyle, density, mapDensity, textScale);
 		}
 
+		mapPresentationEnvironment.setLocaleLanguageId(langId);
+		mapPresentationEnvironment.setLanguagePreference(langPref);
 		QStringStringHash convertedStyleSettings = getMapStyleSettings();
 		mapPresentationEnvironment.setSettings(convertedStyleSettings);
 
-		if ((obfMapRasterLayerProvider != null || obfMapSymbolsProvider != null) && isVectorLayerEnabled()) {
-			recreateRasterAndSymbolsProvider();
+		if (obfMapRasterLayerProvider != null || obfMapSymbolsProvider != null) {
+			if (recreateMapPresentation || forceUpdateProviders) {
+				recreateRasterAndSymbolsProvider(providerType);
+			} else if (languageParamsChanged) {
+				if (mapPrimitivesProvider != null || updateMapPrimitivesProvider(providerType)) {
+					updateObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
+				}
+			}
 			setMapBackgroundColor();
 		}
+		setSkyAndFogColors();
 		PluginsHelper.updateMapPresentationEnvironment(this);
-
 	}
 
 	public MapPresentationEnvironment getMapPresentationEnvironment() {
@@ -227,6 +266,14 @@ public class MapRendererContext {
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView != null) {
 			mapRendererView.setBackgroundColor(NativeUtilities.createFColorRGB(color));
+		}
+	}
+
+	private void setSkyAndFogColors() {
+		MapRendererView mapRendererView = this.mapRendererView;
+		if (mapRendererView != null) {
+			mapRendererView.setSkyColor(NativeUtilities.createFColorRGB(nightMode ? SKY_NIGHTMODE_COLOR : SKY_DEFAULT_COLOR));
+			mapRendererView.setFogColor(NativeUtilities.createFColorRGB(nightMode ? FOG_NIGHTMODE_COLOR : FOG_DEFAULT_COLOR));
 		}
 	}
 
@@ -261,24 +308,24 @@ public class MapRendererContext {
 
 	protected QStringStringHash getMapStyleSettings() {
 		// Apply map style settings
-		OsmandSettings prefs = app.getSettings();
+		OsmandSettings settings = app.getSettings();
 		RenderingRulesStorage storage = app.getRendererRegistry().getCurrentSelectedRenderer();
-		Map<String, String> props = new HashMap<>();
-		for (RenderingRuleProperty customProp : storage.PROPS.getCustomRules()) {
-			if (customProp.isBoolean()) {
-				CommonPreference<Boolean> pref = prefs.getCustomRenderBooleanProperty(customProp.getAttrName());
-				props.put(customProp.getAttrName(), pref.get() + "");
+
+		Map<String, String> properties = new HashMap<>();
+		for (RenderingRuleProperty property : storage.PROPS.getCustomRules()) {
+			String attrName = property.getAttrName();
+			if (property.isBoolean()) {
+				properties.put(attrName, settings.getRenderBooleanPropertyValue(attrName) + "");
 			} else {
-				CommonPreference<String> settings = prefs.getCustomRenderProperty(customProp.getAttrName());
-				String res = settings.get();
-				if (!Algorithms.isEmpty(res)) {
-					props.put(customProp.getAttrName(), res);
+				String value = settings.getRenderPropertyValue(attrName);
+				if (!Algorithms.isEmpty(value)) {
+					properties.put(attrName, value);
 				}
 			}
 		}
 
 		QStringStringHash convertedStyleSettings = new QStringStringHash();
-		for (Entry<String, String> setting : props.entrySet()) {
+		for (Entry<String, String> setting : properties.entrySet()) {
 			convertedStyleSettings.set(setting.getKey(), setting.getValue());
 		}
 		if (nightMode) {
@@ -287,50 +334,65 @@ public class MapRendererContext {
 		return convertedStyleSettings;
 	}
 
-	public void recreateRasterAndSymbolsProvider() {
-		// Create new map primitiviser
-		// TODO Victor ask MapPrimitiviser, ObfMapObjectsProvider  
-		mapPrimitiviser = new MapPrimitiviser(mapPresentationEnvironment);
-		ObfMapObjectsProvider obfMapObjectsProvider = new ObfMapObjectsProvider(obfsCollection);
-		// Create new map primitives provider
-		MapPrimitivesProvider mapPrimitivesProvider = new MapPrimitivesProvider(obfMapObjectsProvider, mapPrimitiviser,
-				getRasterTileSize());
-		updateObfMapRasterLayerProvider(mapPrimitivesProvider);
-		updateObfMapSymbolsProvider(mapPrimitivesProvider);
+	public void removeDirectory(String dirPath) {
+		ObfsCollection obfsCollection = obfsCollections.get(ProviderType.MAIN);
+		if (obfsCollection != null) {
+			obfsCollection.removeDirectory(dirPath);
+		}
+		recreateRasterAndSymbolsProvider(ProviderType.MAIN);
 	}
 
-	public void resetRasterAndSymbolsProvider() {
+	public void addDirectory(String dirPath) {
+		ObfsCollection obfsCollection = obfsCollections.get(ProviderType.MAIN);
+		if (obfsCollection != null && !obfsCollection.hasDirectory(dirPath)) {
+			obfsCollection.addDirectory(dirPath);
+		}
+		recreateRasterAndSymbolsProvider(ProviderType.MAIN);
+	}
+
+	public void recreateRasterAndSymbolsProvider(@NonNull ProviderType providerType) {
+		if (updateMapPrimitivesProvider(providerType)) {
+			updateObfMapRasterLayerProvider(mapPrimitivesProvider, providerType);
+			updateObfMapSymbolsProvider(mapPrimitivesProvider, providerType);
+			this.providerType = providerType;
+		}
+	}
+
+	public void resetRasterAndSymbolsProvider(@NonNull ProviderType providerType) {
 		MapRendererView mapRendererView = this.mapRendererView;
-		if (mapRendererView != null) {
-			mapRendererView.resetMapLayerProvider(OBF_RASTER_LAYER);
+		ProviderType currentProviderType = this.providerType;
+		if (mapRendererView != null && currentProviderType == providerType) {
+			mapRendererView.resetMapLayerProvider(currentProviderType.layerIndex);
+			if (obfMapRasterLayerProvider != null) {
+				mapRendererView.removeSymbolsProvider(obfMapSymbolsProvider);
+			}
 		}
-		if (obfMapSymbolsProvider != null && mapRendererView != null) {
-			mapRendererView.removeSymbolsProvider(obfMapSymbolsProvider);
+	}
+
+	private boolean updateMapPrimitivesProvider(@NonNull ProviderType providerType) {
+		IObfsCollection obfsCollection = obfsCollections.get(providerType);
+		if (obfsCollection == null) {
+			return false;
 		}
+
+		mapPrimitiviser = new MapPrimitiviser(mapPresentationEnvironment);
+		ObfMapObjectsProvider obfMapObjectsProvider = new ObfMapObjectsProvider(obfsCollection);
+		mapPrimitivesProvider = new MapPrimitivesProvider(obfMapObjectsProvider,
+				mapPrimitiviser, getRasterTileSize(), providerType.surfaceMode);
+		return true;
 	}
 
 	public void recreateHeightmapProvider() {
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView != null) {
-			OsmandDevelopmentPlugin plugin = PluginsHelper.getPlugin(OsmandDevelopmentPlugin.class);
-			if (plugin == null || !plugin.isHeightmapEnabled()) {
+			SRTMPlugin srtmPlugin = PluginsHelper.getActivePlugin(SRTMPlugin.class);
+			if (srtmPlugin == null || !srtmPlugin.is3DMapsEnabled()) {
 				mapRendererView.resetElevationDataProvider();
 				return;
 			}
-			File sqliteCacheDir = new File(app.getCacheDir(), GEOTIFF_SQLITE_CACHE_DIR);
-			if (!sqliteCacheDir.exists()) {
-				sqliteCacheDir.mkdir();
-			}
-			File geotiffDir = app.getAppPath(GEOTIFF_DIR);
-			if (!geotiffDir.exists()) {
-				geotiffDir.mkdir();
-			}
-			TileSqliteDatabasesCollection heightsCollection = new TileSqliteDatabasesCollection();
-			GeoTiffCollection geotiffCollection = new GeoTiffCollection();
-			geotiffCollection.addDirectory(geotiffDir.getAbsolutePath());
-			geotiffCollection.setLocalCache(sqliteCacheDir.getAbsolutePath());
-			mapRendererView.setElevationDataProvider(new SqliteHeightmapTileProvider(heightsCollection,
-				geotiffCollection, mapRendererView.getElevationDataTileSize()));
+			GeoTiffCollection geoTiffCollection = getGeoTiffCollection();
+			int elevationTileSize = mapRendererView.getElevationDataTileSize();
+			mapRendererView.setElevationDataProvider(new SqliteHeightmapTileProvider(geoTiffCollection, elevationTileSize));
 		}
 	}
 	public void resetHeightmapProvider() {
@@ -340,28 +402,33 @@ public class MapRendererContext {
 		}
 	}
 
-	private void updateObfMapRasterLayerProvider(MapPrimitivesProvider mapPrimitivesProvider) {
+	private void updateObfMapRasterLayerProvider(@NonNull MapPrimitivesProvider mapPrimitivesProvider,
+	                                             @NonNull ProviderType providerType) {
 		// Create new OBF map raster layer provider
-		obfMapRasterLayerProvider = new MapRasterLayerProvider_Software(mapPrimitivesProvider);
+		obfMapRasterLayerProvider = new MapRasterLayerProvider_Software(mapPrimitivesProvider, providerType.fillBackground);
 		// In case there's bound view and configured layer, perform setup
 		MapRendererView mapRendererView = this.mapRendererView;
 		if (mapRendererView != null) {
-			mapRendererView.setMapLayerProvider(OBF_RASTER_LAYER, obfMapRasterLayerProvider);
+			int previousLayerIndex = this.providerType.layerIndex;
+			int newLayerIndex = providerType.layerIndex;
+
+			mapRendererView.resetMapLayerProvider(previousLayerIndex);
+			mapRendererView.setMapLayerProvider(newLayerIndex, obfMapRasterLayerProvider);
 		}
 	}
 
-	private void updateObfMapSymbolsProvider(MapPrimitivesProvider mapPrimitivesProvider) {
+	private void updateObfMapSymbolsProvider(@NonNull MapPrimitivesProvider mapPrimitivesProvider,
+	                                         @NonNull ProviderType providerType) {
 		// If there's current provider and bound view, remove it
 		MapRendererView mapRendererView = this.mapRendererView;
-		if (obfMapSymbolsProvider != null && mapRendererView != null) {
+		if (obfMapSymbolsProvider != null && mapRendererView != null && this.providerType == providerType) {
 			mapRendererView.removeSymbolsProvider(obfMapSymbolsProvider);
 		}
 		// Create new OBF map symbols provider
-		obfMapSymbolsProvider = new MapObjectsSymbolsProvider(mapPrimitivesProvider,
-				getReferenceTileSize());
+		obfMapSymbolsProvider = new MapObjectsSymbolsProvider(mapPrimitivesProvider, getReferenceTileSize(), null, false, false);
 		// If there's bound view, add new provider
 		if (mapRendererView != null) {
-			mapRendererView.addSymbolsProvider(MapRendererContext.OBF_SYMBOL_SECTION, obfMapSymbolsProvider);
+			mapRendererView.addSymbolsProvider(providerType.symbolsSectionIndex, obfMapSymbolsProvider);
 		}
 	}
 
@@ -376,19 +443,63 @@ public class MapRendererContext {
 			cachedReferenceTileSize = getReferenceTileSize();
 			((AtlasMapRendererView) mapRendererView).setReferenceTileSizeOnScreenInPixels(cachedReferenceTileSize);
 		}
+		updateElevationConfiguration();
 
-		if (isVectorLayerEnabled()) {
-			// Layers
-			if (obfMapRasterLayerProvider != null) {
-				mapRendererView.setMapLayerProvider(OBF_RASTER_LAYER, obfMapRasterLayerProvider);
-			}
-			// Symbols
-			if (obfMapSymbolsProvider != null) {
-				mapRendererView.addSymbolsProvider(MapRendererContext.OBF_SYMBOL_SECTION, obfMapSymbolsProvider);
-			}
-			// Heightmap
-			recreateHeightmapProvider();
+		if (obfMapRasterLayerProvider != null) {
+			mapRendererView.setMapLayerProvider(providerType.layerIndex, obfMapRasterLayerProvider);
 		}
+		if (obfMapSymbolsProvider != null) {
+			mapRendererView.addSymbolsProvider(providerType.symbolsSectionIndex, obfMapSymbolsProvider);
+		}
+		recreateHeightmapProvider();
+		setMapBackgroundColor();
+	}
+
+	public void updateElevationConfiguration() {
+		MapRendererView mapRendererView = this.mapRendererView;
+		if (mapRendererView == null) {
+			return;
+		}
+		ElevationConfiguration elevationConfiguration = new ElevationConfiguration();
+		SRTMPlugin plugin = PluginsHelper.getPlugin(SRTMPlugin.class);
+		boolean disableVertexHillshade = plugin != null && plugin.isTerrainLayerEnabled() && plugin.isHillshadeMode();
+		if (disableVertexHillshade) {
+			elevationConfiguration.setSlopeAlgorithm(SlopeAlgorithm.None);
+			elevationConfiguration.setVisualizationStyle(VisualizationStyle.None);
+		}
+		mapRendererView.setElevationConfiguration(elevationConfiguration);
+	}
+
+	public void updateCachedHeightmapTiles() {
+		GeoTiffCollection geoTiffCollection = getGeoTiffCollection();
+		for (RasterType rasterType : RasterType.values()) {
+			geoTiffCollection.refreshTilesInCache(rasterType);
+		}
+	}
+
+	public void removeCachedHeightmapTiles(@NonNull String filePath) {
+		GeoTiffCollection geoTiffCollection = getGeoTiffCollection();
+		for (RasterType rasterType : RasterType.values()) {
+			geoTiffCollection.removeFileTilesFromCache(rasterType, filePath);
+		}
+	}
+
+	@NonNull
+	public GeoTiffCollection getGeoTiffCollection() {
+		if (geoTiffCollection == null) {
+			geoTiffCollection = new GeoTiffCollection();
+			File sqliteCacheDir = new File(app.getCacheDir(), GEOTIFF_SQLITE_CACHE_DIR);
+			if (!sqliteCacheDir.exists()) {
+				sqliteCacheDir.mkdir();
+			}
+			File geotiffDir = app.getAppPath(GEOTIFF_DIR);
+			if (!geotiffDir.exists()) {
+				geotiffDir.mkdir();
+			}
+			geoTiffCollection.addDirectory(geotiffDir.getAbsolutePath());
+			geoTiffCollection.setLocalCache(sqliteCacheDir.getAbsolutePath());
+		}
+		return geoTiffCollection;
 	}
 
 	@Nullable
@@ -396,17 +507,48 @@ public class MapRendererContext {
 		return mapPrimitiviser;
 	}
 
+	@Nullable
+	public float[] calculateHeights(@NonNull List<LatLon> points) {
+		MapRendererView mapRendererView = this.mapRendererView;
+		GeoTiffCollection collection = getGeoTiffCollection();
+		if (mapRendererView != null) {
+			QListPointI qpoints = new QListPointI();
+			for (LatLon latLon : points) {
+				qpoints.add(new PointI(
+						MapUtils.get31TileNumberX(latLon.getLongitude()),
+						MapUtils.get31TileNumberY(latLon.getLatitude())));
+			}
+			QListFloat heights = new QListFloat();
+			if (collection.calculateHeights(
+					ZoomLevel.ZoomLevel14, mapRendererView.getElevationDataTileSize(), qpoints, heights)) {
+				if (heights.size() == points.size()) {
+					int size = (int)heights.size();
+					float[] res = new float[size];
+					for (int i = 0; i < size; i++) {
+						res[i] = heights.get(i);
+					}
+					return res;
+				}
+			}
+		}
+		return null;
+	}
 
 	private static class CachedMapPresentation {
+
+		@NonNull
 		String langId;
+		@NonNull
 		LanguagePreference langPref;
+		@Nullable
 		ResolvedMapStyle mapStyle;
 		float displayDensityFactor;
 		float mapScaleFactor;
 		float symbolsScaleFactor;
 
-		public CachedMapPresentation(String langId,
-		                             LanguagePreference langPref, ResolvedMapStyle mapStyle,
+		public CachedMapPresentation(@NonNull String langId,
+		                             @NonNull LanguagePreference langPref,
+		                             @Nullable ResolvedMapStyle mapStyle,
 		                             float displayDensityFactor,
 		                             float mapScaleFactor,
 		                             float symbolsScaleFactor) {
@@ -418,24 +560,15 @@ public class MapRendererContext {
 			this.symbolsScaleFactor = symbolsScaleFactor;
 		}
 
+		public boolean shouldRecreateMapPresentation(@NonNull CachedMapPresentation other) {
+			return Double.compare(displayDensityFactor, other.displayDensityFactor) != 0
+					|| Double.compare(mapScaleFactor, other.mapScaleFactor) != 0
+					|| Double.compare(symbolsScaleFactor, other.symbolsScaleFactor) != 0
+					|| !Algorithms.objectEquals(mapStyle, other.mapStyle);
+		}
 
-		public boolean equalsFields(CachedMapPresentation other) {
-			if (Double.compare(displayDensityFactor, other.displayDensityFactor) != 0)
-				return false;
-			if (Double.compare(mapScaleFactor, other.mapScaleFactor) != 0)
-				return false;
-			if (Double.compare(symbolsScaleFactor, other.symbolsScaleFactor) != 0)
-				return false;
-			if (langId == null) {
-				if (other.langId != null)
-					return false;
-			} else if (!langId.equals(other.langId))
-				return false;
-			if (langPref != other.langPref)
-				return false;
-			if (mapStyle == null) {
-				return other.mapStyle == null;
-			} else return mapStyle.equals(other.mapStyle);
+		public boolean languageParamsChanged(@NonNull CachedMapPresentation other) {
+			return !langId.equals(other.langId) || langPref != other.langPref;
 		}
 	}
 
@@ -469,6 +602,30 @@ public class MapRendererContext {
 		if (!mapStylesCollection.addStyleFromByteArray(
 				SwigUtilities.createQByteArrayAsCopyOf(content), name)) {
 			Log.w(TAG, "Failed to add style from byte array");
+		}
+	}
+
+	public enum ProviderType {
+
+		MAIN(OBF_RASTER_LAYER, OBF_SYMBOL_SECTION, Mode.WithSurface, true),
+		CONTOUR_LINES(OBF_CONTOUR_LINES_RASTER_LAYER, OBF_SYMBOL_SECTION, Mode.WithoutSurface, false);
+
+		public final int layerIndex;
+		public final int symbolsSectionIndex;
+		public final boolean fillBackground;
+		@NonNull
+		public final Mode surfaceMode;
+
+		ProviderType(int layerIndex, int symbolsSectionIndex, @NonNull Mode surfaceMode, boolean fillBackground) {
+			this.layerIndex = layerIndex;
+			this.symbolsSectionIndex = symbolsSectionIndex;
+			this.surfaceMode = surfaceMode;
+			this.fillBackground = fillBackground;
+		}
+
+		@NonNull
+		public static ProviderType getProviderType(boolean vectorLayerEnabled) {
+			return vectorLayerEnabled ? MAIN : CONTOUR_LINES;
 		}
 	}
 }

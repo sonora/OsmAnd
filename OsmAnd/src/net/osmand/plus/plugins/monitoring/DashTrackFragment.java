@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
 
 import net.osmand.IndexConstants;
 import net.osmand.gpx.GPXFile;
@@ -21,19 +22,19 @@ import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.track.helpers.GPXInfo;
+import net.osmand.plus.configmap.tracks.TrackItem;
 import net.osmand.plus.dashboard.DashBaseFragment;
 import net.osmand.plus.dashboard.DashboardOnMap;
 import net.osmand.plus.dashboard.tools.DashFragmentData;
-import net.osmand.plus.track.helpers.GpxUiHelper;
-import net.osmand.plus.myplaces.ui.AvailableGPXFragment;
-import net.osmand.plus.myplaces.ui.FavoritesActivity;
+import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
 import net.osmand.plus.track.GpxSelectionParams;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.track.fragments.TrackMenuFragment;
 import net.osmand.plus.track.helpers.GpxFileLoaderTask;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
+import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.utils.OsmAndFormatter;
 
@@ -75,8 +76,8 @@ public class DashTrackFragment extends DashBaseFragment {
 			public void onClick(View view) {
 				Activity activity = getActivity();
 				OsmAndAppCustomization appCustomization = getMyApplication().getAppCustomization();
-				Intent favorites = new Intent(activity, appCustomization.getFavoritesActivity());
-				getMyApplication().getSettings().FAVORITES_TAB.set(FavoritesActivity.GPX_TAB);
+				Intent favorites = new Intent(activity, appCustomization.getMyPlacesActivity());
+				getMyApplication().getSettings().FAVORITES_TAB.set(MyPlacesActivity.GPX_TAB);
 				favorites.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
 				activity.startActivity(favorites);
 				closeDashboard();
@@ -159,11 +160,11 @@ public class DashTrackFragment extends DashBaseFragment {
 		}
 
 		for (String filename : list) {
-			File file = new File(filename);
-			GPXInfo info = new GPXInfo(filename, file);
-			info.subfolder = "";
 			View itemView = inflater.inflate(R.layout.dash_gpx_track_item, null, false);
-			AvailableGPXFragment.updateGpxInfoView(itemView, info, app, true, null);
+
+			File file = new File(filename);
+			TrackItem trackItem = new TrackItem(file);
+			GpxUiHelper.updateGpxInfoView(itemView, trackItem, app, true, null);
 
 			itemView.setOnClickListener(v -> openGpxContextMenu(file));
 			ImageButton showOnMap = itemView.findViewById(R.id.show_on_map);
@@ -185,13 +186,13 @@ public class DashTrackFragment extends DashBaseFragment {
 		v.findViewById(R.id.check_item).setVisibility(View.GONE);
 	}
 
-	public static void updateCurrentTrack(View v, Activity ctx, OsmandApplication app) {
+	public static void updateCurrentTrack(View view, @Nullable FragmentActivity activity, OsmandApplication app) {
 		OsmandMonitoringPlugin plugin = PluginsHelper.getActivePlugin(OsmandMonitoringPlugin.class);
-		if (v == null || ctx == null || app == null || plugin == null) {
+		if (view == null || activity == null || app == null || plugin == null) {
 			return;
 		}
 		boolean isRecording = app.getSettings().SAVE_GLOBAL_TRACK_TO_GPX.get();
-		ImageButton stop = v.findViewById(R.id.stop);
+		ImageButton stop = view.findViewById(R.id.stop);
 		if (isRecording) {
 			stop.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_rec_stop));
 			stop.setContentDescription(app.getString(R.string.gpx_monitoring_stop));
@@ -199,24 +200,16 @@ public class DashTrackFragment extends DashBaseFragment {
 			stop.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_rec_start));
 			stop.setContentDescription(app.getString(R.string.gpx_monitoring_start));
 		}
-		stop.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if (isRecording) {
-					plugin.stopRecording();
-				} else if (app.getLocationProvider().checkGPSEnabled(ctx)) {
-					plugin.startGPXMonitoring(ctx);
-				}
+		stop.setOnClickListener(v -> {
+			if (isRecording) {
+				plugin.stopRecording();
+			} else if (app.getLocationProvider().checkGPSEnabled(activity)) {
+				plugin.startGPXMonitoring(activity);
 			}
 		});
 		SavingTrackHelper sth = app.getSavingTrackHelper();
-		ImageButton save = v.findViewById(R.id.show_on_map);
-		save.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				plugin.saveCurrentTrack();
-			}
-		});
+		ImageButton save = view.findViewById(R.id.show_on_map);
+		save.setOnClickListener(v -> plugin.saveCurrentTrack());
 		if (sth.getPoints() > 0 || sth.getDistance() > 0) {
 			save.setVisibility(View.VISIBLE);
 		} else {
@@ -225,14 +218,14 @@ public class DashTrackFragment extends DashBaseFragment {
 		save.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_gsave_dark));
 		save.setContentDescription(app.getString(R.string.save_current_track));
 
-		((TextView) v.findViewById(R.id.points_count)).setText(String.valueOf(sth.getPoints()));
-		((TextView) v.findViewById(R.id.distance))
+		((TextView) view.findViewById(R.id.points_count)).setText(String.valueOf(sth.getPoints()));
+		((TextView) view.findViewById(R.id.distance))
 				.setText(OsmAndFormatter.getFormattedDistance(sth.getDistance(), app));
-		v.findViewById(R.id.points_icon).setVisibility(View.VISIBLE);
-		ImageView distance = v.findViewById(R.id.distance_icon);
+		view.findViewById(R.id.points_icon).setVisibility(View.VISIBLE);
+		ImageView distance = view.findViewById(R.id.distance_icon);
 		distance.setVisibility(View.VISIBLE);
 		distance.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_distance_16));
-		ImageView pointsCount = v.findViewById(R.id.points_icon);
+		ImageView pointsCount = view.findViewById(R.id.points_icon);
 		pointsCount.setVisibility(View.VISIBLE);
 		pointsCount.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_waypoint_16));
 	}
@@ -250,17 +243,13 @@ public class DashTrackFragment extends DashBaseFragment {
 		SelectedGpxFile selected = selectedGpxHelper.getSelectedFileByPath(file.getAbsolutePath());
 		if (selected != null) {
 			showOnMap.setImageDrawable(app.getUIUtilities().getIcon(R.drawable.ic_show_on_map, R.color.color_distance));
-			showOnMap.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					GpxSelectionParams params = GpxSelectionParams.newInstance()
-							.hideFromMap().syncGroup().saveSelection();
-					selectedGpxHelper.selectGpxFile(selected.getGpxFile(), params);
-					GPXInfo info = new GPXInfo(file.getName(), file);
-					info.subfolder = "";
-					AvailableGPXFragment.updateGpxInfoView(pView, info, app, true, null);
-					updateShowOnMap(app, file, v, showOnMap);
-				}
+			showOnMap.setOnClickListener(v -> {
+				GpxSelectionParams params = GpxSelectionParams.newInstance()
+						.hideFromMap().syncGroup().saveSelection();
+				selectedGpxHelper.selectGpxFile(selected.getGpxFile(), params);
+				TrackItem trackItem = new TrackItem(file);
+				GpxUiHelper.updateGpxInfoView(pView, trackItem, app, true, null);
+				updateShowOnMap(app, file, v, showOnMap);
 			});
 		} else {
 			showOnMap.setImageDrawable(app.getUIUtilities().getThemedIcon(R.drawable.ic_show_on_map));

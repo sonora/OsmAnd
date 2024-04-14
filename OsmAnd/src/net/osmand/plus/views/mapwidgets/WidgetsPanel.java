@@ -3,6 +3,10 @@ package net.osmand.plus.views.mapwidgets;
 import android.text.TextUtils;
 import android.util.Pair;
 
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+
 import net.osmand.plus.R;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
@@ -11,12 +15,7 @@ import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.StringRes;
 
 public enum WidgetsPanel {
 
@@ -122,27 +121,24 @@ public enum WidgetsPanel {
 	private Pair<Integer, Integer> getPagedOrder(@NonNull ApplicationMode appMode,
 	                                             @NonNull String widgetId,
 	                                             @NonNull OsmandSettings settings) {
-		ListStringPreference orderPreference = getOrderPreference(settings);
-		List<String> pages = orderPreference.getStringsListForProfile(appMode);
-		if (Algorithms.isEmpty(pages)) {
-			return Pair.create(0, DEFAULT_ORDER);
-		}
-
-		for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
-			String page = pages.get(pageIndex);
-			List<String> orders = Arrays.asList(page.split(","));
-			int order = orders.indexOf(widgetId);
-			if (order != -1) {
-				return Pair.create(pageIndex, order);
+		ListStringPreference preference = getOrderPreference(settings);
+		List<String> pages = preference.getStringsListForProfile(appMode);
+		if (!Algorithms.isEmpty(pages)) {
+			for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+				String page = pages.get(pageIndex);
+				List<String> orders = Arrays.asList(page.split(","));
+				int order = orders.indexOf(widgetId);
+				if (order != -1) {
+					return Pair.create(pageIndex, order);
+				}
 			}
 		}
-
 		return Pair.create(0, DEFAULT_ORDER);
 	}
 
 	public boolean setWidgetsOrder(@NonNull ApplicationMode appMode,
-	                               @NonNull List<List<String>> pagedOrder,
-	                               @NonNull OsmandSettings settings) {
+								   @NonNull List<List<String>> pagedOrder,
+								   @NonNull OsmandSettings settings) {
 		ListStringPreference orderPreference = getOrderPreference(settings);
 		StringBuilder stringBuilder = new StringBuilder();
 		for (List<String> widgets : pagedOrder) {
@@ -163,14 +159,6 @@ public enum WidgetsPanel {
 		return getWidgetOrder(appMode, widgetId, settings) != DEFAULT_ORDER;
 	}
 
-	public boolean isPagingAllowed() {
-		return this == LEFT || this == RIGHT;
-	}
-
-	public boolean isDuplicatesAllowed() {
-		return this == LEFT || this == RIGHT;
-	}
-
 	@NonNull
 	public ListStringPreference getOrderPreference(@NonNull OsmandSettings settings) {
 		if (this == LEFT) {
@@ -185,15 +173,8 @@ public enum WidgetsPanel {
 		throw new IllegalStateException("Unsupported panel");
 	}
 
-	@NonNull
-	public List<WidgetsPanel> getMergedPanels() {
-		if (this == LEFT || this == RIGHT) {
-			return Arrays.asList(LEFT, RIGHT);
-		} else if (this == TOP) {
-			return Collections.singletonList(TOP);
-		} else if (this == BOTTOM) {
-			return Collections.singletonList(BOTTOM);
-		}
-		throw new IllegalStateException("Unsupported widgets panel");
+	public boolean isPanelVertical() {
+		return this == TOP || this == BOTTOM;
 	}
+
 }

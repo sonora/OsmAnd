@@ -4,8 +4,15 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 
+import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
+import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.plugins.osmedit.fragments.AdvancedEditPoiFragment;
+import net.osmand.plus.utils.UiUtilities;
+
+import org.apache.commons.logging.Log;
 
 import studio.carbonylgroup.textfieldboxes.TextFieldBoxes;
 
@@ -21,6 +28,18 @@ public class OsmandTextFieldBoxes extends TextFieldBoxes {
 
 	public OsmandTextFieldBoxes(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
+	}
+
+	@Override
+	protected void onFinishInflate() {
+		super.onFinishInflate();
+		editText.setOnFocusChangeListener((view, hasFocus) -> {
+			setHasFocus(hasFocus);
+			if (hasFocus) {
+				inputMethodManager.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT);
+				performClick();
+			}
+		});
 	}
 
 	public void makeCompactPadding() {
@@ -54,13 +73,16 @@ public class OsmandTextFieldBoxes extends TextFieldBoxes {
 		showClearButton();
 		clearButton.setColorFilter(null);
 		clearButton.setImageDrawable(clearIcon);
+		clearButton.setContentDescription(getContext().getString(R.string.shared_string_clear));
 	}
 
+	private static final Log LOG = PlatformUtil.getLog(AdvancedEditPoiFragment.class);
+
 	public void hideClearButton() {
-		clearButton.setAlpha(0f);
+		AndroidUiHelper.updateVisibility(clearButton, false);
 	}
 
 	public void showClearButton() {
-		clearButton.setAlpha(1f);
+		AndroidUiHelper.updateVisibility(clearButton, true);
 	}
 }

@@ -1,31 +1,46 @@
 package net.osmand.plus.plugins.monitoring;
 
+import static net.osmand.gpx.GpxParameter.COLOR;
+import static net.osmand.gpx.GpxParameter.COLORING_TYPE;
+import static net.osmand.gpx.GpxParameter.SHOW_ARROWS;
+import static net.osmand.gpx.GpxParameter.SHOW_START_FINISH;
+import static net.osmand.gpx.GpxParameter.USE_3D_TRACK_VISUALIZATION;
+import static net.osmand.gpx.GpxParameter.WIDTH;
+import static net.osmand.plus.importfiles.tasks.SaveGpxAsyncTask.GPX_FILE_DATE_FORMAT;
+
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.format.DateFormat;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import net.osmand.IndexConstants;
+import net.osmand.Location;
 import net.osmand.PlatformUtil;
 import net.osmand.data.LatLon;
+import net.osmand.data.ValueHolder;
 import net.osmand.gpx.GPXFile;
 import net.osmand.gpx.GPXTrackAnalysis;
 import net.osmand.gpx.GPXUtilities;
 import net.osmand.gpx.GPXUtilities.Track;
 import net.osmand.gpx.GPXUtilities.TrkSegment;
 import net.osmand.gpx.GPXUtilities.WptPt;
-import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.Version;
+import net.osmand.plus.card.color.ColoringStyle;
 import net.osmand.plus.notifications.OsmandNotification.NotificationType;
 import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin;
 import net.osmand.plus.routing.ColoringType;
+import net.osmand.plus.routing.IRouteInformationListener;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
-import net.osmand.plus.track.helpers.GpxDbHelper;
+import net.osmand.plus.simulation.SimulationProvider;
+import net.osmand.plus.track.helpers.GpxDataItem;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
-import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.AndroidDbUtils;
 import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 
@@ -39,6 +54,7 @@ import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,10 +63,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-public class SavingTrackHelper extends SQLiteOpenHelper {
+public class SavingTrackHelper extends SQLiteOpenHelper implements IRouteInformationListener {
 
 	private static final Log log = PlatformUtil.getLog(SavingTrackHelper.class);
 
@@ -79,9 +92,8 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 	private static final String POINT_COL_ICON = "icon";
 	private static final String POINT_COL_BACKGROUND = "background";
 
-	private static final float NO_HEADING = -1.0f;
-
-	public static final NumberFormat DECIMAL_FORMAT = new DecimalFormat("#.#", new DecimalFormatSymbols(Locale.US));
+	private static final NumberFormat DECIMAL_FORMAT = new DecimalFormat("#.#", new DecimalFormatSymbols(Locale.US));
+	private static final long LOCATION_TIME_INTERVAL_MS = 28L * 1000L * 60L * 60L * 24L; // 4 weeks
 
 
 	private final OsmandApplication app;
@@ -89,6 +101,8 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 
 	private final SelectedGpxFile currentTrack;
 
+	private int currentTrackIndex = 1;
+	private boolean shouldAutomaticallyRecord = true;
 	private LatLon lastPoint;
 	private float distance;
 	private long duration;
@@ -110,6 +124,7 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		gpxFile.showCurrentTrack = true;
 		currentTrack.setGpxFile(gpxFile, app);
 		prepareCurrentTrackForRecording();
+		app.getRoutingHelper().addListener(this);
 	}
 
 	@Override
@@ -233,7 +248,7 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 				File fout = new File(dir, f + IndexConstants.GPX_FILE_EXT);
 				if (!gpx.isEmpty()) {
 					WptPt pt = gpx.findPointToShow();
-					String fileName = f + "_" + new SimpleDateFormat("HH-mm_EEE", Locale.US).format(new Date(pt.time)); //$NON-NLS-1$
+					String fileName = f + "_" + GPX_FILE_DATE_FORMAT.format(new Date(pt.time));
 					Integer trackStorageDirectory = app.getSettings().TRACK_STORAGE_DIRECTORY.get();
 					if (!OsmandSettings.REC_DIRECTORY.equals(trackStorageDirectory)) {
 						SimpleDateFormat dateDirFormat = new SimpleDateFormat("yyyy-MM", Locale.US);
@@ -258,11 +273,11 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 				Exception warn = GPXUtilities.writeGpxFile(fout, gpx);
 				if (warn != null) {
 					warnings.add(warn.getMessage());
-					return new SaveGpxResult(warnings, new HashMap<String, GPXFile>());
+					return new SaveGpxResult(warnings, new HashMap<>());
 				}
 
-				GPXTrackAnalysis analysis = gpx.getAnalysis(fout.lastModified());
-				GpxDataItem item = new GpxDataItem(fout, analysis);
+				GpxDataItem item = new GpxDataItem(app, fout);
+				item.setAnalysis(gpx.getAnalysis(fout.lastModified()));
 				app.getGpxDbHelper().add(item);
 				lastTimeFileSaved = fout.lastModified();
 				saveTrackAppearance(item);
@@ -273,24 +288,27 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 	}
 
 	private void saveTrackAppearance(@NonNull GpxDataItem item) {
-		GpxDbHelper gpxDbHelper = app.getGpxDbHelper();
-		gpxDbHelper.updateColor(item, settings.CURRENT_TRACK_COLOR.get());
-		gpxDbHelper.updateWidth(item, settings.CURRENT_TRACK_WIDTH.get());
-		gpxDbHelper.updateShowArrows(item, settings.CURRENT_TRACK_SHOW_ARROWS.get());
-		gpxDbHelper.updateShowStartFinish(item, settings.CURRENT_TRACK_SHOW_START_FINISH.get());
 		ColoringType coloringType = settings.CURRENT_TRACK_COLORING_TYPE.get();
 		String routeInfoAttribute = settings.CURRENT_TRACK_ROUTE_INFO_ATTRIBUTE.get();
-		gpxDbHelper.updateColoringType(item, coloringType.getName(routeInfoAttribute));
+		ColoringStyle coloringStyle = new ColoringStyle(coloringType, routeInfoAttribute);
+
+		item.setParameter(COLOR, settings.CURRENT_TRACK_COLOR.get());
+		item.setParameter(WIDTH, settings.CURRENT_TRACK_WIDTH.get());
+		item.setParameter(SHOW_ARROWS, settings.CURRENT_TRACK_SHOW_ARROWS.get());
+		item.setParameter(USE_3D_TRACK_VISUALIZATION, settings.CURRENT_TRACK_3D_VISUALIZATION.get());
+		item.setParameter(SHOW_START_FINISH, settings.CURRENT_TRACK_SHOW_START_FINISH.get());
+		item.setParameter(COLORING_TYPE, coloringStyle.getId());
+
+		app.getGpxDbHelper().updateDataItem(item);
 	}
 
 	public void clearRecordedData(boolean isWarningEmpty) {
-		long currentTimeMillis = System.currentTimeMillis();
+		long time = System.currentTimeMillis();
 		if (isWarningEmpty) {
 			SQLiteDatabase db = getWritableDatabase();
 			if (db != null) {
 				try {
 					if (db.isOpen()) {
-						long time = currentTimeMillis;
 						db.execSQL("DELETE FROM " + TRACK_NAME + " WHERE " + TRACK_COL_DATE + " <= ?", new Object[] {time});
 						db.execSQL("DELETE FROM " + POINT_NAME + " WHERE " + POINT_COL_DATE + " <= ?", new Object[] {time});
 					}
@@ -303,11 +321,12 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		points = 0;
 		duration = 0;
 		trkPoints = 0;
+		currentTrackIndex++;
 		app.getSelectedGpxHelper().clearPoints(currentTrack.getModifiableGpxFile());
 		currentTrack.getModifiableGpxFile().tracks.clear();
 		currentTrack.clearSegmentsToDisplay();
-		currentTrack.getModifiableGpxFile().modifiedTime = currentTimeMillis;
-		currentTrack.getModifiableGpxFile().pointsModifiedTime = currentTimeMillis;
+		currentTrack.getModifiableGpxFile().modifiedTime = time;
+		currentTrack.getModifiableGpxFile().pointsModifiedTime = time;
 		prepareCurrentTrackForRecording();
 	}
 
@@ -382,24 +401,13 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 				pt.speed = query.getDouble(3);
 				pt.hdop = query.getDouble(4);
 				pt.time = query.getLong(5);
+				pt.heading = query.isNull(6) ? Float.NaN : query.getFloat(6);
 
-				float heading = query.getFloat(6);
-				pt.heading = heading == NO_HEADING ? Float.NaN : heading;
-
-				String pluginsInfo = query.getString(7);
-				if (!Algorithms.isEmpty(pluginsInfo)) {
-					try {
-						Map<String, String> extensions = new HashMap<>();
-						JSONObject json = new JSONObject(pluginsInfo);
-						for (Iterator<String> iterator = json.keys(); iterator.hasNext(); ) {
-							String key = iterator.next();
-							extensions.put(key, json.optString(key));
-						}
-						pt.getExtensionsToWrite().putAll(extensions);
-					} catch (JSONException e) {
-						log.error(e.getMessage(), e);
-					}
+				Map<String, String> extensions = getPluginsExtensions(query.getString(7));
+				if (!Algorithms.isEmpty(extensions)) {
+					GPXUtilities.assignExtensionWriter(pt, extensions);
 				}
+
 				boolean newInterval = pt.lat == 0 && pt.lon == 0;
 				long currentInterval = Math.abs(pt.time - previousTime);
 				if (track != null && !newInterval && (!settings.AUTO_SPLIT_RECORDING.get()
@@ -440,6 +448,24 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		dropEmptyTracks(dataTracks);
 	}
 
+	@NonNull
+	private Map<String, String> getPluginsExtensions(@Nullable String pluginsInfo) {
+		if (!Algorithms.isEmpty(pluginsInfo)) {
+			try {
+				Map<String, String> extensions = new HashMap<>();
+				JSONObject json = new JSONObject(pluginsInfo);
+				for (Iterator<String> iterator = json.keys(); iterator.hasNext(); ) {
+					String key = iterator.next();
+					extensions.put(key, json.optString(key));
+				}
+				return extensions;
+			} catch (JSONException e) {
+				log.error(e.getMessage(), e);
+			}
+		}
+		return Collections.emptyMap();
+	}
+
 	private void dropEmptyTracks(@NonNull Map<String, GPXFile> dataTracks) {
 		List<String> datesToRemove = new ArrayList<>();
 		for (Map.Entry<String, GPXFile> entry : dataTracks.entrySet()) {
@@ -469,25 +495,45 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 	public void startNewSegment() {
 		lastTimeUpdated = 0;
 		lastPoint = null;
-		executeInsertTrackQuery(0, 0, 0, 0, 0, System.currentTimeMillis(), NO_HEADING, null);
+		executeInsertTrackQuery(0, 0, 0, 0, 0, System.currentTimeMillis(), Float.NaN, null);
 		addTrackPoint(null, true, System.currentTimeMillis());
 	}
 
-	public void updateLocation(net.osmand.Location location, Float heading) {
-		// use because there is a bug on some devices with location.getTime()
-		long locationTime = System.currentTimeMillis();
-		if (heading != null && settings.SAVE_HEADING_TO_GPX.get()) {
-			heading = MapUtils.normalizeDegrees360(heading);
-		} else {
-			heading = NO_HEADING;
+	public void updateLocation(@Nullable Location location, @Nullable Float heading) {
+		// use because there is a bug on some devices with location.getTime() see #18642
+		long time = System.currentTimeMillis();
+		if (location != null) {
+			long locationTime = location.getTime();
+			if (Math.abs(time - locationTime) < LOCATION_TIME_INTERVAL_MS) {
+				time = locationTime;
+			}
 		}
 		if (app.getRoutingHelper().isFollowingMode()) {
 			lastRoutingApplicationMode = settings.getApplicationMode();
 		} else if (settings.getApplicationMode() == settings.DEFAULT_APPLICATION_MODE.get()) {
 			lastRoutingApplicationMode = null;
 		}
+		boolean record = shouldRecordLocation(location, time);
+		if (record) {
+			heading = getAdjustedHeading(heading);
+
+			WptPt wptPt = new WptPt(location.getLatitude(), location.getLongitude(), time,
+					location.getAltitude(), location.getSpeed(), location.getAccuracy(), heading);
+
+			String pluginsInfo = getPluginsInfo(location);
+			Map<String, String> extensions = getPluginsExtensions(pluginsInfo);
+			if (!Algorithms.isEmpty(extensions)) {
+				GPXUtilities.assignExtensionWriter(wptPt, extensions);
+			}
+
+			insertData(wptPt, pluginsInfo);
+			app.getNotificationHelper().refreshNotification(NotificationType.GPX);
+		}
+	}
+
+	private boolean shouldRecordLocation(@Nullable Location location, long locationTime) {
 		boolean record = false;
-		if (location != null && OsmAndLocationProvider.isNotSimulatedLocation(location)
+		if (location != null && SimulationProvider.isNotSimulatedLocation(location)
 				&& PluginsHelper.isActive(OsmandMonitoringPlugin.class)) {
 			if (isRecordingAutomatically() && locationTime - lastTimeUpdated > settings.SAVE_TRACK_INTERVAL.get()) {
 				record = true;
@@ -496,8 +542,8 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 				record = true;
 			}
 			float minDistance = settings.SAVE_TRACK_MIN_DISTANCE.get();
-			if (minDistance > 0 && lastPoint != null && MapUtils.getDistance(lastPoint, location.getLatitude(), location.getLongitude()) <
-					minDistance) {
+			if (minDistance > 0 && lastPoint != null
+					&& MapUtils.getDistance(lastPoint, location.getLatitude(), location.getLongitude()) < minDistance) {
 				record = false;
 			}
 			float precision = settings.SAVE_TRACK_PRECISION.get();
@@ -509,28 +555,34 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 				record = false;
 			}
 		}
-		if (record) {
-			JSONObject json = new JSONObject();
-			PluginsHelper.attachAdditionalInfoToRecordedTrack(location, json);
-			if (location.hasBearing()) {
-				try {
-					json.put(TRACK_COL_BEARING, DECIMAL_FORMAT.format(location.getBearing()));
-				} catch (JSONException e) {
-					log.error(e.getMessage(), e);
-				}
-			}
-			String additionalInfo = json.length() > 0 ? json.toString() : null;
-			heading = heading == NO_HEADING ? Float.NaN : heading;
-			WptPt wptPt = new WptPt(location.getLatitude(), location.getLongitude(), locationTime,
-					location.getAltitude(), location.getSpeed(), location.getAccuracy(), heading);
-
-			insertData(wptPt, additionalInfo);
-			app.getNotificationHelper().refreshNotification(NotificationType.GPX);
-		}
+		return record;
 	}
 
-	private void insertData(@NonNull WptPt wptPt, @Nullable String additionalInfo) {
-		executeInsertTrackQuery(wptPt.lat, wptPt.lon, wptPt.ele, wptPt.speed, wptPt.hdop, wptPt.time, wptPt.heading, additionalInfo);
+	private float getAdjustedHeading(@Nullable Float heading) {
+		OsmandDevelopmentPlugin plugin = PluginsHelper.getEnabledPlugin(OsmandDevelopmentPlugin.class);
+		boolean writeHeading = plugin != null && plugin.SAVE_HEADING_TO_GPX.get();
+		return heading != null && writeHeading ? MapUtils.normalizeDegrees360(heading) : Float.NaN;
+	}
+
+	@Nullable
+	private String getPluginsInfo(@NonNull net.osmand.Location location) {
+		JSONObject json = new JSONObject();
+		PluginsHelper.attachAdditionalInfoToRecordedTrack(location, json);
+
+		OsmandDevelopmentPlugin plugin = PluginsHelper.getEnabledPlugin(OsmandDevelopmentPlugin.class);
+		boolean writeBearing = plugin != null && plugin.SAVE_BEARING_TO_GPX.get();
+		if (writeBearing && location.hasBearing()) {
+			try {
+				json.put(TRACK_COL_BEARING, DECIMAL_FORMAT.format(location.getBearing()));
+			} catch (JSONException e) {
+				log.error(e.getMessage(), e);
+			}
+		}
+		return json.length() > 0 ? json.toString() : null;
+	}
+
+	private void insertData(@NonNull WptPt wptPt, @Nullable String pluginsInfo) {
+		executeInsertTrackQuery(wptPt.lat, wptPt.lon, wptPt.ele, wptPt.speed, wptPt.hdop, wptPt.time, wptPt.heading, pluginsInfo);
 		boolean newSegment = false;
 		if (lastPoint == null || (wptPt.time - lastTimeUpdated) > 180 * 1000) {
 			lastPoint = new LatLon(wptPt.lat, wptPt.lon);
@@ -602,7 +654,7 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		rowsMap.put(POINT_COL_ICON, iconName);
 		rowsMap.put(POINT_COL_BACKGROUND, backgroundName);
 
-		execWithClose(AndroidUtils.createDbInsertQuery(POINT_NAME, rowsMap.keySet()), rowsMap.values().toArray());
+		execWithClose(AndroidDbUtils.createDbInsertQuery(POINT_NAME, rowsMap.keySet()), rowsMap.values().toArray());
 		return pt;
 	}
 
@@ -747,9 +799,9 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		rowsMap.put(TRACK_COL_SPEED, speed);
 		rowsMap.put(TRACK_COL_HDOP, hdop);
 		rowsMap.put(TRACK_COL_DATE, time);
-		rowsMap.put(TRACK_COL_HEADING, heading);
+		rowsMap.put(TRACK_COL_HEADING, Float.isNaN(heading) ? null : heading);
 		rowsMap.put(TRACK_COL_PLUGINS_INFO, pluginsInfo);
-		execWithClose(AndroidUtils.createDbInsertQuery(TRACK_NAME, rowsMap.keySet()), rowsMap.values().toArray());
+		execWithClose(AndroidDbUtils.createDbInsertQuery(TRACK_NAME, rowsMap.keySet()), rowsMap.values().toArray());
 	}
 
 	public void loadGpxFromDatabase() {
@@ -763,10 +815,10 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		currentTrack.processPoints(app);
 		prepareCurrentTrackForRecording();
 		GPXTrackAnalysis analysis = currentTrack.getModifiableGpxFile().getAnalysis(System.currentTimeMillis());
-		distance = analysis.totalDistance;
-		points = analysis.wptPoints;
-		duration = analysis.timeSpan;
-		trkPoints = analysis.points;
+		distance = analysis.getTotalDistance();
+		points = analysis.getWptPoints();
+		duration = analysis.getTimeSpan();
+		trkPoints = analysis.getPoints();
 	}
 
 	private void prepareCurrentTrackForRecording() {
@@ -778,6 +830,10 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		}
 	}
 
+	public void onStopRecording(){
+		shouldAutomaticallyRecord = false;
+	}
+
 	public boolean getIsRecording() {
 		return PluginsHelper.isActive(OsmandMonitoringPlugin.class)
 				&& settings.SAVE_GLOBAL_TRACK_TO_GPX.get() || isRecordingAutomatically();
@@ -785,8 +841,9 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 
 	private boolean isRecordingAutomatically() {
 		return settings.SAVE_TRACK_TO_GPX.get() && (app.getRoutingHelper().isFollowingMode()
-				|| lastRoutingApplicationMode == settings.getApplicationMode()
-				&& settings.getApplicationMode() != settings.DEFAULT_APPLICATION_MODE.get());
+				&& lastRoutingApplicationMode == settings.getApplicationMode()
+				&& settings.getApplicationMode() != settings.DEFAULT_APPLICATION_MODE.get() &&
+				shouldAutomaticallyRecord);
 	}
 
 	public float getDistance() {
@@ -817,6 +874,11 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 		this.lastTimeFileSaved = lastTimeFileSaved;
 	}
 
+	public int getCurrentTrackIndex() {
+		return currentTrackIndex;
+	}
+
+	@NonNull
 	public GPXFile getCurrentGpx() {
 		return currentTrack.getGpxFile();
 	}
@@ -824,5 +886,19 @@ public class SavingTrackHelper extends SQLiteOpenHelper {
 	@NonNull
 	public SelectedGpxFile getCurrentTrack() {
 		return currentTrack;
+	}
+
+	@Override
+	public void newRouteIsCalculated(boolean newRoute, ValueHolder<Boolean> showToast) {
+	}
+
+	@Override
+	public void routeWasCancelled() {
+		shouldAutomaticallyRecord = true;
+	}
+
+	@Override
+	public void routeWasFinished() {
+		shouldAutomaticallyRecord = true;
 	}
 }

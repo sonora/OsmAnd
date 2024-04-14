@@ -1,5 +1,9 @@
 package net.osmand.plus.download;
 
+import static net.osmand.IndexConstants.BINARY_SRTM_MAP_INDEX_EXT;
+import static net.osmand.IndexConstants.BINARY_SRTM_MAP_INDEX_EXT_ZIP;
+import static net.osmand.plus.download.DownloadActivityType.SRTM_COUNTRY_FILE;
+
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -8,18 +12,15 @@ import androidx.annotation.Nullable;
 import net.osmand.IndexConstants;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.download.local.LocalItem;
 import net.osmand.plus.settings.enums.MetricsConstants;
 import net.osmand.util.Algorithms;
+import net.osmand.util.CollectionUtils;
 
 import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
-
-import static net.osmand.IndexConstants.BINARY_SRTM_MAP_INDEX_EXT;
-import static net.osmand.IndexConstants.BINARY_SRTM_MAP_INDEX_EXT_ZIP;
-import static net.osmand.plus.download.LocalIndexHelper.LocalIndexType.SRTM_DATA;
-import static net.osmand.plus.download.DownloadActivityType.SRTM_COUNTRY_FILE;
 
 public class SrtmDownloadItem extends DownloadItem {
 
@@ -134,6 +135,27 @@ public class SrtmDownloadItem extends DownloadItem {
 		return getIndexItem().getFileName();
 	}
 
+	@Override
+	public boolean isFree() {
+		for (IndexItem item : indexes) {
+			if (item.isFree()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public String getFreeMessage() {
+		for (IndexItem item : indexes) {
+			String message = item.getFreeMessage();
+			if (message != null) {
+				return message;
+			}
+		}
+		return null;
+	}
+
 	@NonNull
 	@Override
 	public List<File> getDownloadedFiles(@NonNull OsmandApplication app) {
@@ -166,13 +188,13 @@ public class SrtmDownloadItem extends DownloadItem {
 	}
 
 	public static boolean containsSrtmExtension(@NonNull String fileName) {
-		return Algorithms.containsAny(fileName,
+		return CollectionUtils.containsAny(fileName,
 				IndexConstants.BINARY_SRTM_MAP_INDEX_EXT,
 				IndexConstants.BINARY_SRTM_FEET_MAP_INDEX_EXT);
 	}
 
 	public static boolean isSrtmFile(@NonNull String fileName) {
-		return Algorithms.endsWithAny(fileName,
+		return CollectionUtils.endsWithAny(fileName,
 				IndexConstants.BINARY_SRTM_MAP_INDEX_EXT,
 				IndexConstants.BINARY_SRTM_FEET_MAP_INDEX_EXT);
 	}
@@ -184,20 +206,11 @@ public class SrtmDownloadItem extends DownloadItem {
 				IndexConstants.BINARY_SRTM_FEET_MAP_INDEX_EXT;
 	}
 
-	public static boolean isSRTMItem(Object item) {
-		if (item instanceof DownloadItem) {
-			return ((DownloadItem) item).getType() == SRTM_COUNTRY_FILE;
-		} else if (item instanceof LocalIndexInfo) {
-			return ((LocalIndexInfo) item).getType() == SRTM_DATA;
-		}
-		return false;
-	}
-
 	private static boolean isMetricItem(Object item) {
 		if (item instanceof IndexItem) {
 			return ((IndexItem) item).getFileName().endsWith(BINARY_SRTM_MAP_INDEX_EXT_ZIP);
-		} else if (item instanceof LocalIndexInfo) {
-			return ((LocalIndexInfo) item).getFileName().endsWith(BINARY_SRTM_MAP_INDEX_EXT);
+		} else if (item instanceof LocalItem) {
+			return ((LocalItem) item).getFileName().endsWith(BINARY_SRTM_MAP_INDEX_EXT);
 		} else if (item instanceof SrtmDownloadItem) {
 			return isMetricItem(((SrtmDownloadItem) item).getIndexItem());
 		} else if (item instanceof MultipleDownloadItem) {

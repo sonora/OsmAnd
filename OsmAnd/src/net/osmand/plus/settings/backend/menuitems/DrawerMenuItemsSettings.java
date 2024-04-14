@@ -1,5 +1,6 @@
 package net.osmand.plus.settings.backend.menuitems;
 
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.DRAWER_ANT_PLUS_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.DRAWER_AV_NOTES_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.DRAWER_BACKUP_RESTORE_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.DRAWER_BUILDS_ID;
@@ -52,6 +53,7 @@ public class DrawerMenuItemsSettings extends ContextMenuItemsSettings {
 		originalOrderIds.add(DRAWER_TRAVEL_GUIDES_ID);
 		originalOrderIds.add(DRAWER_MEASURE_DISTANCE_ID);
 		originalOrderIds.add(DRAWER_WEATHER_FORECAST_ID);
+		originalOrderIds.add(DRAWER_ANT_PLUS_ID);
 		originalOrderIds.add(DRAWER_DIVIDER_ID);
 		originalOrderIds.add(DRAWER_CONFIGURE_SCREEN_ID);
 		originalOrderIds.add(DRAWER_PLUGINS_ID);
@@ -135,6 +137,7 @@ public class DrawerMenuItemsSettings extends ContextMenuItemsSettings {
 		hiddenByDefault.add(DRAWER_BACKUP_RESTORE_ID);
 		hiddenByDefault.add(DRAWER_LIVE_UPDATES_ID);
 		hiddenByDefault.add(DRAWER_OSMAND_VERSION_ID);
+		hiddenByDefault.add(DRAWER_ANT_PLUS_ID);
 		return hiddenByDefault;
 	}
 }

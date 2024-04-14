@@ -1,55 +1,50 @@
 package net.osmand.plus.settings.fragments;
 
+import static net.osmand.plus.settings.bottomsheets.DistanceDuringNavigationBottomSheet.*;
+import static net.osmand.plus.settings.fragments.SettingsScreenType.EXTERNAL_INPUT_DEVICE;
+
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.AppCompatCheckedTextView;
-import androidx.appcompat.widget.SwitchCompat;
-import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
-import androidx.preference.PreferenceViewHolder;
-import androidx.preference.SwitchPreferenceCompat;
 
 import net.osmand.data.PointDescription;
 import net.osmand.plus.R;
 import net.osmand.plus.base.MapViewTrackingUtilities;
+import net.osmand.plus.base.dialog.DialogManager;
+import net.osmand.plus.base.dialog.interfaces.controller.IDialogController;
+import net.osmand.plus.keyevent.InputDevicesHelper;
+import net.osmand.plus.keyevent.devices.InputDeviceProfile;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.settings.backend.preferences.CommonPreference;
-import net.osmand.plus.settings.bottomsheets.CustomizableSingleSelectionBottomSheet;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayDataProvider;
-import net.osmand.plus.settings.bottomsheets.displaydata.OnDialogItemSelectedListener;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayItem;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayData;
+import net.osmand.plus.settings.bottomsheets.DistanceDuringNavigationBottomSheet;
+import net.osmand.plus.settings.controllers.CompassModeDialogController;
 import net.osmand.plus.settings.enums.AngularConstants;
-import net.osmand.plus.settings.enums.MapFocus;
 import net.osmand.plus.settings.enums.DrivingRegion;
+import net.osmand.plus.settings.enums.CompassMode;
 import net.osmand.plus.settings.enums.MetricsConstants;
 import net.osmand.plus.settings.enums.SpeedConstants;
 import net.osmand.plus.settings.preferences.ListPreferenceEx;
 import net.osmand.plus.settings.preferences.SwitchPreferenceEx;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.views.MultiTouchSupport;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class GeneralProfileSettingsFragment extends BaseSettingsFragment
-		implements OnDialogItemSelectedListener, DialogDisplayDataProvider {
+public class GeneralProfileSettingsFragment extends BaseSettingsFragment {
 
 	public static final String TAG = GeneralProfileSettingsFragment.class.getSimpleName();
 
@@ -57,8 +52,6 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 	protected void setupPreferences() {
 		setupAppThemePref();
 		setupRotateMapPref();
-		setup3DViewPref();
-		setupPositionPlacementOnMapPref();
 		setupMapScreenOrientationPref();
 		setupTurnScreenOnPref();
 
@@ -67,47 +60,19 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 		setupCoordinatesFormatPref();
 		setupAngularUnitsPref();
 		setupSpeedSystemPref();
+		setupPreciseDistanceNumbersPref();
 
 		setupVolumeButtonsAsZoom();
 		setupKalmanFilterPref();
 		setupMagneticFieldSensorPref();
 		setupMapEmptyStateAllowedPref();
+		setupNotRotateNorthUpPref();
 		setupAnimatePositionPref();
 		setupExternalInputDevicePref();
 		setupTrackballForMovementsPref();
+
+		updateDialogControllerCallbacks();
 	}
-
-	@Override
-	protected void onBindPreferenceViewHolder(Preference preference, PreferenceViewHolder holder) {
-		super.onBindPreferenceViewHolder(preference, holder);
-
-		String prefId = preference.getKey();
-		if (settings.EXTERNAL_INPUT_DEVICE.getId().equals(prefId)) {
-			boolean checked = settings.EXTERNAL_INPUT_DEVICE.getModeValue(getSelectedAppMode()) != OsmandSettings.NO_EXTERNAL_DEVICE;
-
-			SwitchCompat switchView = (SwitchCompat) holder.findViewById(R.id.switchWidget);
-			switchView.setOnCheckedChangeListener(null);
-			switchView.setChecked(checked);
-			switchView.setOnCheckedChangeListener(externalInputDeviceListener);
-		}
-	}
-
-	CompoundButton.OnCheckedChangeListener externalInputDeviceListener = new CompoundButton.OnCheckedChangeListener() {
-		@Override
-		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-			ListPreferenceEx externalInputDevice = findPreference(settings.EXTERNAL_INPUT_DEVICE.getId());
-			if (isChecked) {
-				getPreferenceManager().showDialog(externalInputDevice);
-				buttonView.setChecked(false);
-			} else {
-				if (externalInputDevice.callChangeListener(OsmandSettings.NO_EXTERNAL_DEVICE)) {
-					externalInputDevice.setValue(OsmandSettings.NO_EXTERNAL_DEVICE);
-				} else {
-					buttonView.setChecked(true);
-				}
-			}
-		}
-	};
 
 	private void setupAppThemePref() {
 		ListPreferenceEx appTheme =
@@ -121,7 +86,7 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 		values.add(OsmandSettings.OSMAND_DARK_THEME);
 		values.add(OsmandSettings.OSMAND_LIGHT_THEME);
 
-		if (settings.isSupportSystemDefaultTheme()) {
+		if (settings.isSupportSystemTheme()) {
 			entries.add(getString(R.string.system_default_theme));
 			values.add(OsmandSettings.SYSTEM_DEFAULT_THEME);
 		}
@@ -135,7 +100,7 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 	private Drawable getOsmandThemeIcon() {
 		int iconId;
 		ApplicationMode mode = getSelectedAppMode();
-		if (settings.isSystemDefaultThemeUsedForMode(mode)) {
+		if (settings.isSystemThemeUsed(mode)) {
 			iconId = R.drawable.ic_action_android;
 		} else {
 			iconId = settings.isLightContentForMode(mode) ? R.drawable.ic_action_sun : R.drawable.ic_action_moon;
@@ -144,45 +109,13 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 	}
 
 	private void setupRotateMapPref() {
-		ListPreferenceEx rotateMap = findPreference(settings.ROTATE_MAP.getId());
-		rotateMap.setEntries(new String[] {getString(R.string.rotate_map_north_opt), getString(R.string.rotate_map_bearing_opt), getString(R.string.rotate_map_compass_opt), getString(R.string.rotate_map_manual_opt)});
-		rotateMap.setEntryValues(new Integer[] {OsmandSettings.ROTATE_MAP_NONE, OsmandSettings.ROTATE_MAP_BEARING, OsmandSettings.ROTATE_MAP_COMPASS, OsmandSettings.ROTATE_MAP_MANUAL});
-		rotateMap.setIcon(getRotateMapIcon());
-	}
-
-	private Drawable getRotateMapIcon() {
-		switch (settings.ROTATE_MAP.getModeValue(getSelectedAppMode())) {
-			case OsmandSettings.ROTATE_MAP_NONE:
-				return getActiveIcon(R.drawable.ic_action_direction_north);
-			case OsmandSettings.ROTATE_MAP_MANUAL:
-				return getActiveIcon(R.drawable.ic_action_direction_north);
-			case OsmandSettings.ROTATE_MAP_BEARING:
-				return getActiveIcon(R.drawable.ic_action_direction_movement);
-			default:
-				return getActiveIcon(R.drawable.ic_action_direction_compass);
-		}
-	}
-
-	private void setup3DViewPref() {
-		Drawable disabled = getContentIcon(R.drawable.ic_action_2_5d_view_disabled);
-		Drawable enabled = getActiveIcon(R.drawable.ic_action_2_5d_view_on);
-		Drawable icon = getPersistentPrefIcon(enabled, disabled);
-
-		SwitchPreferenceCompat enabled3DView = findPreference(settings.ENABLE_3D_VIEW.getId());
-		enabled3DView.setVisible(MultiTouchSupport.isTiltSupported(app));
-		enabled3DView.setIcon(icon);
-	}
-
-	private void setupPositionPlacementOnMapPref() {
-		CommonPreference<Integer> preference = settings.POSITION_PLACEMENT_ON_MAP;
-		int selectedDisplayPosition = preference.getModeValue(getSelectedAppMode());
-		MapFocus mapFocus = MapFocus.getByValue(selectedDisplayPosition);
-
-		Preference uiPreference = findPreference(preference.getId());
+		Preference uiPreference = findPreference(settings.ROTATE_MAP.getId());
 		if (uiPreference != null) {
-			Drawable icon = getActiveIcon(mapFocus.getIconId());
+			ApplicationMode appMode = getSelectedAppMode();
+			CompassMode compassMode = settings.getCompassMode(appMode);
+			Drawable icon = getIcon(compassMode.getIconId(isNightMode()));
 			uiPreference.setIcon(icon);
-			uiPreference.setSummary(mapFocus.getTitleId());
+			uiPreference.setSummary(compassMode.getTitleId());
 		}
 	}
 
@@ -279,6 +212,14 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 		speedSystem.setIcon(getActiveIcon(R.drawable.ic_action_speed));
 	}
 
+	private void setupPreciseDistanceNumbersPref() {
+		ApplicationMode selectedMode = getSelectedAppMode();
+		Preference preference = findPreference(settings.PRECISE_DISTANCE_NUMBERS.getId());
+		DistanceDuringNavigationMode enabledMode = settings.PRECISE_DISTANCE_NUMBERS.getModeValue(selectedMode) ? DistanceDuringNavigationMode.PRECISE : DistanceDuringNavigationMode.ROUND_UP;
+		preference.setSummary(getString(enabledMode.nameId));
+		preference.setIcon(getActiveIcon(enabledMode.iconId));
+	}
+
 	private void setupVolumeButtonsAsZoom() {
 		SwitchPreferenceEx volumeButtonsPref = findPreference(settings.USE_VOLUME_BUTTONS_AS_ZOOM.getId());
 		volumeButtonsPref.setTitle(getString(R.string.use_volume_buttons_as_zoom));
@@ -306,25 +247,39 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 		mapEmptyStateAllowedPref.setDescription(getString(R.string.tap_on_map_to_hide_interface_descr));
 	}
 
+	private void setupNotRotateNorthUpPref() {
+		SwitchPreferenceEx mapEmptyStateAllowedPref = findPreference(settings.FIXED_NORTH_MAP.getId());
+		mapEmptyStateAllowedPref.setTitle(getString(R.string.fix_north_up));
+		mapEmptyStateAllowedPref.setDescription(getString(R.string.fix_north_up_descr));
+	}
+
+
 	private void setupAnimatePositionPref() {
 		SwitchPreferenceEx animateMyLocation = findPreference(settings.ANIMATE_MY_LOCATION.getId());
 		animateMyLocation.setDescription(getString(R.string.animate_my_location_desc));
 	}
 
 	private void setupExternalInputDevicePref() {
-		ListPreferenceEx externalInputDevice = findPreference(settings.EXTERNAL_INPUT_DEVICE.getId());
-		externalInputDevice.setSummary(R.string.sett_no_ext_input);
-		externalInputDevice.setEntries(new String[] {
-				getString(R.string.sett_generic_ext_input),
-				getString(R.string.sett_wunderlinq_ext_input),
-				getString(R.string.sett_parrot_ext_input)
-		});
+		Preference uiPreference = findPreference(settings.EXTERNAL_INPUT_DEVICE.getId());
+		if (uiPreference != null) {
+			uiPreference.setSummary(getExternalInputDeviceSummary());
+			uiPreference.setIcon(getExternalInputDeviceIcon());
+		}
+	}
 
-		externalInputDevice.setEntryValues(new Integer[] {
-				OsmandSettings.GENERIC_EXTERNAL_DEVICE,
-				OsmandSettings.WUNDERLINQ_EXTERNAL_DEVICE,
-				OsmandSettings.PARROT_EXTERNAL_DEVICE}
-		);
+	private String getExternalInputDeviceSummary() {
+		ApplicationMode appMode = getSelectedAppMode();
+		InputDevicesHelper deviceHelper = app.getInputDeviceHelper();
+		InputDeviceProfile inputDevice = deviceHelper.getCustomizationDevice(appMode);
+		return inputDevice != null ? inputDevice.toHumanString(app) : getString(R.string.shared_string_disabled);
+	}
+
+	private Drawable getExternalInputDeviceIcon() {
+		ApplicationMode appMode = getSelectedAppMode();
+		InputDevicesHelper deviceHelper = app.getInputDeviceHelper();
+		return deviceHelper.getCustomizationDevice(appMode) != null
+				? getActiveIcon(R.drawable.ic_action_keyboard)
+				: getContentIcon(R.drawable.ic_action_keyboard_disabled);
 	}
 
 	private void setupTrackballForMovementsPref() {
@@ -383,9 +338,7 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 							desc.setVisibility(View.GONE);
 						}
 						title.setChecked(position == selected);
-						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-							UiUtilities.setupCompoundButtonDrawable(app, isNightMode(), getActiveProfileColor(), title.getCheckMarkDrawable());
-						}
+						UiUtilities.setupCompoundButtonDrawable(app, isNightMode(), getActiveProfileColor(), title.getCheckMarkDrawable());
 						return v;
 					}
 				};
@@ -396,44 +349,6 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 
 		b.setNegativeButton(R.string.shared_string_cancel, null);
 		b.show();
-	}
-
-	private void showPositionPlacementDialog() {
-		FragmentActivity activity = getActivity();
-		if (activity != null) {
-			CommonPreference<Integer> preference = settings.POSITION_PLACEMENT_ON_MAP;
-			ApplicationMode appMode = getSelectedAppMode();
-			int selectedValue = preference.getModeValue(appMode);
-			int selectedItemIndex = MapFocus.getByValue(selectedValue).ordinal();
-			FragmentManager fm = activity.getSupportFragmentManager();
-			CustomizableSingleSelectionBottomSheet.showInstance(fm, this, false,
-					preference.getId(), selectedItemIndex, appMode, true);
-		}
-	}
-
-	@Override
-	@Nullable
-	public DialogDisplayData provideDialogDisplayData(@NonNull String dialogId) {
-		if (dialogId.equals(settings.POSITION_PLACEMENT_ON_MAP.getId())) {
-			DialogDisplayData dialogDisplayData = new DialogDisplayData();
-			dialogDisplayData.setTitle(getString(R.string.display_position));
-			List<DialogDisplayItem> displayItems = new ArrayList<>();
-			for (MapFocus mapFocus : MapFocus.values()) {
-				DialogDisplayItem item = new DialogDisplayItem();
-				item.title = getString(mapFocus.getTitleId());
-				item.layoutId = R.layout.bottom_sheet_item_with_bottom_descr_and_radio_btn;
-				if (mapFocus == MapFocus.AUTOMATIC) {
-					item.description = getString(R.string.display_position_automatic_descr);
-				}
-				item.normalIcon = getContentIcon(mapFocus.getIconId());
-				item.selectedIcon = getActiveIcon(mapFocus.getIconId());
-				item.tag = mapFocus;
-				displayItems.add(item);
-			}
-			dialogDisplayData.setDisplayItems(displayItems);
-			return dialogDisplayData;
-		}
-		return null;
 	}
 
 	@Override
@@ -469,49 +384,54 @@ public class GeneralProfileSettingsFragment extends BaseSettingsFragment
 	@Override
 	public boolean onPreferenceClick(Preference preference) {
 		String key = preference.getKey();
+		ApplicationMode appMode = getSelectedAppMode();
 		if (key.equals(settings.DRIVING_REGION.getId())) {
 			showDrivingRegionDialog();
 			return true;
-		} else if (key.equals(settings.POSITION_PLACEMENT_ON_MAP.getId())) {
-			showPositionPlacementDialog();
+		} else if (key.equals(settings.ROTATE_MAP.getId())) {
+			CompassModeDialogController controller = new CompassModeDialogController(app, appMode);
+			showSingleSelectionDialog(CompassModeDialogController.PROCESS_ID, controller);
+			controller.setCallback(this);
 			return true;
+		} else if (key.equals(settings.EXTERNAL_INPUT_DEVICE.getId())) {
+			BaseSettingsFragment.showInstance(requireActivity(), EXTERNAL_INPUT_DEVICE, appMode, new Bundle(), this);
+			return true;
+		} else if (key.equals(settings.PRECISE_DISTANCE_NUMBERS.getId())) {
+			FragmentManager fragmentManager = getFragmentManager();
+			if (fragmentManager != null) {
+				DistanceDuringNavigationBottomSheet.showInstance(fragmentManager, preference.getKey(), this, getSelectedAppMode(), false);
+			}
 		}
 		return super.onPreferenceClick(preference);
 	}
 
-	@Override
-	public void onDialogItemSelected(@NonNull String dialogId, @NonNull DialogDisplayItem selectedItem) {
-		if (dialogId.equals(settings.POSITION_PLACEMENT_ON_MAP.getId())) {
-			Preference preference = findPreference(dialogId);
-			Object newValue = selectedItem.tag;
-			if (preference != null && newValue instanceof MapFocus) {
-				MapFocus mapFocus = (MapFocus) newValue;
-				onPreferenceChange(preference, mapFocus.getValue());
-			}
+	private void updateDialogControllerCallbacks() {
+		IDialogController controller;
+		DialogManager dialogManager = app.getDialogManager();
+
+		controller = dialogManager.findController(CompassModeDialogController.PROCESS_ID);
+		if (controller instanceof CompassModeDialogController) {
+			((CompassModeDialogController) controller).setCallback(this);
 		}
 	}
 
 	@Override
-	public boolean onPreferenceChange(Preference preference, Object newValue) {
-		String prefId = preference.getKey();
-		if (settings.ROTATE_MAP.getId().equals(prefId)) {
-			onConfirmPreferenceChange(prefId, newValue, ApplyQueryType.SNACK_BAR);
-			return false;
-		}
-		return super.onPreferenceChange(preference, newValue);
-	}
-
-	@Override
-	public void onPreferenceChanged(String prefId) {
+	public void onPreferenceChanged(@NonNull String prefId) {
 		Preference preference = findPreference(prefId);
 		if (preference != null) {
 			if (settings.OSMAND_THEME.getId().equals(prefId)) {
 				preference.setIcon(getOsmandThemeIcon());
-			} else if (settings.ROTATE_MAP.getId().equals(prefId)) {
-				preference.setIcon(getRotateMapIcon());
 			} else if (settings.MAP_SCREEN_ORIENTATION.getId().equals(prefId)) {
 				preference.setIcon(getMapScreenOrientationIcon());
 			}
+		}
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		if (!requireActivity().isChangingConfigurations()) {
+			app.getInputDeviceHelper().releaseCustomizationCollection();
 		}
 	}
 

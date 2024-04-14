@@ -1,5 +1,8 @@
 package net.osmand.plus.helpers;
 
+import static net.osmand.IndexConstants.WEATHER_MAP_INDEX_EXT;
+import static net.osmand.map.WorldRegion.WORLD;
+
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -12,6 +15,8 @@ import net.osmand.map.WorldRegion;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.download.DownloadResources;
+import net.osmand.plus.download.SrtmDownloadItem;
+import net.osmand.plus.settings.backend.OsmandSettings;
 
 import org.apache.commons.logging.Log;
 
@@ -27,6 +32,7 @@ public class FileNameTranslationHelper {
 
 	public static final String WIKI_NAME = "_wiki";
 	public static final String WIKIVOYAGE_NAME = "_wikivoyage";
+	public static final String WEATHER = "Weather";
 	public static final String HILL_SHADE = "Hillshade";
 	public static final String SLOPE = "Slope";
 	public static final String HEIGHTMAP = "Heightmap";
@@ -36,43 +42,52 @@ public class FileNameTranslationHelper {
 		return getFileName(app, app.getResourceManager().getOsmandRegions(), fileName);
 	}
 
+	@Nullable
 	public static String getFileName(Context ctx, OsmandRegions regions, String fileName) {
-		String basename = getBasename(fileName);
-		if (basename.endsWith(WIKI_NAME)) { //wiki files
+		return getFileName(ctx, regions, fileName, " ", true, false);
+	}
+
+	@Nullable
+	public static String getFileName(Context ctx, OsmandRegions regions, String fileName,
+	                                 String divider, boolean includingParent, boolean reversed) {
+		String basename = getBasename(ctx, fileName);
+		if (basename.endsWith(WIKI_NAME)) {
 			return getWikiName(ctx, basename);
 		} else if (basename.endsWith(WIKIVOYAGE_NAME)) {
 			return getWikivoyageName(ctx, basename);
-		} else if (fileName.endsWith("tts")) { //tts files
+		} else if (fileName.endsWith(WEATHER_MAP_INDEX_EXT)) {
+			basename = basename.replace("Weather_", "");
+			return getWeatherName(ctx, regions, basename);
+		} else if (fileName.endsWith("tts")) {
 			return getVoiceName(ctx, fileName);
-		} else if (fileName.endsWith(IndexConstants.FONT_INDEX_EXT)) { //otf files
+		} else if (fileName.endsWith(IndexConstants.FONT_INDEX_EXT)) {
 			return getFontName(basename);
 		} else if (fileName.startsWith(HILL_SHADE)) {
 			basename = basename.replace(HILL_SHADE + " ", "");
 			return getTerrainName(ctx, regions, basename, R.string.download_hillshade_maps);
 		} else if (fileName.startsWith(HEIGHTMAP)) {
 			basename = basename.replace(HEIGHTMAP + " ", "");
-			return getTerrainName(ctx, regions, basename, R.string.download_heightmap_maps);
+			return getTerrainName(ctx, regions, basename, R.string.terrain_map);
 		} else if (fileName.startsWith(SLOPE)) {
 			basename = basename.replace(SLOPE + " ", "");
 			return getTerrainName(ctx, regions, basename, R.string.download_slope_maps);
+		} else if (SrtmDownloadItem.isSrtmFile(fileName)) {
+			return getTerrainName(ctx, regions, basename, R.string.download_srtm_maps);
 		} else if (fileName.length() == 2) { //voice recorded files
 			String name = getStringFromResName(ctx, "lang_" + fileName);
 			if (name != null) {
 				return name;
 			}
 		}
-
 		//if nothing else
 		String lc = basename.toLowerCase();
 		String std = getStandardMapName(ctx, lc);
 		if (std != null) {
 			return std;
 		}
-
 		if (regions != null) {
-			return regions.getLocaleName(basename, true);
+			return regions.getLocaleName(basename, divider, includingParent, reversed);
 		}
-
 		return null;
 	}
 
@@ -116,6 +131,15 @@ public class FileNameTranslationHelper {
 		}
 	}
 
+	public static String getWeatherName(Context ctx, OsmandRegions regions, String basename) {
+		basename = basename.replace(" ", "_");
+		if (WORLD.equalsIgnoreCase(basename)) {
+			return ctx.getString(R.string.shared_string_all_world);
+		} else {
+			return regions.getLocaleName(basename.trim(), false);
+		}
+	}
+
 	@NonNull
 	public static String getVoiceName(@NonNull Context ctx, @NonNull String fileName) {
 		String name = fileName.replace('-', '_').replace(' ', '_');
@@ -143,16 +167,21 @@ public class FileNameTranslationHelper {
 		return null;
 	}
 
-	public static String getFontName(String basename) {
+	public static String getFontName(@NonNull String basename) {
 		return basename.replace('-', ' ').replace('_', ' ');
 	}
 
-	private static String getBasename(String fileName) {
+	public static String getBasename(@NonNull Context ctx, @NonNull String fileName) {
 		if (fileName.endsWith(IndexConstants.EXTRA_ZIP_EXT)) {
 			return fileName.substring(0, fileName.length() - IndexConstants.EXTRA_ZIP_EXT.length());
 		}
 		if (fileName.endsWith(IndexConstants.SQLITE_EXT)) {
-			return fileName.substring(0, fileName.length() - IndexConstants.SQLITE_EXT.length()).replace('_', ' ');
+			OsmandApplication app = (OsmandApplication) ctx.getApplicationContext();
+			OsmandSettings settings = app.getSettings();
+			return settings.getTileSourceTitle(fileName);
+		}
+		if (fileName.endsWith(IndexConstants.WEATHER_EXT)) {
+			return fileName.substring(0, fileName.length() - IndexConstants.WEATHER_EXT.length());
 		}
 
 		int ls = fileName.lastIndexOf("-roads");

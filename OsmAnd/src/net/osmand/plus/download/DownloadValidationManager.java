@@ -17,11 +17,12 @@ import androidx.fragment.app.FragmentActivity;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.Version;
+import net.osmand.plus.chooseplan.ChoosePlanFragment;
+import net.osmand.plus.chooseplan.OsmAndFeature;
 import net.osmand.plus.download.DownloadIndexesThread.DownloadEvents;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.AndroidUtils;
 
-import java.io.File;
 import java.text.MessageFormat;
 
 public class DownloadValidationManager {
@@ -45,7 +46,7 @@ public class DownloadValidationManager {
 		long szMaxTempLong = 0;
 		int i = 0;
 		for (IndexItem es : downloadThread.getCurrentDownloadingItems()) {
-			long szExistingLong = getExistingFileSize(es.getTargetFile(app));
+			long szExistingLong = es.getExistingFileSize(app);
 			long change = es.contentSize - szExistingLong;
 			szChangeLong += change;
 			if (szExistingLong > szMaxTempLong) szMaxTempLong = szExistingLong;
@@ -53,7 +54,7 @@ public class DownloadValidationManager {
 		}
 		for (IndexItem es : items) {
 			if (es != null) {
-				long szExistingLong = getExistingFileSize(es.getTargetFile(app));
+				long szExistingLong = es.getExistingFileSize(app);
 				long change = es.contentSize - szExistingLong;
 				szChangeLong += change;
 				if (szExistingLong > szMaxTempLong) szMaxTempLong = szExistingLong;
@@ -77,25 +78,8 @@ public class DownloadValidationManager {
 		return true;
 	}
 
-	private long getExistingFileSize(@Nullable File file) {
-		if (file != null) {
-			if (file.canRead()) {
-				return file.length();
-			}
-		}
-		return 0;
-	}
-
-	public void startDownload(@NonNull FragmentActivity context, IndexItem... items) {
-		boolean allTts = true;
-		for (IndexItem index : items) {
-			if (!DownloadActivityType.isVoiceTTS(index)) {
-				allTts = false;
-				break;
-			}
-		}
-
-		if (allTts) {
+	public void startDownload(@NonNull FragmentActivity context, @NonNull IndexItem... items) {
+		if (isAllAssets(items)) {
 			copyVoiceAssetsWithoutInternet(context, items);
 		} else {
 			downloadFilesWithAllChecks(context, items);
@@ -103,27 +87,44 @@ public class DownloadValidationManager {
 	}
 
 	private void copyVoiceAssetsWithoutInternet(@NonNull FragmentActivity activity, IndexItem... items) {
-		if (downloadFilesCheck_1_FreeVersion(activity)) {
+		if (downloadFilesCheck_1_FreeVersion(activity, items)) {
 			downloadFilesCheck_3_ValidateSpace(activity, items);
 		}
 	}
 
-	private void downloadFilesWithAllChecks(@NonNull FragmentActivity activity, IndexItem... items) {
-		if (downloadFilesCheck_1_FreeVersion(activity)) {
-			downloadFilesCheck_2_Internet(activity, items);
-		}
-	}
-
-	private boolean downloadFilesCheck_1_FreeVersion(@NonNull FragmentActivity context) {
-		if (!Version.isPaidVersion(app)) {
-			int total = settings.NUMBER_OF_FREE_DOWNLOADS.get();
-			if (total > MAXIMUM_AVAILABLE_FREE_DOWNLOADS) {
-				new InstallPaidVersionDialogFragment()
-						.show(context.getSupportFragmentManager(), InstallPaidVersionDialogFragment.TAG);
+	private boolean isAllAssets(@NonNull IndexItem... items) {
+		for (IndexItem index : items) {
+			if (!DownloadActivityType.isVoiceTTS(index)) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	private void downloadFilesWithAllChecks(@NonNull FragmentActivity activity, IndexItem... items) {
+		if (downloadFilesCheck_1_FreeVersion(activity, items)) {
+			downloadFilesCheck_2_Internet(activity, items);
+		}
+	}
+
+	private boolean downloadFilesCheck_1_FreeVersion(@NonNull FragmentActivity context, IndexItem... items) {
+		if (!Version.isPaidVersion(app) && shouldShowChoosePlan(items)) {
+			ChoosePlanFragment.showInstance(context, OsmAndFeature.UNLIMITED_MAP_DOWNLOADS);
+			return false;
+		}
+		return true;
+	}
+
+	private boolean shouldShowChoosePlan(IndexItem... items) {
+		boolean isAnyItemCountedInDownload = false;
+		for (IndexItem indexItem : items) {
+			if (DownloadActivityType.isCountedInDownloads(indexItem)) {
+				isAnyItemCountedInDownload = true;
+				break;
+			}
+		}
+		int total = settings.NUMBER_OF_FREE_DOWNLOADS.get();
+		return total >= MAXIMUM_AVAILABLE_FREE_DOWNLOADS && isAnyItemCountedInDownload;
 	}
 
 	private void downloadFilesCheck_2_Internet(@NonNull FragmentActivity context, IndexItem[] items) {
@@ -152,14 +153,14 @@ public class DownloadValidationManager {
 		long szMaxTempLong = 0;
 		int i = 0;
 		for (IndexItem es : downloadThread.getCurrentDownloadingItems()) {
-			long szExistingLong = getExistingFileSize(es.getTargetFile(app));
+			long szExistingLong = es.getExistingFileSize(app);
 			long change = es.contentSize - szExistingLong;
 			szChangeLong += change;
 			if (szExistingLong > szMaxTempLong) szMaxTempLong = szExistingLong;
 			i++;
 		}
 		for (IndexItem es : items) {
-			long szExistingLong = getExistingFileSize(es.getTargetFile(app));
+			long szExistingLong = es.getExistingFileSize(app);
 			long change = es.contentSize - szExistingLong;
 			szChangeLong += change;
 			if (szExistingLong > szMaxTempLong) szMaxTempLong = szExistingLong;

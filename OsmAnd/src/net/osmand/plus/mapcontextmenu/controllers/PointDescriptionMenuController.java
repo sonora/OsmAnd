@@ -10,8 +10,6 @@ import net.osmand.data.PointDescription;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.activities.search.SearchHistoryFragment;
-import net.osmand.plus.helpers.AvoidSpecificRoads;
 import net.osmand.plus.mapcontextmenu.MenuBuilder;
 import net.osmand.plus.mapcontextmenu.MenuController;
 import net.osmand.plus.routing.RoutingHelper;
@@ -38,8 +36,7 @@ public class PointDescriptionMenuController extends MenuController {
 				public void buttonPressed() {
 					MapActivity activity = getMapActivity();
 					if (activity != null) {
-						AvoidSpecificRoads roads = app.getAvoidSpecificRoads();
-						roads.addImpassableRoad(activity, getLatLon(), false, false, null);
+						app.getAvoidSpecificRoads().addImpassableRoad(activity, getLatLon(), false, false, null);
 					}
 				}
 			};
@@ -74,7 +71,7 @@ public class PointDescriptionMenuController extends MenuController {
 
 	@Override
 	public Drawable getRightIcon() {
-		return getIcon(SearchHistoryFragment.getItemIcon(getPointDescription()));
+		return getIcon(getPointDescription().getItemIcon());
 	}
 
 	@Override

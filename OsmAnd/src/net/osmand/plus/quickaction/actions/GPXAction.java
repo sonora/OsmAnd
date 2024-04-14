@@ -1,6 +1,7 @@
 package net.osmand.plus.quickaction.actions;
 
 import static net.osmand.plus.GeocodingLookupService.AddressLookupRequest;
+import static net.osmand.plus.quickaction.QuickActionIds.GPX_ACTION_ID;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -23,18 +24,17 @@ import androidx.core.widget.TextViewCompat;
 import androidx.fragment.app.Fragment;
 
 import net.osmand.CallbackWithObject;
-import net.osmand.gpx.GPXUtilities;
-import net.osmand.gpx.GPXFile;
-import net.osmand.gpx.GPXTrackAnalysis;
-import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.data.BackgroundType;
 import net.osmand.data.LatLon;
+import net.osmand.gpx.GPXFile;
+import net.osmand.gpx.GPXTrackAnalysis;
+import net.osmand.gpx.GPXUtilities;
+import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.card.color.palette.main.data.DefaultColors;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.helpers.ColorDialogs;
-import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.mapcontextmenu.editors.WptPtEditor;
 import net.osmand.plus.mapcontextmenu.editors.WptPtEditor.OnDismissListener;
 import net.osmand.plus.quickaction.CreateEditActionDialog;
@@ -43,14 +43,14 @@ import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.quickaction.SelectTrackFileDialogFragment;
 import net.osmand.plus.render.RenderingIcons;
-import net.osmand.plus.track.helpers.GPXDatabase.GpxDataItem;
-import net.osmand.plus.track.helpers.GpxDbHelper.GpxDataItemCallback;
+import net.osmand.plus.track.helpers.GpxDataItem;
+import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.widgets.multistatetoggle.RadioItem.OnRadioItemClickListener;
 import net.osmand.plus.widgets.multistatetoggle.TextToggleButton;
 import net.osmand.plus.widgets.multistatetoggle.TextToggleButton.TextRadioItem;
@@ -60,7 +60,7 @@ import java.io.File;
 
 public class GPXAction extends QuickAction implements FileSelected {
 
-	public static final QuickActionType TYPE = new QuickActionType(6, "gpx.add", GPXAction.class)
+	public static final QuickActionType TYPE = new QuickActionType(GPX_ACTION_ID, "gpx.add", GPXAction.class)
 			.nameRes(R.string.quick_action_add_gpx)
 			.iconRes(R.drawable.ic_action_gnew_label_dark)
 			.category(QuickActionType.CREATE_CATEGORY);
@@ -167,7 +167,7 @@ public class GPXAction extends QuickAction implements FileSelected {
 		setupTrackToggleButton(root, mapActivity);
 		setupWaypointAppearanceToggle(root, mapActivity);
 
-		boolean editingWaypointTemplate = mapActivity.getFragment(WptPtEditor.TAG) != null;
+		boolean editingWaypointTemplate = mapActivity.getFragmentsHelper().getFragment(WptPtEditor.TAG) != null;
 		if (editingWaypointTemplate) {
 			hideDialogWhileEditingTemplate(mapActivity);
 		}
@@ -247,17 +247,9 @@ public class GPXAction extends QuickAction implements FileSelected {
 		if (selectedGpxFile != null) {
 			setupGpxTrackInfo(trackInfoContainer, gpxName, selectedGpxFile.getTrackAnalysis(app), app);
 		} else {
-			GpxDataItem gpxDataItem = app.getGpxDbHelper().getItem(file, new GpxDataItemCallback() {
-				@Override
-				public boolean isCancelled() {
-					return false;
-				}
-
-				@Override
-				public void onGpxDataItemReady(GpxDataItem item) {
-					if (item != null && item.getAnalysis() != null) {
-						setupGpxTrackInfo(trackInfoContainer, gpxName, item.getAnalysis(), app);
-					}
+			GpxDataItem gpxDataItem = app.getGpxDbHelper().getItem(file, item -> {
+				if (item.getAnalysis() != null) {
+					setupGpxTrackInfo(trackInfoContainer, gpxName, item.getAnalysis(), app);
 				}
 			});
 
@@ -283,12 +275,12 @@ public class GPXAction extends QuickAction implements FileSelected {
 		ImageView distanceIcon = trackInfoContainer.findViewById(R.id.distance_icon);
 		TextView distanceText = trackInfoContainer.findViewById(R.id.distance);
 		distanceIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_distance_16));
-		distanceText.setText(OsmAndFormatter.getFormattedDistance(analysis.totalDistance, app));
+		distanceText.setText(OsmAndFormatter.getFormattedDistance(analysis.getTotalDistance(), app));
 
 		ImageView waypointsIcon = trackInfoContainer.findViewById(R.id.points_icon);
 		TextView waypointsCountText = trackInfoContainer.findViewById(R.id.points_count);
 		waypointsIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_waypoint_16));
-		waypointsCountText.setText(String.valueOf(analysis.wptPoints));
+		waypointsCountText.setText(String.valueOf(analysis.getWptPoints()));
 
 		ImageView timeIcon = trackInfoContainer.findViewById(R.id.time_icon);
 		if (analysis.isTimeSpecified()) {
@@ -296,7 +288,7 @@ public class GPXAction extends QuickAction implements FileSelected {
 			timeIcon.setImageDrawable(iconsCache.getThemedIcon(R.drawable.ic_action_time_16));
 
 			TextView timeText = trackInfoContainer.findViewById(R.id.time);
-			int duration = (int) (analysis.timeSpan / 1000);
+			int duration = analysis.getDurationInSeconds();
 			timeText.setText(Algorithms.formatDuration(duration, app.accessibilityEnabled()));
 		} else {
 			AndroidUiHelper.updateVisibility(timeIcon, false);
@@ -357,7 +349,7 @@ public class GPXAction extends QuickAction implements FileSelected {
 			WptPt waypoint = createWaypoint();
 
 			ImageView predefinedIcon = container.findViewById(R.id.predefined_icon);
-			Drawable icon = PointImageDrawable.getFromWpt(context, waypoint.getColor(),
+			Drawable icon = PointImageUtils.getFromPoint(context, waypoint.getColor(),
 					false, waypoint);
 			predefinedIcon.setImageDrawable(icon);
 
@@ -426,7 +418,7 @@ public class GPXAction extends QuickAction implements FileSelected {
 
 	@Nullable
 	private CreateEditActionDialog getDialog(@NonNull MapActivity mapActivity) {
-		Fragment fragment = mapActivity.getFragment(CreateEditActionDialog.TAG);
+		Fragment fragment = mapActivity.getFragmentsHelper().getFragment(CreateEditActionDialog.TAG);
 		return fragment instanceof CreateEditActionDialog
 				? ((CreateEditActionDialog) fragment)
 				: null;
@@ -460,7 +452,7 @@ public class GPXAction extends QuickAction implements FileSelected {
 
 	@ColorInt
 	private int getWaypointColorFromParams() {
-		return getColorFromParams(KEY_WPT_COLOR, ColorDialogs.pallette[0]);
+		return getColorFromParams(KEY_WPT_COLOR, DefaultColors.values()[0].getColor());
 	}
 
 	@NonNull

@@ -6,8 +6,6 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,12 +26,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.FragmentActivity;
 
-import net.osmand.IndexConstants;
-import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.Collator;
-import net.osmand.CollatorStringMatcher;
+import net.osmand.IndexConstants;
 import net.osmand.OsmAndCollator;
 import net.osmand.ResultMatcher;
 import net.osmand.binary.BinaryMapDataObject;
@@ -42,18 +37,19 @@ import net.osmand.binary.BinaryMapIndexReader.SearchRequest;
 import net.osmand.data.Amenity;
 import net.osmand.map.OsmandRegions;
 import net.osmand.map.WorldRegion;
-import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.plus.download.CityItem;
 import net.osmand.plus.download.DownloadActivity;
-import net.osmand.plus.download.DownloadActivity.BannerAndDownloadFreeVersion;
 import net.osmand.plus.download.DownloadActivityType;
 import net.osmand.plus.download.DownloadIndexesThread.DownloadEvents;
 import net.osmand.plus.download.DownloadResourceGroup;
-import net.osmand.plus.download.DownloadResourceGroup.DownloadResourceGroupType;
+import net.osmand.plus.download.DownloadResourceGroupType;
 import net.osmand.plus.download.DownloadResources;
 import net.osmand.plus.download.IndexItem;
+import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.search.SearchUICore;
 import net.osmand.search.core.SearchPhrase;
@@ -90,7 +86,6 @@ public class SearchDialogFragment extends DialogFragment implements DownloadEven
 	private SearchListAdapter listAdapter;
 	private BannerAndDownloadFreeVersion banner;
 	private String searchText;
-	private View searchView;
 	private EditText searchEditText;
 	private ProgressBar progressBar;
 	private ImageButton clearButton;
@@ -155,7 +150,7 @@ public class SearchDialogFragment extends DialogFragment implements DownloadEven
 		listView.setOnItemClickListener(this);
 		listView.setAdapter(listAdapter);
 
-		searchView = inflater.inflate(R.layout.search_text_layout, toolbar, false);
+		View searchView = inflater.inflate(R.layout.search_text_layout, toolbar, false);
 		toolbar.addView(searchView);
 
 		searchEditText = view.findViewById(R.id.searchEditText);
@@ -169,15 +164,7 @@ public class SearchDialogFragment extends DialogFragment implements DownloadEven
 		clearButton.setColorFilter(ContextCompat.getColor(app, iconColorResId));
 		clearButton.setVisibility(View.GONE);
 
-		searchEditText.addTextChangedListener(new TextWatcher() {
-			@Override
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-			}
-
-			@Override
-			public void onTextChanged(CharSequence s, int start, int before, int count) {
-			}
-
+		searchEditText.addTextChangedListener(new SimpleTextWatcher() {
 			@Override
 			public void afterTextChanged(Editable s) {
 				updateSearchText(s.toString());

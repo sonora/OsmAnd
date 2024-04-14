@@ -8,6 +8,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 
 import net.osmand.core.android.MapRendererContext;
+import net.osmand.core.android.MapRendererContext.ProviderType;
 import net.osmand.core.android.MapRendererView;
 import net.osmand.core.jni.MapLayerConfiguration;
 import net.osmand.core.jni.PointI;
@@ -92,15 +93,14 @@ public class MapVectorLayer extends BaseMapLayer {
 	private void recreateLayerProvider() {
 		MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
 		if (mapContext != null) {
-			mapContext.recreateRasterAndSymbolsProvider();
+			mapContext.recreateRasterAndSymbolsProvider(ProviderType.MAIN);
 		}
 	}
 
 	private void resetLayerProvider() {
 		MapRendererContext mapContext = NativeCoreContext.getMapRendererContext();
 		if (mapContext != null) {
-			mapContext.resetRasterAndSymbolsProvider();
-			mapContext.resetHeightmapProvider();
+			mapContext.resetRasterAndSymbolsProvider(ProviderType.MAIN);
 		}
 	}
 
@@ -110,9 +110,8 @@ public class MapVectorLayer extends BaseMapLayer {
 			MapLayerConfiguration mapLayerConfiguration = new MapLayerConfiguration();
 			mapLayerConfiguration.setOpacityFactor(((float) alpha) / 255.0f);
 			mapRenderer.setMapLayerConfiguration(MapRendererContext.OBF_RASTER_LAYER, mapLayerConfiguration);
-			boolean keepLabels = false;
-			if (view != null) 
-				keepLabels = view.getSettings().KEEP_MAP_LABELS_VISIBLE.get();
+
+			boolean keepLabels = getApplication().getSettings().KEEP_MAP_LABELS_VISIBLE.get();
 			SymbolSubsectionConfiguration symbolSubsectionConfiguration = new SymbolSubsectionConfiguration();
 			symbolSubsectionConfiguration.setOpacityFactor(keepLabels ? 1.0f : ((float) alpha) / 255.0f);
 			mapRenderer.setSymbolSubsectionConfiguration(MapRendererContext.OBF_SYMBOL_SECTION,
@@ -155,7 +154,7 @@ public class MapVectorLayer extends BaseMapLayer {
 					mapRendererContext.updateLocalization();
 				}
 			}
-			if ((alphaChanged || visibleChanged || labelsVisibleChanged) && visible) {
+			if ((mapRendererChanged || alphaChanged || visibleChanged || labelsVisibleChanged) && visible) {
 				updateLayerProviderAlpha(alpha);
 			}
 

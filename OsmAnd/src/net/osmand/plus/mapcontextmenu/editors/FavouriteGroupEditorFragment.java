@@ -12,8 +12,8 @@ import net.osmand.gpx.GPXUtilities.PointsGroup;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.mapcontextmenu.editors.SelectPointsCategoryBottomSheet.CategorySelectionListener;
-import net.osmand.plus.myplaces.FavoriteGroup;
-import net.osmand.plus.myplaces.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.FavoriteGroup;
+import net.osmand.plus.myplaces.favorites.FavouritesHelper;
 import net.osmand.plus.utils.AndroidUtils;
 
 public class FavouriteGroupEditorFragment extends GroupEditorFragment {
@@ -65,7 +65,7 @@ public class FavouriteGroupEditorFragment extends GroupEditorFragment {
 			favouritesHelper.updateGroupBackgroundType(favoriteGroup, getBackgroundType(), updatePoints, false);
 			favouritesHelper.updateGroupName(favoriteGroup, getNameTextValue(), false);
 
-			favouritesHelper.saveCurrentPointsIntoFile();
+			favouritesHelper.saveCurrentPointsIntoFile(true);
 			saved = true;
 		}
 		dismiss();

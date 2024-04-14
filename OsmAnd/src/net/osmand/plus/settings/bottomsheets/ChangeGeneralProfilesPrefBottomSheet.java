@@ -1,7 +1,6 @@
 package net.osmand.plus.settings.bottomsheets;
 
 import android.os.Bundle;
-import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10,14 +9,15 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import net.osmand.PlatformUtil;
-import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.bottomsheetmenu.BaseBottomSheetItem;
 import net.osmand.plus.base.bottomsheetmenu.SimpleBottomSheetItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.LongDescriptionItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.TitleItem;
+import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.fragments.BaseSettingsFragment;
+import net.osmand.plus.utils.AndroidUtils;
 
 import org.apache.commons.logging.Log;
 
@@ -52,7 +52,7 @@ public class ChangeGeneralProfilesPrefBottomSheet extends BasePreferenceBottomSh
 		}
 		int cancelTitleRes = args.getInt(CANCEL_TITLE_RES_KEY);
 		String prefId = args.getString(PREFERENCE_ID);
-		newValue = args.getSerializable(NEW_VALUE_KEY);
+		newValue = AndroidUtils.getSerializable(args, NEW_VALUE_KEY, Serializable.class);
 		if (newValue == null || prefId == null) {
 			return;
 		}
@@ -64,16 +64,13 @@ public class ChangeGeneralProfilesPrefBottomSheet extends BasePreferenceBottomSh
 				.setTitle(getString(R.string.apply_to_all_profiles))
 				.setIcon(getActiveIcon(R.drawable.ic_action_copy))
 				.setLayoutId(R.layout.bottom_sheet_item_simple)
-				.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View v) {
-						app.getSettings().setPreferenceForAllModes(prefId, newValue);
-						updateTargetSettings(false, true);
-						if (listener != null) {
-							listener.onApplied(false);
-						}
-						dismiss();
+				.setOnClickListener(v -> {
+					app.getSettings().setPreferenceForAllModes(prefId, newValue);
+					updateTargetSettings(false, true);
+					if (listener != null) {
+						listener.onPreferenceApplied(false);
 					}
+					dismiss();
 				})
 				.create();
 		items.add(applyToAllProfiles);
@@ -84,16 +81,13 @@ public class ChangeGeneralProfilesPrefBottomSheet extends BasePreferenceBottomSh
 				.setTitle(getString(R.string.apply_to_current_profile, selectedAppMode.toHumanString()))
 				.setIcon(getActiveIcon(selectedAppMode.getIconRes()))
 				.setLayoutId(R.layout.bottom_sheet_item_simple)
-				.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View v) {
-						app.getSettings().setPreference(prefId, newValue, getAppMode());
-						updateTargetSettings(false, false);
-						if (listener != null) {
-							listener.onApplied(true);
-						}
-						dismiss();
+				.setOnClickListener(v -> {
+					app.getSettings().setPreference(prefId, newValue, getAppMode());
+					updateTargetSettings(false, false);
+					if (listener != null) {
+						listener.onPreferenceApplied(true);
 					}
+					dismiss();
 				})
 				.create();
 		items.add(applyToCurrentProfile);
@@ -102,15 +96,12 @@ public class ChangeGeneralProfilesPrefBottomSheet extends BasePreferenceBottomSh
 				.setTitle(cancelTitleRes == 0 ? getString(R.string.discard_changes) : getString(cancelTitleRes))
 				.setIcon(getActiveIcon(R.drawable.ic_action_undo_dark))
 				.setLayoutId(R.layout.bottom_sheet_item_simple)
-				.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View v) {
-						updateTargetSettings(true, false);
-						if (listener != null) {
-							listener.onDiscard();
-						}
-						dismiss();
+				.setOnClickListener(v -> {
+					updateTargetSettings(true, false);
+					if (listener != null) {
+						listener.onDiscard();
 					}
+					dismiss();
 				})
 				.create();
 		items.add(discardChanges);
@@ -199,8 +190,10 @@ public class ChangeGeneralProfilesPrefBottomSheet extends BasePreferenceBottomSh
 	}
 
 	public interface OnChangeSettingListener {
-		void onApplied(boolean profileOnly);
+		default void onPreferenceApplied(boolean profileOnly) {
+		}
 
-		void onDiscard();
+		default void onDiscard() {
+		}
 	}
 }

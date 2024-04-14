@@ -2,6 +2,8 @@ package net.osmand.plus.plugins.monitoring.widgets;
 
 import static net.osmand.plus.views.mapwidgets.WidgetType.TRIP_RECORDING_DISTANCE;
 
+import android.view.View;
+
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,9 +16,10 @@ import net.osmand.plus.plugins.monitoring.SavingTrackHelper;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.OsmAndFormatter.FormattedValue;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
-import net.osmand.plus.views.mapwidgets.widgets.TextInfoWidget;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
+import net.osmand.plus.views.mapwidgets.widgets.SimpleWidget;
 
-public class TripRecordingDistanceWidget extends TextInfoWidget {
+public class TripRecordingDistanceWidget extends SimpleWidget {
 
 	private static final long BLINK_DELAY_MILLIS = 500;
 
@@ -24,21 +27,26 @@ public class TripRecordingDistanceWidget extends TextInfoWidget {
 
 	private long cachedLastUpdateTime;
 
-	public TripRecordingDistanceWidget(@NonNull MapActivity mapActivity) {
-		super(mapActivity, TRIP_RECORDING_DISTANCE);
+	public TripRecordingDistanceWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
+		super(mapActivity, TRIP_RECORDING_DISTANCE, customId, widgetsPanel);
 		savingTrackHelper = app.getSavingTrackHelper();
 
 		updateInfo(null);
-		setOnClickListener(v -> {
-			OsmandMonitoringPlugin plugin = getPlugin();
-			if (plugin != null) {
-				plugin.showTripRecordingDialog(mapActivity);
-			}
-		});
+		setOnClickListener(getOnClickListener());
 	}
 
 	@Override
-	public void updateInfo(@Nullable DrawSettings drawSettings) {
+	protected View.OnClickListener getOnClickListener() {
+		return v -> {
+			OsmandMonitoringPlugin plugin = getPlugin();
+			if (plugin != null) {
+				plugin.askShowTripRecordingDialog(mapActivity);
+			}
+		};
+	}
+
+	@Override
+	protected void updateSimpleWidgetInfo(@Nullable DrawSettings drawSettings) {
 		OsmandMonitoringPlugin plugin = getPlugin();
 		if (plugin == null) {
 			return;
@@ -75,7 +83,7 @@ public class TripRecordingDistanceWidget extends TextInfoWidget {
 	private void setText(float distance) {
 		if (distance > 0) {
 			FormattedValue formattedDistance = OsmAndFormatter
-					.getFormattedDistanceValue(distance, app, true, settings.METRIC_SYSTEM.get());
+					.getFormattedDistanceValue(distance, app);
 			setText(formattedDistance.value, formattedDistance.unit);
 		} else {
 			setText(getString(R.string.monitoring_control_start), null);

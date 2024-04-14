@@ -2,75 +2,92 @@ package net.osmand.plus.base;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.ImageView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.DrawableRes;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.LayoutRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.R;
+import net.osmand.plus.helpers.RequestMapThemeParams;
+import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
 
-public class BaseOsmAndDialogFragment extends DialogFragment {
+public abstract class BaseOsmAndDialogFragment extends DialogFragment {
 
-	private UiUtilities iconsCache;
+	protected OsmandApplication app;
+	protected OsmandSettings settings;
+	protected UiUtilities iconsCache;
+	protected LayoutInflater themedInflater;
+	protected boolean nightMode;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		int themeId = getSettings().isLightContent() ? R.style.OsmandLightTheme : R.style.OsmandDarkTheme;
-		setStyle(STYLE_NO_FRAME, themeId);
+		app = (OsmandApplication) requireActivity().getApplication();
+		settings = app.getSettings();
+		iconsCache = app.getUIUtilities();
+
+		updateNightMode();
+		setStyle(STYLE_NO_FRAME, nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme);
 		getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 	}
 
-	protected OsmandApplication getMyApplication() {
-		return (OsmandApplication) getActivity().getApplication();
+	protected void updateNightMode() {
+		nightMode = isNightMode(isUsedOnMap());
+		themedInflater = UiUtilities.getInflater(getContext(), nightMode);
 	}
 
-	protected AppCompatActivity getMyActivity() {
-		return (AppCompatActivity) getActivity();
+	protected boolean isUsedOnMap() {
+		return false;
 	}
 
-	protected UiUtilities getIconsCache() {
-		if (iconsCache == null) {
-			iconsCache = getMyApplication().getUIUtilities();
-		}
-		return iconsCache;
+	@NonNull
+	protected View inflate(@LayoutRes int layoutResId, @Nullable ViewGroup root) {
+		return inflate(layoutResId, root, false);
+	}
+
+	@NonNull
+	protected View inflate(@LayoutRes int layoutResId, @Nullable ViewGroup root, boolean attachToRoot) {
+		return themedInflater.inflate(layoutResId, root, attachToRoot);
+	}
+
+	protected int getDimension(int id) {
+		return app.getResources().getDimensionPixelSize(id);
+	}
+
+	@ColorInt
+	protected int getColor(@ColorRes int colorId) {
+		return ColorUtilities.getColor(app, colorId);
 	}
 
 	protected Drawable getPaintedContentIcon(@DrawableRes int id, @ColorInt int color) {
-		return getIconsCache().getPaintedIcon(id, color);
+		return iconsCache.getPaintedIcon(id, color);
 	}
 
 	protected Drawable getIcon(@DrawableRes int id) {
-		return getIconsCache().getIcon(id);
+		return iconsCache.getIcon(id);
 	}
 
 	protected Drawable getIcon(@DrawableRes int id, @ColorRes int colorId) {
-		return getIconsCache().getIcon(id, colorId);
+		return iconsCache.getIcon(id, colorId);
 	}
 
 	protected Drawable getContentIcon(@DrawableRes int id) {
-		return getIconsCache().getThemedIcon(id);
-	}
-
-	protected void setThemedDrawable(ImageView view, @DrawableRes int iconId) {
-		view.setImageDrawable(getContentIcon(iconId));
-	}
-
-	protected OsmandSettings getSettings() {
-		return getMyApplication().getSettings();
+		return iconsCache.getThemedIcon(id);
 	}
 
 	protected boolean isNightMode(boolean usedOnMap) {
-		if (usedOnMap) {
-			return getMyApplication().getDaynightHelper().isNightModeForMapControls();
-		}
-		return !getSettings().isLightContent();
+		RequestMapThemeParams params = new RequestMapThemeParams().markIgnoreExternalProvider();
+		return app.getDaynightHelper().isNightMode(usedOnMap, params);
 	}
 }

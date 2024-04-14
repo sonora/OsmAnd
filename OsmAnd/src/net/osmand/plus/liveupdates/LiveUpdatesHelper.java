@@ -1,5 +1,7 @@
 package net.osmand.plus.liveupdates;
 
+import static net.osmand.plus.liveupdates.LiveUpdatesFragment.getFileNameWithoutRoadSuffix;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -12,14 +14,13 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.download.LocalIndexInfo;
+import net.osmand.plus.download.local.LocalItem;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.R;
 import net.osmand.plus.helpers.FileNameTranslationHelper;
 import net.osmand.util.Algorithms;
 
-import java.io.File;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -253,14 +254,14 @@ public class LiveUpdatesHelper {
 	}
 
 	public static void runLiveUpdate(Context context, boolean userRequested, LiveUpdateListener listener) {
-		for (LocalIndexInfo mapToUpdate : listener.getMapsToUpdate()) {
-			runLiveUpdate(context, mapToUpdate.getFileNameWithoutRoadSuffix(), userRequested, listener::processFinish);
+		for (LocalItem mapToUpdate : listener.getMapsToUpdate()) {
+			runLiveUpdate(context, getFileNameWithoutRoadSuffix(mapToUpdate), userRequested, listener::processFinish);
 		}
 	}
 
 	public interface LiveUpdateListener {
 		void processFinish();
 
-		List<LocalIndexInfo> getMapsToUpdate();
+		List<LocalItem> getMapsToUpdate();
 	}
 }

@@ -8,23 +8,19 @@ import android.util.Pair;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import net.osmand.CallbackWithObject;
-import net.osmand.gpx.GPXFile;
-import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.Location;
+import net.osmand.OnResultCallback;
 import net.osmand.StateChangedListener;
 import net.osmand.data.Amenity;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
+import net.osmand.gpx.GPXFile;
+import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPointChangedListener;
 import net.osmand.plus.mapcontextmenu.AdditionalActionsBottomSheetDialogFragment.ContextMenuItemClickListener;
@@ -46,6 +42,7 @@ import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
+import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
 import net.osmand.plus.transport.TransportStopRoute;
 import net.osmand.plus.views.layers.ContextMenuLayer;
@@ -60,6 +57,10 @@ import net.osmand.util.Algorithms;
 import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 public class MapContextMenu extends MenuTitleController implements StateChangedListener<ApplicationMode>,
 		MapMarkerChangedListener, TargetPointChangedListener {
@@ -86,7 +87,6 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	private MenuController menuController;
 
 	private LatLon mapCenter;
-	private int mapPosition;
 	private boolean centerMarker;
 	private boolean zoomOutOnly;
 	private int mapZoom;
@@ -95,6 +95,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	private boolean appModeChanged;
 	private boolean appModeListenerAdded;
 	private boolean autoHide;
+	private boolean shouldUpdateMapDisplayPosition;
 
 	private int favActionIconId;
 	private int waypointActionIconId;
@@ -102,6 +103,13 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	private MenuAction searchDoneAction;
 
 	private final LinkedList<MapContextMenuData> historyStack = new LinkedList<>();
+
+	public void updateNightMode() {
+		MenuController menuController = getMenuController();
+		if (menuController != null) {
+			menuController.updateNightMode();
+		}
+	}
 
 	public static class MapContextMenuData {
 
@@ -206,7 +214,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		return findMenuFragment() != null;
 	}
 
-	public void hideMenues() {
+	public void hideMenus() {
 		if (isVisible()) {
 			hide();
 		} else {
@@ -296,10 +304,6 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		}
 	}
 
-	public void setMapPosition(int mapPosition) {
-		this.mapPosition = mapPosition;
-	}
-
 	@Override
 	public PointDescription getPointDescription() {
 		return pointDescription;
@@ -341,7 +345,8 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 
 		Object thisObject = getObject();
 		if (!update && isVisible()) {
-			if (thisObject == null || !thisObject.equals(object)) {
+			if (thisObject == null || !thisObject.equals(object)
+					|| (thisObject instanceof Amenity && !((Amenity) thisObject).strictEquals(object))) {
 				hide();
 			} else {
 				return false;
@@ -369,6 +374,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 
 		active = true;
 		appModeChanged = false;
+		shouldUpdateMapDisplayPosition = true;
 
 		if (needAcquireMenuController) {
 			if (menuController != null) {
@@ -389,11 +395,6 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 			menuController.clearPlainMenuItems();
 			menuController.addPlainMenuItems(typeStr, getPointDescription(), getLatLon());
 		}
-
-		if (mapPosition != 0) {
-			mapActivity.getMapView().setMapPosition(0);
-		}
-
 		mapActivity.refreshMap();
 
 		if (object instanceof MapMarker) {
@@ -494,6 +495,10 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	}
 
 	public boolean close() {
+		return close(true);
+	}
+
+	public boolean close(boolean animated) {
 		boolean result = false;
 		if (active) {
 			active = false;
@@ -513,7 +518,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 				if (object != null) {
 					clearSelectedObject(object);
 				}
-				result = hide();
+				result = hide(animated);
 				if (menuController != null) {
 					menuController.setActive(false);
 				}
@@ -527,10 +532,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		boolean result = false;
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			if (mapPosition != 0) {
-				mapActivity.getMapView().setMapPosition(mapPosition);
-				mapPosition = 0;
-			}
+			shouldUpdateMapDisplayPosition = false;
 			MenuController menuController = getMenuController();
 			if (menuController != null) {
 				menuController.onHide();
@@ -931,7 +933,7 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 			if (navigateInPedestrianMode()) {
 				mapActivity.getMyApplication().getSettings().setApplicationMode(ApplicationMode.PEDESTRIAN, false);
 			}
-			mapActivity.getMapLayers().getMapControlsLayer().navigateButton();
+			mapActivity.getMapLayers().getMapActionsHelper().navigateButton();
 		}
 	}
 
@@ -1228,28 +1230,28 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 	public void addNewWptToGPXFile(@Nullable String title, @Nullable Amenity amenity) {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			CallbackWithObject<GPXFile[]> callbackWithObject = new CallbackWithObject<GPXFile[]>() {
-				@Override
-				public boolean processResult(GPXFile[] result) {
-					MapActivity mapActivity = getMapActivity();
-					if (mapActivity != null) {
-						GPXFile gpxFile;
-						if (result != null && result.length > 0) {
-							gpxFile = result[0];
-						} else {
-							gpxFile = mapActivity.getMyApplication().getSavingTrackHelper().getCurrentGpx();
-						}
-						WptPtEditor wptPtPointEditor = getWptPtPointEditor();
-						if (wptPtPointEditor != null) {
-							wptPtPointEditor.add(gpxFile, getLatLon(), title, amenity);
-						}
-					}
-					return true;
-				}
-			};
-
-			GpxUiHelper.selectSingleGPXFile(mapActivity, true, callbackWithObject);
+			addNewWptToGPXFileImpl(mapActivity, title, amenity);
 		}
+	}
+
+	private void addNewWptToGPXFileImpl(@NonNull MapActivity mapActivity,
+	                                    @Nullable String title, @Nullable Amenity amenity) {
+		GpxUiHelper.selectSingleGPXFile(mapActivity, true, result -> {
+			MapActivity activity = getMapActivity();
+			if (activity != null) {
+				GPXFile gpxFile;
+				if (result != null && result.length > 0) {
+					gpxFile = result[0];
+				} else {
+					gpxFile = activity.getMyApplication().getSavingTrackHelper().getCurrentGpx();
+				}
+				WptPtEditor wptPtPointEditor = getWptPtPointEditor();
+				if (wptPtPointEditor != null) {
+					wptPtPointEditor.add(gpxFile, getLatLon(), title, amenity);
+				}
+			}
+			return true;
+		});
 	}
 
 	@Nullable
@@ -1469,12 +1471,13 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		return menuController != null && menuController.displayDistanceDirection();
 	}
 
-	public CharSequence getFormattedAltitude() {
+	public void getFormattedAltitude(@NonNull OnResultCallback<String> callback) {
 		MenuController menuController = getMenuController();
 		if (menuController != null) {
-			return menuController.getFormattedAltitude();
+			menuController.getFormattedAltitude(callback);
+		} else {
+			callback.onResult(null);
 		}
-		return "";
 	}
 
 	public CharSequence getSubtypeStr() {
@@ -1538,18 +1541,6 @@ public class MapContextMenu extends MenuTitleController implements StateChangedL
 		MenuController menuController = getMenuController();
 		if (menuController != null) {
 			menuController.buildCustomAddressLine(ll);
-		}
-	}
-
-	public boolean isNightMode() {
-		MapActivity mapActivity = getMapActivity();
-		MenuController menuController = getMenuController();
-		if (menuController != null) {
-			return !menuController.isLight();
-		} else if (mapActivity != null) {
-			return mapActivity.getMyApplication().getDaynightHelper().isNightModeForMapControls();
-		} else {
-			return false;
 		}
 	}
 

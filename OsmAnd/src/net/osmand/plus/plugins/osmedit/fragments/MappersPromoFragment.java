@@ -3,7 +3,6 @@ package net.osmand.plus.plugins.osmedit.fragments;
 import static net.osmand.plus.plugins.osmedit.fragments.OsmEditingFragment.OSM_LOGIN_DATA;
 
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,16 +20,16 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.R;
-import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.chooseplan.BasePurchaseDialogFragment;
 import net.osmand.plus.chooseplan.OsmAndFeature;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.plugins.osmedit.oauth.OsmOAuthHelper;
 import net.osmand.plus.plugins.osmedit.oauth.OsmOAuthHelper.OsmAuthorizationListener;
 import net.osmand.plus.settings.bottomsheets.OsmLoginDataBottomSheet;
+import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.UiUtilities;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,11 +81,6 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 		return mainView;
 	}
 
-	@Override
-	protected void updateContent(boolean progress) {
-
-	}
-
 	private void setupToolbar() {
 		ImageView backBtn = mainView.findViewById(R.id.button_back);
 		backBtn.setImageResource(AndroidUtils.getNavigationIconResId(app));
@@ -126,9 +120,8 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 
 	private void setupSignInWithOsmButton() {
 		View button = mainView.findViewById(R.id.sign_in_button);
-		int normal = ColorUtilities.getActiveColor(app, nightMode);
-		int pressed = getColor(nightMode ? R.color.active_buttons_and_links_bg_pressed_dark : R.color.active_buttons_and_links_bg_pressed_light);
-		setupButtonBackground(button, normal, pressed);
+		int color = ColorUtilities.getActiveColor(app, nightMode);
+		setupButtonBackground(button, color);
 
 		TextView tvTitle = button.findViewById(R.id.sign_in_button_title);
 		int iconColorId = nightMode ? R.color.text_color_tab_active_dark : R.color.text_color_tab_active_light;
@@ -147,29 +140,21 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 
 	private void setupUseLoginAndPasswordButton() {
 		View button = mainView.findViewById(R.id.login_password_button);
-		int normal = getColor(nightMode ? R.color.inactive_buttons_and_links_bg_dark : R.color.profile_button_gray);
-		int pressed = getColor(nightMode ? R.color.active_buttons_and_links_bg_pressed_dark : R.color.active_buttons_and_links_bg_pressed_light);
-		setupButtonBackground(button, normal, pressed);
+		int color = getColor(nightMode ? R.color.inactive_buttons_and_links_bg_dark : R.color.profile_button_gray);
+		setupButtonBackground(button, color);
 		button.setOnClickListener(v -> {
 			FragmentManager fragmentManager = getFragmentManager();
 			if (fragmentManager != null) {
-				OsmLoginDataBottomSheet.showInstance(fragmentManager, OSM_LOGIN_DATA, getTargetFragment(), usedOnMap, null);
+				OsmLoginDataBottomSheet.showInstance(fragmentManager, OSM_LOGIN_DATA, getTargetFragment(), isUsedOnMap(), null);
 			}
 		});
 	}
 
-	private void setupButtonBackground(@NonNull View button, @ColorInt int normalColor, @ColorInt int pressedColor) {
+	private void setupButtonBackground(@NonNull View button, @ColorInt int normalColor) {
 		Drawable normal = createRoundedDrawable(normalColor, ButtonBackground.ROUNDED_SMALL);
+		Drawable pressed = AppCompatResources.getDrawable(app, ButtonBackground.ROUNDED_SMALL.getRippleId(nightMode));
 
-		Drawable background;
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			Drawable pressed = AppCompatResources.getDrawable(app, ButtonBackground.ROUNDED_SMALL.getRippleId(nightMode));
-			background = UiUtilities.getLayeredIcon(normal, pressed);
-		} else {
-			Drawable pressed = createRoundedDrawable(pressedColor, ButtonBackground.ROUNDED_SMALL);
-			background = AndroidUtils.createPressedStateListDrawable(normal, pressed);
-		}
-		AndroidUtils.setBackground(button, background);
+		AndroidUtils.setBackground(button, UiUtilities.getLayeredIcon(normal, pressed));
 	}
 
 	@Override
@@ -186,5 +171,4 @@ public class MappersPromoFragment extends BasePurchaseDialogFragment {
 		mainView.findViewById(R.id.header).setAlpha(alpha);
 		mainView.findViewById(R.id.shadowView).setAlpha(inverseAlpha);
 	}
-
 }

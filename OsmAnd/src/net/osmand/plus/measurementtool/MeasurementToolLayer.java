@@ -45,6 +45,7 @@ import net.osmand.plus.views.layers.base.OsmandMapLayer;
 import net.osmand.plus.views.layers.core.LocationPointsTileProvider;
 import net.osmand.plus.views.layers.core.TilePointsProvider;
 import net.osmand.plus.views.layers.geometry.GeometryWay;
+import net.osmand.plus.views.layers.geometry.GeometryWayPathAlgorithms;
 import net.osmand.plus.views.layers.geometry.GpxGeometryWay;
 import net.osmand.plus.views.layers.geometry.GpxGeometryWayContext;
 import net.osmand.plus.views.layers.geometry.MultiProfileGeometryWay;
@@ -122,6 +123,9 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 	private final Path multiProfilePath = new Path();
 	private final PathMeasure multiProfilePathMeasure = new PathMeasure(multiProfilePath, false);
 
+	private boolean forceUpdateBufferImage;
+	private boolean forceUpdateOnDraw;
+
 	public MeasurementToolLayer(@NonNull Context ctx) {
 		super(ctx);
 	}
@@ -155,6 +159,12 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 
 		marginApplyingPointIconY = applyingPointIcon.getHeight() / 2;
 		marginApplyingPointIconX = applyingPointIcon.getWidth() / 2;
+	}
+
+	@Override
+	public void setMapActivity(@Nullable MapActivity mapActivity) {
+		super.setMapActivity(mapActivity);
+		forceUpdateOnDraw |= mapActivityInvalidated;
 	}
 
 	void setOnSingleTapListener(OnSingleTapListener listener) {
@@ -203,7 +213,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 			boolean pointSelected = showPointsMinZoom && selectPoint(point.x, point.y, true);
 			boolean profileIconSelected = !pointSelected && selectPointForAppModeChange(point, tileBox);
 			if (!pointSelected && !profileIconSelected) {
-				pressedPointLatLon = NativeUtilities.getLatLonFromPixel(getMapRenderer(), tileBox, point.x, point.y);
+				pressedPointLatLon = NativeUtilities.getLatLonFromElevatedPixel(getMapRenderer(), tileBox, point);
 				if (singleTapListener != null) {
 					singleTapListener.onAddPoint();
 				}
@@ -287,7 +297,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 			if (mapRenderer != null) {
 				PointI point31 = Utilities.convertLatLonTo31(new net.osmand.core.jni.LatLon(pt.lat, pt.lon));
 				if (mapRenderer.isPositionVisible(point31)) {
-					PointF pixel = NativeUtilities.getPixelFromLatLon(mapRenderer, tb, pt.lat, pt.lon);
+					PointF pixel = NativeUtilities.getElevatedPixelFromLatLon(mapRenderer, tb, pt.lat, pt.lon);
 					double distToPoint = MapUtils.getSqrtDistance(x, y, pixel.x, pixel.y);
 					if (distToPoint < lowestDistance) {
 						lowestDistance = distToPoint;
@@ -325,7 +335,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 		boolean hasMapRenderer = hasMapRenderer();
 		boolean mapRendererChanged = hasMapRenderer && this.mapRendererChanged;
 		if (isDrawingEnabled()) {
-			boolean updated = lineAttrs.updatePaints(view.getApplication(), settings, tb) || mapActivityInvalidated || mapRendererChanged;
+			boolean updated = lineAttrs.updatePaints(view.getApplication(), settings, tb) || forceUpdateBufferImage || mapActivityInvalidated || mapRendererChanged;
 			if (mapRendererChanged) {
 				this.mapRendererChanged = false;
 			}
@@ -372,6 +382,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 			multiProfileGeometry.clearWay();
 		}
 		mapActivityInvalidated = false;
+		forceUpdateBufferImage = false;
 	}
 
 	@Nullable
@@ -388,7 +399,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 	public void onDraw(Canvas canvas, RotatedTileBox tb, DrawSettings settings) {
 		boolean hasMapRenderer = hasMapRenderer();
 		if (isDrawingEnabled()) {
-			boolean updated = lineAttrs.updatePaints(view.getApplication(), settings, tb);
+			boolean updated = lineAttrs.updatePaints(view.getApplication(), settings, tb) || forceUpdateOnDraw;
 			if (!editingCtx.isInApproximationMode()) {
 				drawBeforeAfterPath(canvas, tb, updated);
 			} else {
@@ -474,11 +485,12 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 			resetBeforeAfterRenderer();
 			clearActivePointsCollection();
 		}
+		forceUpdateOnDraw = false;
 	}
 
 	private boolean isDrawingEnabled() {
 		MapActivity mapActivity = getMapActivity();
-		return mapActivity != null && inMeasurementMode && mapActivity.getGpsFilterFragment() == null;
+		return mapActivity != null && inMeasurementMode && mapActivity.getFragmentsHelper().getGpsFilterFragment() == null;
 	}
 
 	private boolean isInTileBox(RotatedTileBox tb, WptPt point) {
@@ -772,7 +784,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 				}
 			}
 			if (!tx.isEmpty() && !ty.isEmpty()) {
-				GeometryWay.calculatePath(tb, tx, ty, path);
+				GeometryWayPathAlgorithms.calculatePath(tb, tx, ty, path);
 				canvas.drawPath(path, lineAttrs.paint);
 			}
 			if (!beforeAfterWpt.isEmpty()) {
@@ -933,7 +945,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 	}
 
 	private void moveMapToLatLon(double lat, double lon) {
-		view.getAnimatedDraggingThread().startMoving(lat, lon, view.getZoom(), true);
+		view.getAnimatedDraggingThread().startMoving(lat, lon, view.getZoom());
 	}
 
 	public void moveMapToPoint(int pos) {
@@ -1026,6 +1038,7 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 	}
 
 	public void refreshMap() {
+		forceUpdateBufferImage = true;
 		showPointsZoomCache = 0;
 		showPointsMinZoom = false;
 		view.refreshMap();
@@ -1070,16 +1083,6 @@ public class MeasurementToolLayer extends OsmandMapLayer implements IContextMenu
 	@Override
 	public boolean disableLongPressOnMap(PointF point, RotatedTileBox tileBox) {
 		return isInMeasurementMode();
-	}
-
-	@Override
-	public boolean runExclusiveAction(Object o, boolean unknownLocation) {
-		return false;
-	}
-
-	@Override
-	public boolean showMenuAction(@Nullable Object o) {
-		return false;
 	}
 
 	private Location getLocationFromLL(double lat, double lon) {

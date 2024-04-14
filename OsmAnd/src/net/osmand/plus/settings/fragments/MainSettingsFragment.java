@@ -1,6 +1,7 @@
 package net.osmand.plus.settings.fragments;
 
-import static net.osmand.plus.importfiles.ImportHelper.ImportType.SETTINGS;
+import static net.osmand.plus.backup.ui.BackupUiUtils.getLastBackupTimeDescription;
+import static net.osmand.plus.importfiles.ImportType.SETTINGS;
 import static net.osmand.plus.profiles.SelectProfileBottomSheet.PROFILES_LIST_UPDATED_ARG;
 import static net.osmand.plus.profiles.SelectProfileBottomSheet.PROFILE_KEY_ARG;
 
@@ -11,6 +12,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.ColorRes;
+import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
@@ -31,7 +33,6 @@ import net.osmand.plus.settings.preferences.SwitchPreferenceEx;
 import net.osmand.plus.settings.purchase.PurchasesFragment;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
-import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -83,7 +84,7 @@ public class MainSettingsFragment extends BaseSettingsFragment implements OnSele
 	}
 
 	@Override
-	protected void onBindPreferenceViewHolder(Preference preference, PreferenceViewHolder holder) {
+	protected void onBindPreferenceViewHolder(@NonNull Preference preference, @NonNull PreferenceViewHolder holder) {
 		super.onBindPreferenceViewHolder(preference, holder);
 
 		String key = preference.getKey();
@@ -153,7 +154,7 @@ public class MainSettingsFragment extends BaseSettingsFragment implements OnSele
 		} else if (IMPORT_FROM_FILE.equals(prefId)) {
 			MapActivity mapActivity = getMapActivity();
 			if (mapActivity != null) {
-				mapActivity.getImportHelper().chooseFileToImport(SETTINGS, null);
+				mapActivity.getImportHelper().chooseFileToImport(SETTINGS);
 				return true;
 			}
 		}
@@ -191,16 +192,13 @@ public class MainSettingsFragment extends BaseSettingsFragment implements OnSele
 		Preference backupSettings = findPreference(BACKUP_AND_RESTORE);
 		backupSettings.setIcon(getContentIcon(R.drawable.ic_action_cloud_upload));
 
-		String time = getLastBackupTimeDescription(app, "");
-		if (!Algorithms.isEmpty(time)) {
-			String summary = getString(R.string.last_sync);
-			backupSettings.setSummary(getString(R.string.ltr_or_rtl_combine_via_colon, summary, time));
+		if (app.getBackupHelper().isRegistered()) {
+			String time = getLastBackupTimeDescription(app, "");
+			if (!Algorithms.isEmpty(time)) {
+				String summary = getString(R.string.last_sync);
+				backupSettings.setSummary(getString(R.string.ltr_or_rtl_combine_via_colon, summary, time));
+			}
 		}
-	}
-
-	public static String getLastBackupTimeDescription(OsmandApplication app, String def) {
-		long lastUploadedTime = app.getSettings().BACKUP_LAST_UPLOADED_TIME.get();
-		return OsmAndFormatter.getFormattedPassedTime(app, lastUploadedTime, def, false);
 	}
 
 	private void profileManagementPref() {

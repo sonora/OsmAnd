@@ -1,6 +1,13 @@
 package net.osmand.plus.views.mapwidgets.configure.dialogs;
 
-import android.content.Context;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.ENABLED_MODE;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.MATCHING_PANELS_MODE;
+import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_EXTERNAL_PROVIDER_PACKAGE;
+import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_EXTERNAL_WIDGET_ID;
+import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_GROUP_NAME;
+import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_WIDGETS_PANEL_ID;
+import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_WIDGET_TYPE;
+
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,7 +33,7 @@ import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.utils.UiUtilities.CompoundButtonType;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.MapWidgetRegistry;
 import net.osmand.plus.views.mapwidgets.WidgetGroup;
@@ -37,6 +44,7 @@ import net.osmand.plus.views.mapwidgets.banner.WidgetPromoBanner.WidgetData;
 import net.osmand.plus.views.mapwidgets.configure.WidgetIconsHelper;
 import net.osmand.plus.views.mapwidgets.configure.panel.WidgetsListFragment;
 import net.osmand.plus.views.mapwidgets.configure.reorder.ReorderWidgetsFragment;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
 import net.osmand.util.Algorithms;
 
 import java.io.Serializable;
@@ -46,13 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.ENABLED_MODE;
-import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_EXTERNAL_PROVIDER_PACKAGE;
-import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_EXTERNAL_WIDGET_ID;
-import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_GROUP_NAME;
-import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_WIDGETS_PANEL_ID;
-import static net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetDataHolder.KEY_WIDGET_TYPE;
 
 public class AddWidgetFragment extends BaseWidgetFragment {
 
@@ -67,11 +68,12 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 	private List<String> alreadySelectedWidgetsIds;
 
 	private View view;
-	private View applyButton;
+	private DialogButton applyButton;
 
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		updateNightMode();
 		Bundle args = getArguments();
 		if (savedInstanceState != null) {
 			initFromBundle(savedInstanceState);
@@ -80,8 +82,6 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 			selectWidgetByDefault();
 		}
 
-		Context context = requireContext();
-		LayoutInflater themedInflater = UiUtilities.getInflater(context, nightMode);
 		view = themedInflater.inflate(R.layout.base_widget_fragment_layout, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 
@@ -102,11 +102,11 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		widgetsDataHolder = new WidgetDataHolder(app, bundle);
 
 		if (bundle.containsKey(KEY_ALREADY_SELECTED_WIDGETS_IDS)) {
-			alreadySelectedWidgetsIds = (List<String>) bundle.getSerializable(KEY_ALREADY_SELECTED_WIDGETS_IDS);
+			alreadySelectedWidgetsIds = (List<String>) AndroidUtils.getSerializable(bundle, KEY_ALREADY_SELECTED_WIDGETS_IDS, ArrayList.class);
 		}
 
 		if (bundle.containsKey(KEY_SELECTED_WIDGETS_IDS)) {
-			selectedWidgetsIds = (Map<Integer, String>) bundle.getSerializable(KEY_SELECTED_WIDGETS_IDS);
+			selectedWidgetsIds = (Map<Integer, String>) AndroidUtils.getSerializable(bundle, KEY_SELECTED_WIDGETS_IDS, TreeMap.class);
 		}
 	}
 
@@ -216,11 +216,11 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 	}
 
 	private void setupWidgetItemView(@NonNull View view,
-	                                 @NonNull String widgetId,
-	                                 @NonNull String title,
-	                                 @Nullable String description,
-	                                 @Nullable Drawable icon,
-	                                 int order) {
+									 @NonNull String widgetId,
+									 @NonNull String title,
+									 @Nullable String description,
+									 @Nullable Drawable icon,
+									 int order) {
 		((ImageView) view.findViewById(R.id.icon)).setImageDrawable(icon);
 		((TextView) view.findViewById(R.id.title)).setText(title);
 
@@ -233,35 +233,25 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		CheckBox checkBox = view.findViewById(R.id.compound_button);
 		UiUtilities.setupCompoundButton(checkBox, nightMode, CompoundButtonType.GLOBAL);
 
-		MapActivity mapActivity = requireMapActivity();
-		WidgetsPanel widgetsPanel = widgetsDataHolder.getWidgetsPanel();
-		boolean alreadyEnabled = alreadySelectedWidgetsIds != null
-				? alreadySelectedWidgetsIds.contains(widgetId)
-				: isWidgetEnabled(mapActivity, widgetId);
-		if (alreadyEnabled && !widgetsPanel.isDuplicatesAllowed()) {
-			checkBox.setChecked(true);
+		if (selectedWidgetsIds.containsValue(widgetId)) {
 			view.setSelected(true);
-			view.setOnClickListener(v -> app.showShortToastMessage(R.string.import_duplicates_title));
-		} else {
-			if (selectedWidgetsIds.containsValue(widgetId)) {
-				view.setSelected(true);
-				checkBox.setChecked(true);
-			}
-
-			view.setOnClickListener(v -> {
-				boolean selected = !view.isSelected();
-				view.setSelected(selected);
-				checkBox.setChecked(selected);
-				updateWidgetSelection(order, widgetId, selected);
-				enableDisableApplyButton();
-			});
+			checkBox.setChecked(true);
 		}
+
+		view.setOnClickListener(v -> {
+			boolean selected = !view.isSelected();
+			view.setSelected(selected);
+			checkBox.setChecked(selected);
+			updateWidgetSelection(order, widgetId, selected);
+			enableDisableApplyButton();
+		});
+
 	}
 
 	private boolean isWidgetEnabled(@NonNull MapActivity mapActivity, @NonNull String widgetId) {
 		MapWidgetRegistry widgetRegistry = app.getOsmandMap().getMapLayers().getMapWidgetRegistry();
 		Set<MapWidgetInfo> enabledWidgets = widgetRegistry.getWidgetsForPanel(mapActivity, appMode,
-				ENABLED_MODE, Arrays.asList(WidgetsPanel.values()));
+				ENABLED_MODE | MATCHING_PANELS_MODE, Arrays.asList(WidgetsPanel.values()));
 
 		for (MapWidgetInfo widgetInfo : enabledWidgets) {
 			if (widgetId.equals(widgetInfo.key)) {
@@ -301,11 +291,12 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 			if (target instanceof AddWidgetListener) {
 				List<String> widgetsIds = new ArrayList<>(selectedWidgetsIds.values());
 				WidgetsPanel widgetsPanel = widgetsDataHolder.getWidgetsPanel();
-				((AddWidgetListener) target).onWidgetsSelectedToAdd(widgetsIds, widgetsPanel);
+				((AddWidgetListener) target).onWidgetsSelectedToAdd(widgetsIds, widgetsPanel, true);
 			}
 			dismiss();
 		});
-		UiUtilities.setupDialogButton(nightMode, applyButton, DialogButtonType.PRIMARY, R.string.shared_string_add);
+		applyButton.setButtonType(DialogButtonType.PRIMARY);
+		applyButton.setTitleId(R.string.shared_string_add);
 		enableDisableApplyButton();
 	}
 
@@ -337,12 +328,12 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 	 *                                  of added widgets ids of this group; null if in view mode
 	 *                                  ({@link WidgetsListFragment})
 	 */
-	public static void showGroupDialog(@NonNull FragmentManager fragmentManager,
-	                                   @NonNull Fragment target,
-	                                   @NonNull ApplicationMode appMode,
-	                                   @NonNull WidgetsPanel widgetsPanel,
-	                                   @NonNull WidgetGroup widgetGroup,
-	                                   @Nullable List<String> alreadySelectedWidgetsIds) {
+	public static void showGroupDialog(@NonNull FragmentManager manager,
+									   @Nullable Fragment target,
+									   @NonNull ApplicationMode appMode,
+									   @NonNull WidgetsPanel widgetsPanel,
+									   @NonNull WidgetGroup widgetGroup,
+									   @Nullable List<String> alreadySelectedWidgetsIds) {
 		Bundle args = new Bundle();
 		args.putString(KEY_APP_MODE, appMode.getStringKey());
 		args.putString(KEY_WIDGETS_PANEL_ID, widgetsPanel.name());
@@ -351,18 +342,18 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(fragmentManager, fragment);
+		showFragment(manager, fragment);
 	}
 
 	/**
 	 * @see AddWidgetListener#showGroupDialog
 	 */
-	public static void showWidgetDialog(@NonNull FragmentManager fragmentManager,
-	                                    @NonNull Fragment target,
-	                                    @NonNull ApplicationMode appMode,
-	                                    @NonNull WidgetsPanel widgetsPanel,
-	                                    @NonNull WidgetType widgetType,
-	                                    @Nullable List<String> alreadySelectedWidgetsIds) {
+	public static void showWidgetDialog(@NonNull FragmentManager manager,
+										@Nullable Fragment target,
+										@NonNull ApplicationMode appMode,
+										@NonNull WidgetsPanel widgetsPanel,
+										@NonNull WidgetType widgetType,
+										@Nullable List<String> alreadySelectedWidgetsIds) {
 		Bundle args = new Bundle();
 		args.putString(KEY_APP_MODE, appMode.getStringKey());
 		args.putString(KEY_WIDGETS_PANEL_ID, widgetsPanel.name());
@@ -371,19 +362,19 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(fragmentManager, fragment);
+		showFragment(manager, fragment);
 	}
 
 	/**
 	 * @see AddWidgetListener#showGroupDialog
 	 */
-	public static void showExternalWidgetDialog(@NonNull FragmentManager fragmentManager,
-	                                            @NonNull Fragment target,
-	                                            @NonNull ApplicationMode appMode,
-	                                            @NonNull WidgetsPanel widgetsPanel,
-	                                            @NonNull String widgetId,
-	                                            @NonNull String externalProviderPackage,
-	                                            @Nullable List<String> alreadySelectedWidgetsIds) {
+	public static void showExternalWidgetDialog(@NonNull FragmentManager manager,
+												@Nullable Fragment target,
+												@NonNull ApplicationMode appMode,
+												@NonNull WidgetsPanel widgetsPanel,
+												@NonNull String widgetId,
+												@NonNull String externalProviderPackage,
+												@Nullable List<String> alreadySelectedWidgetsIds) {
 		Bundle args = new Bundle();
 		args.putString(KEY_APP_MODE, appMode.getStringKey());
 		args.putString(KEY_WIDGETS_PANEL_ID, widgetsPanel.name());
@@ -393,12 +384,12 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 		AddWidgetFragment fragment = new AddWidgetFragment();
 		fragment.setArguments(args);
 		fragment.setTargetFragment(target, 0);
-		showFragment(fragmentManager, fragment);
+		showFragment(manager, fragment);
 	}
 
-	private static void showFragment(@NonNull FragmentManager fragmentManager, @NonNull AddWidgetFragment fragment) {
-		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
-			fragmentManager.beginTransaction()
+	private static void showFragment(@NonNull FragmentManager manager, @NonNull AddWidgetFragment fragment) {
+		if (AndroidUtils.isFragmentCanBeAdded(manager, TAG)) {
+			manager.beginTransaction()
 					.add(R.id.fragmentContainer, fragment, TAG)
 					.addToBackStack(TAG)
 					.commitAllowingStateLoss();
@@ -406,6 +397,6 @@ public class AddWidgetFragment extends BaseWidgetFragment {
 	}
 
 	public interface AddWidgetListener {
-		void onWidgetsSelectedToAdd(@NonNull List<String> widgetsIds, @NonNull WidgetsPanel widgetsPanel);
+		void onWidgetsSelectedToAdd(@NonNull List<String> widgetsIds, @NonNull WidgetsPanel widgetsPanel, boolean recreateControls);
 	}
 }

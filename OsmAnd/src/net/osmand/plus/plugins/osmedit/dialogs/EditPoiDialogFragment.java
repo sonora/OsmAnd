@@ -16,7 +16,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -62,7 +61,6 @@ import net.osmand.osm.PoiType;
 import net.osmand.osm.edit.Entity;
 import net.osmand.osm.edit.EntityInfo;
 import net.osmand.osm.edit.Node;
-import net.osmand.osm.edit.OSMSettings;
 import net.osmand.osm.edit.OSMSettings.OSMTagKey;
 import net.osmand.osm.edit.Way;
 import net.osmand.plus.OsmandApplication;
@@ -86,6 +84,7 @@ import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.OsmandTextFieldBoxes;
+import net.osmand.plus.widgets.tools.SimpleTextWatcher;
 import net.osmand.util.Algorithms;
 
 import org.apache.commons.logging.Log;
@@ -93,6 +92,7 @@ import org.apache.commons.logging.Log;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -123,7 +123,6 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 		BASIC_TAGS.add(OSMTagKey.OPENING_HOURS.getValue());
 	}
 
-	private OsmandApplication app;
 	private OpenstreetmapUtil openstreetmapUtil;
 
 	private EditPoiData editPoiData;
@@ -137,31 +136,28 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 	public static final int AMENITY_TEXT_LENGTH = 255;
 
 	@Override
-	public void onAttach(@NonNull Context activity) {
-		super.onAttach(activity);
-		app = getMyApplication();
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
 		OsmEditingPlugin plugin = PluginsHelper.getPlugin(OsmEditingPlugin.class);
-		if (plugin.OFFLINE_EDITION.get() || !getSettings().isInternetConnectionAvailable(true)) {
+		if (plugin.OFFLINE_EDITION.get() || !settings.isInternetConnectionAvailable(true)) {
 			openstreetmapUtil = plugin.getPoiModificationLocalUtil();
 		} else {
 			openstreetmapUtil = plugin.getPoiModificationRemoteUtil();
 		}
 
-		Entity entity = (Entity) getArguments().getSerializable(KEY_AMENITY_ENTITY);
+		Entity entity = AndroidUtils.getSerializable(getArguments(), KEY_AMENITY_ENTITY, Entity.class);
 		editPoiData = new EditPoiData(entity, app);
 	}
 
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container,
-	                         Bundle savedInstanceState) {
-		view = inflater.inflate(R.layout.fragment_edit_poi, container, false);
-		boolean isLightTheme = getSettings().isLightContent();
+	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+		updateNightMode();
+		view = themedInflater.inflate(R.layout.fragment_edit_poi, container, false);
 
 		if (savedInstanceState != null) {
-			@SuppressWarnings("unchecked")
-			Map<String, String> mp = (Map<String, String>) savedInstanceState.getSerializable(TAGS_LIST);
-			editPoiData.updateTags(mp);
+			Map<String, String> map = (Map<String, String>) AndroidUtils.getSerializable(savedInstanceState, TAGS_LIST, HashMap.class);
+			editPoiData.updateTags(map);
 		}
 
 		boolean isAddingPoi = getArguments().getBoolean(IS_ADDING_POI);
@@ -171,12 +167,7 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 		Drawable icBack = app.getUIUtilities().getIcon(AndroidUtils.getNavigationIconResId(getContext()));
 		toolbar.setNavigationIcon(icBack);
 		toolbar.setNavigationContentDescription(R.string.access_shared_string_navigate_up);
-		toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				dismissCheckForChanges();
-			}
-		});
+		toolbar.setNavigationOnClickListener(v -> dismissCheckForChanges());
 
 		viewPager = view.findViewById(R.id.viewpager);
 		String basicTitle = getResources().getString(R.string.tab_title_basic);
@@ -248,7 +239,7 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 			}
 		});
 
-		int activeColor = ColorUtilities.getActiveColor(getContext(), !isLightTheme);
+		int activeColor = ColorUtilities.getActiveColor(getContext(), nightMode);
 		onlineDocumentationButton.setImageDrawable(getPaintedContentIcon(R.drawable.ic_action_help, activeColor));
 		ImageButton poiTypeButton = view.findViewById(R.id.poiTypeButton);
 		poiTypeButton.setOnClickListener(new View.OnClickListener() {
@@ -267,15 +258,7 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 
 		ExtendedEditText poiNameEditText = view.findViewById(R.id.poiNameEditText);
 		AndroidUtils.setTextHorizontalGravity(poiNameEditText, Gravity.START);
-		poiNameEditText.addTextChangedListener(new TextWatcher() {
-			@Override
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-			}
-
-			@Override
-			public void onTextChanged(CharSequence s, int start, int before, int count) {
-			}
-
+		poiNameEditText.addTextChangedListener(new SimpleTextWatcher() {
 			@Override
 			public void afterTextChanged(Editable s) {
 				if (!getEditPoiData().isInEdit()) {
@@ -295,15 +278,7 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 		poiTypeEditText = view.findViewById(R.id.poiTypeEditText);
 		AndroidUtils.setTextHorizontalGravity(poiTypeEditText, Gravity.START);
 		poiTypeEditText.setText(editPoiData.getPoiTypeString());
-		poiTypeEditText.addTextChangedListener(new TextWatcher() {
-			@Override
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-			}
-
-			@Override
-			public void onTextChanged(CharSequence s, int start, int before, int count) {
-			}
-
+		poiTypeEditText.addTextChangedListener(new SimpleTextWatcher() {
 			@Override
 			public void afterTextChanged(Editable s) {
 				if (!getEditPoiData().isInEdit()) {
@@ -339,7 +314,7 @@ public class EditPoiDialogFragment extends BaseOsmAndDialogFragment {
 			Button deleteButton = view.findViewById(R.id.deleteButton);
 			deleteButton.setVisibility(View.VISIBLE);
 			deleteButton.setOnClickListener(v -> {
-				DeletePoiHelper deletePoiHelper = new DeletePoiHelper(getMyActivity());
+				DeletePoiHelper deletePoiHelper = new DeletePoiHelper((AppCompatActivity) getActivity());
 				deletePoiHelper.setCallback(this::dismiss);
 				deletePoiHelper.deletePoiWithDialog(getEditPoiData().getEntity());
 			});

@@ -22,9 +22,9 @@ import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.track.helpers.GpxUiHelper;
-import net.osmand.plus.track.helpers.GPXInfo;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.helpers.SearchHistoryHelper.HistoryEntry;
-import net.osmand.plus.search.QuickSearchListAdapter;
+import net.osmand.plus.search.dialogs.QuickSearchListAdapter;
 import net.osmand.plus.search.listitems.QuickSearchListItem;
 import net.osmand.search.core.ObjectType;
 import net.osmand.search.core.SearchResult;
@@ -62,10 +62,9 @@ public class HistoryCard extends MapBaseCard {
 		items.removeAllViews();
 
 		boolean showLimitExceeds = list.size() > limit + 1;
-		Context themedContext = UiUtilities.getThemedContext(activity, nightMode);
-		LayoutInflater inflater = UiUtilities.getInflater(mapActivity, nightMode);
+		Context context = UiUtilities.getThemedContext(activity, nightMode);
 
-		int iconColorId = nightMode ? R.color.route_info_control_icon_color_dark : R.color.route_info_control_icon_color_light;
+		int iconColorId = nightMode ? R.color.icon_color_default_dark : R.color.icon_color_default_light;
 		int iconColor = ContextCompat.getColor(app, iconColorId);
 
 		for (int i = 0; i < list.size(); i++) {
@@ -77,7 +76,7 @@ public class HistoryCard extends MapBaseCard {
 			LinearLayout view;
 			QuickSearchListItem listItem = new QuickSearchListItem(app, searchResult);
 			if (searchResult.objectType == ObjectType.GPX_TRACK) {
-				view = (LinearLayout) inflater.inflate(R.layout.search_gpx_list_item, items, false);
+				view = (LinearLayout) themedInflater.inflate(R.layout.search_gpx_list_item, items, false);
 
 				GPXInfo gpxInfo = (GPXInfo) searchResult.relatedObject;
 				QuickSearchListAdapter.bindGpxTrack(view, listItem, gpxInfo);
@@ -85,29 +84,27 @@ public class HistoryCard extends MapBaseCard {
 				ImageView icon = view.findViewById(R.id.icon);
 				icon.setImageDrawable(UiUtilities.tintDrawable(listItem.getIcon(), iconColor));
 
-				view.setOnClickListener(new View.OnClickListener() {
-					@Override
-					public void onClick(View v) {
+				view.setOnClickListener(v -> {
+					String filePath = gpxInfo.getFilePath();
+					SelectedGpxFile selectedGpxFile = app.getSelectedGpxHelper().getSelectedFileByPath(filePath);
+					if (selectedGpxFile != null) {
+						GPXFile gpxFile = selectedGpxFile.getGpxFile();
+						mapActivity.getMapRouteInfoMenu().selectTrack(gpxFile, true);
+					} else {
+						CallbackWithObject<GPXFile[]> callback = result -> {
+							MapActivity mapActivity = getMapActivity();
+							if (mapActivity != null) {
+								mapActivity.getMapRouteInfoMenu().selectTrack(result[0], true);
+							}
+							return true;
+						};
 						String fileName = gpxInfo.getFileName();
-						SelectedGpxFile selectedGpxFile = app.getSelectedGpxHelper().getSelectedFileByName(fileName);
-						if (selectedGpxFile != null) {
-							GPXFile gpxFile = selectedGpxFile.getGpxFile();
-							mapActivity.getMapRouteInfoMenu().selectTrack(gpxFile, true);
-						} else {
-							CallbackWithObject<GPXFile[]> callback = result -> {
-								MapActivity mapActivity = getMapActivity();
-								if (mapActivity != null) {
-									mapActivity.getMapRouteInfoMenu().selectTrack(result[0], true);
-								}
-								return true;
-							};
-							File dir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
-							GpxUiHelper.loadGPXFileInDifferentThread(mapActivity, callback, dir, null, fileName);
-						}
+						File dir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
+						GpxUiHelper.loadGPXFileInDifferentThread(mapActivity, callback, dir, null, fileName);
 					}
 				});
 			} else {
-				view = (LinearLayout) inflater.inflate(R.layout.search_list_item, items, false);
+				view = (LinearLayout) themedInflater.inflate(R.layout.search_list_item, items, false);
 				QuickSearchListAdapter.bindSearchResult(view, listItem);
 
 				ImageView icon = view.findViewById(R.id.imageView);
@@ -122,7 +119,7 @@ public class HistoryCard extends MapBaseCard {
 				});
 			}
 			View itemContainer = view.findViewById(R.id.searchListItemLayout);
-			itemContainer.setBackground(UiUtilities.getSelectableDrawable(themedContext));
+			itemContainer.setBackground(UiUtilities.getSelectableDrawable(context));
 			itemContainer.setMinimumHeight(getDimen(R.dimen.route_info_card_item_height));
 
 			int margin = getDimen(R.dimen.route_info_list_text_padding);

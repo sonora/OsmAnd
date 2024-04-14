@@ -15,6 +15,7 @@ import androidx.core.os.LocaleListCompat;
 
 import net.osmand.PlatformUtil;
 import net.osmand.data.Amenity;
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AmenityExtensionsHelper;
@@ -28,6 +29,7 @@ import org.apache.commons.logging.Log;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URLDecoder;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -64,56 +66,35 @@ public class AmenityMenuBuilder extends MenuBuilder {
 		rowsBuilder = new AmenityUIHelper(mapActivity, getPreferredMapAppLang(), additionalInfo);
 		rowsBuilder.setLight(light);
 		rowsBuilder.setLatLon(getLatLon());
+		rowsBuilder.setCollapseExpandListener(getCollapseExpandListener());
 		rowsBuilder.buildInternal(view);
 
 		buildNearestRows((ViewGroup) view);
-		buildNamesRow((ViewGroup) view);
+		buildNamesRow((ViewGroup) view, amenity.getAltNamesMap(), true);
+		buildNamesRow((ViewGroup) view, amenity.getNamesMap(true), false);
 	}
 
-	public void buildNamesRow(ViewGroup viewGroup) {
-		Map<String, String> namesMap = amenity.getNamesMap(true);
+	public void buildNamesRow(ViewGroup viewGroup, Map<String, String> namesMap, boolean altName) {
 		if (namesMap.values().size() > 0) {
-			String preferredLocale = app.getSettings().PREFERRED_LOCALE.get();
-			Locale availablePreferredLocale = getAvailablePreferredLocale(namesMap);
-
-			String name;
-			Locale nameLocale;
-
-			if (namesMap.containsKey(preferredLocale)) {
-				name = namesMap.get(preferredLocale);
-				nameLocale = new Locale(preferredLocale);
-			} else if (availablePreferredLocale != null) {
-				name = namesMap.get(availablePreferredLocale.getLanguage());
-				nameLocale = availablePreferredLocale;
-			} else {
-				String firstKey = (String) namesMap.keySet().toArray()[0];
-				name = namesMap.get(firstKey);
-				nameLocale = new Locale(firstKey);
+			Locale nameLocale = getPreferredNameLocale(app, namesMap.keySet());
+			if (nameLocale == null) {
+				String localeId = (String) namesMap.values().toArray()[0];
+				nameLocale = new Locale(localeId);
 			}
+			String name = namesMap.get(nameLocale.getLanguage());
 
 			Context context = viewGroup.getContext();
-			View amenitiesRow = createRowContainer(context, NAMES_ROW_KEY);
+			View amenitiesRow = createRowContainer(context, altName ? ALT_NAMES_ROW_KEY : NAMES_ROW_KEY);
+			String hint = app.getString(altName ? R.string.shared_string_alt_name : R.string.shared_string_name);
 			rowsBuilder.buildNamesRow(amenitiesRow, getRowIcon(R.drawable.ic_action_map_language), name,
-					app.getString(R.string.ltr_or_rtl_combine_via_colon, app.getString(R.string.shared_string_name), nameLocale.getDisplayLanguage()),
-					namesMap.size() > 1 ? getNamesCollapsableView(namesMap, nameLocale.getLanguage()) : null, true);
+					app.getString(R.string.ltr_or_rtl_combine_via_colon, hint, nameLocale.getDisplayLanguage()),
+					namesMap.size() > 1 ? getNamesCollapsableView(namesMap, nameLocale.getLanguage(), hint) : null, true);
 			viewGroup.addView(amenitiesRow);
 		}
 	}
 
-	@Nullable
-	private Locale getAvailablePreferredLocale(Map<String, String> namesMap) {
-		LocaleListCompat deviceLanguages = ConfigurationCompat.getLocales(Resources.getSystem().getConfiguration());
-
-		for (int index = 0; index < deviceLanguages.size(); index++) {
-			String language = deviceLanguages.get(index).getLanguage();
-			if (namesMap.containsKey(language)) {
-				return new Locale(language);
-			}
-		}
-		return null;
-	}
-
-	protected CollapsableView getNamesCollapsableView(Map<String, String> mapNames, @Nullable String excludedLanguageKey) {
+	protected CollapsableView getNamesCollapsableView(Map<String, String> mapNames, @Nullable String excludedLanguageKey,
+	                                                  String hint) {
 		LinearLayout llv = buildCollapsableContentView(mapActivity, true, true);
 		for (int i = 0; i < mapNames.size(); i++) {
 			String key = (String) mapNames.keySet().toArray()[i];
@@ -123,7 +104,7 @@ public class AmenityMenuBuilder extends MenuBuilder {
 
 				View amenitiesRow = createRowContainer(app, null);
 				rowsBuilder.buildNamesRow(amenitiesRow, null, name,
-						app.getString(R.string.ltr_or_rtl_combine_via_colon, app.getString(R.string.shared_string_name), locale.getDisplayLanguage()),
+						app.getString(R.string.ltr_or_rtl_combine_via_colon, hint, locale.getDisplayLanguage()),
 						null, false);
 				llv.addView(amenitiesRow);
 			}
@@ -230,9 +211,35 @@ public class AmenityMenuBuilder extends MenuBuilder {
 	private String getDecodedAdditionalInfo(String additionalInfo) {
 		try {
 			return URLDecoder.decode(additionalInfo, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
+		} catch (UnsupportedEncodingException | IllegalArgumentException e) {
 			LOG.error(e);
 		}
 		return additionalInfo;
+	}
+
+	@Nullable
+	public static Locale getPreferredNameLocale(@NonNull OsmandApplication app, @NonNull Collection<String> localeIds) {
+		String preferredLocaleId = app.getSettings().PREFERRED_LOCALE.get();
+		Locale availablePreferredLocale = getAvailablePreferredLocale(localeIds);
+
+		return localeIds.contains(preferredLocaleId)
+				? new Locale(preferredLocaleId)
+				: availablePreferredLocale;
+	}
+
+	@Nullable
+	private static Locale getAvailablePreferredLocale(@NonNull Collection<String> localeIds) {
+		LocaleListCompat deviceLanguages = ConfigurationCompat.getLocales(Resources.getSystem().getConfiguration());
+
+		for (int index = 0; index < deviceLanguages.size(); index++) {
+			Locale locale = deviceLanguages.get(index);
+			if (locale != null) {
+				String localeId = locale.getLanguage();
+				if (localeIds.contains(localeId)) {
+					return locale;
+				}
+			}
+		}
+		return null;
 	}
 }

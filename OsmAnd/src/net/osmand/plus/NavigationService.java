@@ -12,6 +12,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.car.app.CarContext;
 import androidx.car.app.CarToast;
+import androidx.car.app.Screen;
+import androidx.car.app.ScreenManager;
 import androidx.car.app.navigation.NavigationManager;
 import androidx.car.app.navigation.NavigationManagerCallback;
 import androidx.car.app.navigation.model.Destination;
@@ -20,15 +22,17 @@ import androidx.car.app.navigation.model.Trip;
 
 import net.osmand.Location;
 import net.osmand.StateChangedListener;
-import net.osmand.plus.auto.NavigationScreen;
+import net.osmand.plus.auto.screens.NavigationScreen;
 import net.osmand.plus.auto.NavigationSession;
 import net.osmand.plus.auto.TripHelper;
+import net.osmand.plus.auto.screens.RoutePreviewScreen;
 import net.osmand.plus.helpers.LocationServiceHelper;
-import net.osmand.plus.helpers.LocationServiceHelper.LocationCallback;
+import net.osmand.plus.helpers.LocationCallback;
 import net.osmand.plus.notifications.OsmandNotification;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.LocationSource;
+import net.osmand.plus.simulation.OsmAndLocationSimulation;
 
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +86,7 @@ public class NavigationService extends Service {
 		usedBy |= usageIntent;
 	}
 
-	public void stopIfNeeded(Context ctx, int usageIntent) {
+	public void stopIfNeeded(@NonNull Context context, int usageIntent) {
 		if ((usedBy & usageIntent) > 0) {
 			usedBy -= usageIntent;
 		}
@@ -93,8 +97,7 @@ public class NavigationService extends Service {
 			setCarContext(null);
 		}
 		if (usedBy == 0) {
-			Intent serviceIntent = new Intent(ctx, NavigationService.class);
-			ctx.stopService(serviceIntent);
+			context.stopService(new Intent(context, NavigationService.class));
 		} else {
 			OsmandApplication app = getApp();
 			app.getNotificationHelper().updateTopNotification();
@@ -165,8 +168,7 @@ public class NavigationService extends Service {
 	public void onTaskRemoved(Intent rootIntent) {
 		OsmandApplication app = getApp();
 		app.getNotificationHelper().removeNotifications(false);
-		if (app.getNavigationService() != null &&
-				app.getSettings().DISABLE_RECORDING_ONCE_APP_KILLED.get()) {
+		if (app.getNavigationService() != null && app.getSettings().DISABLE_RECORDING_ONCE_APP_KILLED.get()) {
 			stopSelf();
 		}
 	}
@@ -222,7 +224,9 @@ public class NavigationService extends Service {
 		}
 	}
 
-	/** Sets the {@link CarContext} to use while the service is running. */
+	/**
+	 * Sets the {@link CarContext} to use while the service is running.
+	 */
 	public void setCarContext(@Nullable CarContext carContext) {
 		this.carContext = carContext;
 		if (carContext != null) {
@@ -238,10 +242,11 @@ public class NavigationService extends Service {
 						@Override
 						public void onAutoDriveEnabled() {
 							CarToast.makeText(carContext, "Auto drive enabled", CarToast.LENGTH_LONG).show();
-							OsmAndLocationSimulation sim = getApp().getLocationProvider().getLocationSimulation();
-							RoutingHelper routingHelper = getApp().getRoutingHelper();
-							if (!sim.isRouteAnimating() && routingHelper.isFollowingMode() && routingHelper.isRouteCalculated() && !routingHelper.isRouteBeingCalculated()) {
+							if (!settings.simulateNavigation) {
+								OsmAndLocationSimulation sim = getApp().getLocationProvider().getLocationSimulation();
 								sim.startStopRouteAnimation(null);
+								settings.simulateNavigation = true;
+								settings.simulateNavigationStartedFromAdb = true;
 							}
 						}
 					});
@@ -253,14 +258,18 @@ public class NavigationService extends Service {
 		}
 	}
 
-	/** Clears the currently used {@link CarContext}. */
+	/**
+	 * Clears the currently used {@link CarContext}.
+	 */
 	public void clearCarContext() {
 		carContext = null;
 		navigationManager = null;
 		tripHelper = null;
 	}
 
-	/** Starts navigation. */
+	/**
+	 * Starts navigation.
+	 */
 	public void startCarNavigation() {
 		if (navigationManager != null) {
 			navigationManager.navigationStarted();
@@ -268,19 +277,24 @@ public class NavigationService extends Service {
 		}
 	}
 
-	/** Stops navigation. */
+	/**
+	 * Stops navigation.
+	 */
 	public void stopCarNavigation() {
-		if (navigationManager != null) {
-			NavigationSession carNavigationSession = getApp().getCarNavigationSession();
-			if (carNavigationSession != null) {
-				NavigationScreen navigationScreen = carNavigationSession.getNavigationScreen();
-				if (navigationScreen != null) {
-					navigationScreen.stopTrip();
+		getApp().runInUIThread(() -> {
+					if (navigationManager != null) {
+						NavigationSession carNavigationSession = getApp().getCarNavigationSession();
+						if (carNavigationSession != null) {
+							NavigationScreen navigationScreen = carNavigationSession.getNavigationScreen();
+							if (navigationScreen != null) {
+								navigationScreen.stopTrip();
+							}
+						}
+						carNavigationActive = false;
+						navigationManager.navigationEnded();
+					}
 				}
-			}
-			carNavigationActive = false;
-			navigationManager.navigationEnded();
-		}
+		);
 	}
 
 	public void updateCarNavigation(Location currentLocation) {
@@ -292,8 +306,12 @@ public class NavigationService extends Service {
 			NavigationSession carNavigationSession = app.getCarNavigationSession();
 			if (carNavigationSession != null) {
 				NavigationScreen navigationScreen = carNavigationSession.getNavigationScreen();
+				if (navigationScreen == null) {
+					carNavigationSession.startNavigation();
+					navigationScreen = carNavigationSession.getNavigationScreen();
+				}
 				if (navigationScreen != null) {
-					float density = navigationScreen.getSurfaceRenderer().getDensity();
+					float density = carNavigationSession.getNavigationCarSurface().getDensity();
 					if (density == 0) {
 						density = 1;
 					}
@@ -315,5 +333,9 @@ public class NavigationService extends Service {
 				}
 			}
 		}
+	}
+
+	public boolean isCarNavigationActive() {
+		return carNavigationActive;
 	}
 }

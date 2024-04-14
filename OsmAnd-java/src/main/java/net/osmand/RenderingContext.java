@@ -6,8 +6,8 @@ import net.osmand.render.RenderingRuleSearchRequest;
 
 public class RenderingContext {
 	public static enum ShadowRenderingMode {
-		// int shadowRenderingMode = 0; // no shadow (minumum CPU)
-		// int shadowRenderingMode = 1; // classic shadow (the implementaton in master)
+		// int shadowRenderingMode = 0; // no shadow (minimum CPU)
+		// int shadowRenderingMode = 1; // classic shadow (the implementation in master)
 		// int shadowRenderingMode = 2; // blur shadow (most CPU, but still reasonable)
 		// int shadowRenderingMode = 3; solid border (CPU use like classic version or even smaller)
 		NO_SHADOW(0), ONE_STEP(1), BLUR_SHADOW(2), SOLID_SHADOW(3);
@@ -56,6 +56,8 @@ public class RenderingContext {
 	public long renderingContextHandle;
 	
 	private float density = 1;
+	public boolean saveTextTile = false;
+	public String textTile;
 	
 	public void setDensityValue(float density) {
 		this.density =  density ;

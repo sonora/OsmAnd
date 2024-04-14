@@ -1,7 +1,13 @@
 package net.osmand.gpx;
 
+import static net.osmand.gpx.GPXUtilities.PointsGroup.DEFAULT_WPT_GROUP_NAME;
+
 import net.osmand.data.QuadRect;
-import net.osmand.gpx.GPXTrackAnalysis.SplitSegment;
+import net.osmand.gpx.GPXTrackAnalysis.TrackPointsAnalyser;
+import net.osmand.gpx.GPXUtilities.Route;
+import net.osmand.gpx.GPXUtilities.Track;
+import net.osmand.gpx.GPXUtilities.TrkSegment;
+import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 
@@ -15,8 +21,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class GPXFile extends GPXUtilities.GPXExtensions {
-
-	private static final String DEFAULT_WPT_GROUP_NAME = "";
 
 	public String author;
 	public GPXUtilities.Metadata metadata = new GPXUtilities.Metadata();
@@ -38,12 +42,10 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 	private GPXUtilities.TrkSegment generalSegment;
 
 	public GPXFile(String author) {
-		metadata.time = System.currentTimeMillis();
 		this.author = author;
 	}
 
 	public GPXFile(String title, String lang, String description) {
-		metadata.time = System.currentTimeMillis();
 		if (description != null) {
 			metadata.getExtensionsToWrite().put("desc", description);
 		}
@@ -57,6 +59,13 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 
 	public boolean hasRoute() {
 		return getNonEmptyTrkSegments(true).size() > 0;
+	}
+
+	public List<GPXUtilities.WptPt> getAllPoints() {
+		List<GPXUtilities.WptPt> total = new ArrayList<>();
+		total.addAll(getPoints());
+		total.addAll(getAllSegmentsPoints());
+		return total;
 	}
 
 	public List<GPXUtilities.WptPt> getPoints() {
@@ -174,10 +183,10 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		}
 	}
 
-	public void updateWptPt(String wptName, int wptIndex, GPXUtilities.WptPt newWpt) {
+	public void updateWptPt(String wptName, int wptIndex, GPXUtilities.WptPt newWpt, boolean updateTimestamp) {
 		GPXUtilities.WptPt currentWpt = getWptPt(wptName, wptIndex);
 		if (currentWpt != null) {
-			updateWptPt(currentWpt, newWpt);
+			updateWptPt(currentWpt, newWpt, updateTimestamp);
 		} else {
 			addPoint(newWpt);
 		}
@@ -194,13 +203,17 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		return currentWpt;
 	}
 
-	public void updateWptPt(GPXUtilities.WptPt existingPoint, GPXUtilities.WptPt newWpt) {
+	public void updateWptPt(GPXUtilities.WptPt existingPoint, GPXUtilities.WptPt newWpt, boolean updateTimestamp) {
 		int index = points.indexOf(existingPoint);
 		if (index == -1) {
 			return;
 		}
 		String prevGroupName = existingPoint.category == null ? DEFAULT_WPT_GROUP_NAME : existingPoint.category;
+		long prevTime = existingPoint.time;
 		existingPoint.updatePoint(newWpt);
+		if (!updateTimestamp) {
+			existingPoint.time = prevTime;
+		}
 		if (Algorithms.stringsEqual(newWpt.category, prevGroupName)
 				|| Algorithms.isEmpty(newWpt.category) && Algorithms.isEmpty(prevGroupName)) {
 			removePointFromGroup(existingPoint, prevGroupName);
@@ -209,6 +222,10 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		}
 		modifiedTime = System.currentTimeMillis();
 		pointsModifiedTime = modifiedTime;
+	}
+
+	public void updateWptPt(GPXUtilities.WptPt existingPoint, GPXUtilities.WptPt newWpt) {
+		updateWptPt(existingPoint, newWpt, true);
 	}
 
 	public void updatePointsGroup(String prevGroupName, GPXUtilities.PointsGroup pointsGroup) {
@@ -252,13 +269,13 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 	}
 
 	private void buildGeneralSegment() {
-		GPXUtilities.TrkSegment segment = new GPXUtilities.TrkSegment();
-		for (GPXUtilities.Track track : tracks) {
-			for (GPXUtilities.TrkSegment s : track.segments) {
-				if (s.points.size() > 0) {
-					List<GPXUtilities.WptPt> waypoints = new ArrayList<>(s.points.size());
-					for (GPXUtilities.WptPt wptPt : s.points) {
-						waypoints.add(new GPXUtilities.WptPt(wptPt));
+		TrkSegment segment = new TrkSegment();
+		for (Track track : tracks) {
+			for (TrkSegment trkSegment : track.segments) {
+				if (trkSegment.points.size() > 0) {
+					List<WptPt> waypoints = new ArrayList<>(trkSegment.points.size());
+					for (WptPt wptPt : trkSegment.points) {
+						waypoints.add(new WptPt(wptPt));
 					}
 					waypoints.get(0).firstPoint = true;
 					waypoints.get(waypoints.size() - 1).lastPoint = true;
@@ -273,29 +290,28 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 	}
 
 	public GPXTrackAnalysis getAnalysis(long fileTimestamp) {
-		return getAnalysis(fileTimestamp, null, null);
+		return getAnalysis(fileTimestamp, null, null, null);
 	}
 
-	public GPXTrackAnalysis getAnalysis(long fileTimestamp, Double fromDistance, Double toDistance) {
+	public GPXTrackAnalysis getAnalysis(long fileTimestamp, Double fromDistance, Double toDistance, TrackPointsAnalyser pointsAnalyzer) {
 		GPXTrackAnalysis analysis = new GPXTrackAnalysis();
 		analysis.name = path;
-		analysis.wptPoints = points.size();
-		analysis.wptCategoryNames = getWaypointCategories();
+		analysis.setWptPoints(points.size());
+		analysis.setWptCategoryNames(getWaypointCategories());
 
 		List<SplitSegment> segments = getSplitSegments(analysis, fromDistance, toDistance);
-		analysis.prepareInformation(fileTimestamp, segments.toArray(new SplitSegment[0]));
+		analysis.prepareInformation(fileTimestamp, pointsAnalyzer, segments.toArray(new SplitSegment[0]));
 		return analysis;
 	}
 
-	private List<SplitSegment> getSplitSegments(GPXTrackAnalysis g,
-												Double fromDistance,
-												Double toDistance) {
+	private List<SplitSegment> getSplitSegments(GPXTrackAnalysis analysis, Double fromDistance, Double toDistance) {
 		List<SplitSegment> splitSegments = new ArrayList<>();
 		for (int i = 0; i < tracks.size(); i++) {
 			GPXUtilities.Track subtrack = tracks.get(i);
 			for (GPXUtilities.TrkSegment segment : subtrack.segments) {
 				if (!segment.generalSegment) {
-					g.totalTracks++;
+					int totalTracks = analysis.getTotalTracks();
+					analysis.setTotalTracks(totalTracks + 1);
 					if (segment.points.size() > 1) {
 						splitSegments.add(createSplitSegment(segment, fromDistance, toDistance));
 					}
@@ -305,9 +321,7 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		return splitSegments;
 	}
 
-	private SplitSegment createSplitSegment(GPXUtilities.TrkSegment segment,
-														 Double fromDistance,
-														 Double toDistance) {
+	private SplitSegment createSplitSegment(TrkSegment segment, Double fromDistance, Double toDistance) {
 		if (fromDistance != null && toDistance != null) {
 			int startInd = getPointIndexByDistance(segment.points, fromDistance);
 			int endInd = getPointIndexByDistance(segment.points, toDistance);
@@ -540,17 +554,17 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		return null;
 	}
 
-	public GPXUtilities.WptPt findPointToShow() {
-		for (GPXUtilities.Track t : tracks) {
-			for (GPXUtilities.TrkSegment s : t.segments) {
-				if (s.points.size() > 0) {
-					return s.points.get(0);
+	public WptPt findPointToShow() {
+		for (Track track : tracks) {
+			for (TrkSegment segment : track.segments) {
+				if (segment.points.size() > 0) {
+					return segment.points.get(0);
 				}
 			}
 		}
-		for (GPXUtilities.Route s : routes) {
-			if (s.points.size() > 0) {
-				return s.points.get(0);
+		for (Route route : routes) {
+			if (route.points.size() > 0) {
+				return route.points.get(0);
 			}
 		}
 		if (points.size() > 0) {
@@ -581,6 +595,16 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 			}
 		}
 		return tracks;
+	}
+
+	public List<TrkSegment> getSegments(boolean includeGeneralTrack) {
+		List<TrkSegment> segments = new ArrayList<>();
+		for (Track track : tracks) {
+			if (includeGeneralTrack || !track.generalTrack) {
+				segments.addAll(track.segments);
+			}
+		}
+		return segments;
 	}
 
 	public int getTracksCount() {
@@ -729,6 +753,18 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 		getExtensionsToWrite().put("show_arrows", String.valueOf(showArrows));
 	}
 
+	public boolean isUse3DVisualization() {
+		String use3DVisualization = null;
+		if (extensions != null) {
+			use3DVisualization = extensions.get("raise_routes_above_relief");
+		}
+		return Boolean.parseBoolean(use3DVisualization);
+	}
+
+	public void setUse3DVisualization(boolean use3DVisualization) {
+		getExtensionsToWrite().put("raise_routes_above_relief", String.valueOf(use3DVisualization));
+	}
+
 	public boolean isShowStartFinishSet() {
 		return extensions != null && extensions.containsKey("show_start_finish");
 	}
@@ -800,5 +836,26 @@ public class GPXFile extends GPXUtilities.GPXExtensions {
 			size++;
 		}
 		return size;
+	}
+
+	public long getLastPointTime() {
+		long time = getLastPointTime(getAllSegmentsPoints());
+		if (time == 0) {
+			time = getLastPointTime(getRoutePoints());
+		}
+		if (time == 0) {
+			time = getLastPointTime(getPoints());
+		}
+		return time;
+	}
+
+	private long getLastPointTime(List<WptPt> points) {
+		for (int i = points.size() - 1; i >= 0; i--) {
+			WptPt point = points.get(i);
+			if (point.time > 0) {
+				return point.time;
+			}
+		}
+		return 0;
 	}
 }

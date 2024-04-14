@@ -13,8 +13,8 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 import net.osmand.gpx.GPXFile;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.myplaces.TrackBitmapDrawer.TrackBitmapDrawerListener;
-import net.osmand.plus.myplaces.TrackBitmapDrawer.TracksDrawParams;
+import net.osmand.plus.myplaces.tracks.MapBitmapDrawerListener;
+import net.osmand.plus.myplaces.tracks.MapDrawParams;
 import net.osmand.plus.utils.UiUtilities;
 
 import java.util.ArrayList;
@@ -31,11 +31,11 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 
 	private final GPXFile gpxFile;
 	private final List<Object> items = new ArrayList<>();
-	private final List<TrackItem> trackItems = new ArrayList<>();
+	private final List<ImportTrackItem> trackItems = new ArrayList<>();
 
-	private Set<TrackItem> selectedTracks;
+	private Set<ImportTrackItem> selectedTracks;
 	private ImportTracksListener listener;
-	private TracksDrawParams drawParams;
+	private MapDrawParams drawParams;
 
 	private String selectedFolder;
 	private final String fileName;
@@ -57,11 +57,11 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 		this.listener = listener;
 	}
 
-	public void setDrawParams(@NonNull TracksDrawParams drawParams) {
+	public void setDrawParams(@NonNull MapDrawParams drawParams) {
 		this.drawParams = drawParams;
 	}
 
-	public void updateItems(@NonNull List<TrackItem> trackItems, @NonNull Set<TrackItem> selectedTracks) {
+	public void updateItems(@NonNull List<ImportTrackItem> trackItems, @NonNull Set<ImportTrackItem> selectedTracks) {
 		this.trackItems.clear();
 		this.trackItems.addAll(trackItems);
 		this.selectedTracks = selectedTracks;
@@ -81,7 +81,7 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 		switch (viewType) {
 			case TYPE_TRACK:
 				View view = inflater.inflate(R.layout.import_track_item, parent, false);
-				return new TrackViewHolder(view, drawParams, listener, nightMode);
+				return new ImportTrackViewHolder(view, drawParams, listener, nightMode);
 			case TYPE_HEADER:
 				view = inflater.inflate(R.layout.import_tracks_header, parent, false);
 				return new HeaderViewHolder(view, listener);
@@ -97,12 +97,12 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 	public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 		if (holder instanceof HeaderViewHolder) {
 			((HeaderViewHolder) holder).bindView(app, fileName, trackItems.size(), nightMode);
-		} else if (holder instanceof TrackViewHolder) {
-			TrackViewHolder viewHolder = (TrackViewHolder) holder;
+		} else if (holder instanceof ImportTrackViewHolder) {
+			ImportTrackViewHolder viewHolder = (ImportTrackViewHolder) holder;
 
-			TrackItem item = (TrackItem) getItem(position);
+			ImportTrackItem item = (ImportTrackItem) getItem(position);
 			boolean checked = selectedTracks.contains(item);
-			TrackBitmapDrawerListener listener = getBitmapDrawerListener(item, viewHolder);
+			MapBitmapDrawerListener listener = getBitmapDrawerListener(item, viewHolder);
 
 			viewHolder.bindView(item, gpxFile.getPoints(), checked, listener);
 		} else if (holder instanceof FoldersViewHolder) {
@@ -127,7 +127,7 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 	@Override
 	public int getItemViewType(int position) {
 		Object object = items.get(position);
-		if (object instanceof TrackItem) {
+		if (object instanceof ImportTrackItem) {
 			return TYPE_TRACK;
 		} else if (object instanceof Integer) {
 			int item = (Integer) object;
@@ -140,27 +140,18 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 		throw new IllegalArgumentException("Unsupported view type");
 	}
 
-	private TrackBitmapDrawerListener getBitmapDrawerListener(@NonNull TrackItem item, @NonNull TrackViewHolder holder) {
-		return new TrackBitmapDrawerListener() {
-			@Override
-			public void onTrackBitmapDrawing() {
-
-			}
+	private MapBitmapDrawerListener getBitmapDrawerListener(@NonNull ImportTrackItem item, @NonNull ImportTrackViewHolder holder) {
+		return new MapBitmapDrawerListener() {
 
 			@Override
-			public void onTrackBitmapDrawn(boolean success) {
+			public void onBitmapDrawn(boolean success) {
 				if (!success) {
 					item.bitmapDrawer.initAndDraw();
 				}
 			}
 
 			@Override
-			public boolean isTrackBitmapSelectionSupported() {
-				return false;
-			}
-
-			@Override
-			public void drawTrackBitmap(Bitmap bitmap) {
+			public void onBitmapDrawn(@NonNull Bitmap bitmap) {
 				item.bitmap = bitmap;
 				notifyItemChanged(holder.getAdapterPosition());
 			}
@@ -175,11 +166,11 @@ class ImportTracksAdapter extends RecyclerView.Adapter<ViewHolder> {
 
 		void onFoldersListSelected();
 
-		void onFolderSelected(@NonNull String folderName);
+		void onFolderSelected(@NonNull String folderPath);
 
-		void onTrackItemSelected(@NonNull TrackItem item, boolean selected);
+		void onTrackItemSelected(@NonNull ImportTrackItem item, boolean selected);
 
-		void onTrackItemPointsSelected(@NonNull TrackItem item);
+		void onTrackItemPointsSelected(@NonNull ImportTrackItem item);
 
 	}
 }

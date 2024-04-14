@@ -209,12 +209,12 @@ public class MapAlgorithms {
 	
 
 	private static long combine2Points(int x, int y) {
-		return (((long) x ) <<32) | ((long)y );
+		return (((long) x) << 32) | ((long) y);
 	}
 	/**
 	 * outx,outy are the coordinates out of the box 
 	 * inx,iny are the coordinates from the box (NOT IMPORTANT in/out, just one should be in second out)
-	 * @return -1 if there is no instersection or x<<32 | y
+	 * @return -1 if there is no intersection or x<<32 | y
 	 */
 	public static long calculateIntersection(int inx, int iny, int outx, int outy, int leftX, int rightX, int bottomY, int topY) {
 		int by = -1;

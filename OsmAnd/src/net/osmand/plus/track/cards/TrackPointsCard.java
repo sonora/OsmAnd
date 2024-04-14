@@ -1,5 +1,7 @@
 package net.osmand.plus.track.cards;
 
+import static net.osmand.plus.wikipedia.WikiArticleHelper.getPartialContent;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Typeface;
@@ -10,7 +12,6 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -27,10 +28,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
-import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.Location;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
+import net.osmand.gpx.GPXUtilities.WptPt;
 import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndCompassListener;
 import net.osmand.plus.OsmAndLocationProvider.OsmAndLocationListener;
@@ -40,11 +41,11 @@ import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.OsmandBaseExpandableListAdapter;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.mapcontextmenu.MapContextMenu;
-import net.osmand.plus.myplaces.DeletePointsTask;
-import net.osmand.plus.myplaces.DeletePointsTask.OnPointsDeleteListener;
-import net.osmand.plus.myplaces.ui.EditTrackGroupDialogFragment;
+import net.osmand.plus.myplaces.tracks.tasks.DeletePointsTask;
+import net.osmand.plus.myplaces.tracks.tasks.DeletePointsTask.OnPointsDeleteListener;
 import net.osmand.plus.routepreparationmenu.cards.MapBaseCard;
 import net.osmand.plus.track.fragments.DisplayGroupsBottomSheet.DisplayPointGroupsCallback;
+import net.osmand.plus.track.fragments.EditTrackGroupDialogFragment;
 import net.osmand.plus.track.helpers.DisplayPointsGroupsHelper;
 import net.osmand.plus.track.helpers.DisplayPointsGroupsHelper.DisplayGroupsHolder;
 import net.osmand.plus.track.helpers.GpxDisplayGroup;
@@ -55,8 +56,9 @@ import net.osmand.plus.track.helpers.TrackDisplayHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.UpdateLocationViewCache;
-import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.utils.UpdateLocationUtils;
+import net.osmand.plus.utils.UpdateLocationUtils.UpdateLocationViewCache;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 
@@ -194,8 +196,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 	}
 
 	private void addActions() {
-		LayoutInflater inflater = UiUtilities.getInflater(mapActivity, nightMode);
-		actionsView = inflater.inflate(R.layout.track_points_actions, listView, false);
+		actionsView = themedInflater.inflate(R.layout.track_points_actions, listView, false);
 		listView.addFooterView(actionsView);
 
 		setupActionsHeader();
@@ -317,11 +318,6 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 	}
 
 	@Override
-	public void onPointsDeletionStarted() {
-
-	}
-
-	@Override
 	public void onPointsDeleted() {
 		updateGroups();
 		update();
@@ -369,7 +365,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 		private final UpdateLocationViewCache locationViewCache;
 
 		PointGPXAdapter() {
-			locationViewCache = app.getUIUtilities().getUpdateLocationViewCache();
+			locationViewCache = UpdateLocationUtils.getUpdateLocationViewCache(activity);
 		}
 
 		public void synchronizeGroups(@NonNull List<GpxDisplayGroup> displayGroups) {
@@ -427,8 +423,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 			Context context = view.getContext();
 			View row = convertView;
 			if (row == null) {
-				LayoutInflater inflater = LayoutInflater.from(context);
-				row = inflater.inflate(R.layout.track_points_group_item, parent, false);
+				row = themedInflater.inflate(R.layout.track_points_group_item, parent, false);
 			}
 
 			row.setOnClickListener(v -> {
@@ -475,7 +470,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 			options.setImageDrawable(getContentIcon(R.drawable.ic_overflow_menu_with_background));
 			options.setOnClickListener(v ->
 					EditTrackGroupDialogFragment.showInstance(mapActivity.getSupportFragmentManager(),
-							group, mapActivity.getTrackMenuFragment()));
+							group, mapActivity.getFragmentsHelper().getTrackMenuFragment()));
 			return row;
 		}
 
@@ -491,7 +486,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 				spannedName.setSpan(new StyleSpan(Typeface.ITALIC), 0, spannedName.length(), SPANNED_FLAG);
 			} else {
 				int nameColor = AndroidUtils.getColorFromAttr(context, R.attr.wikivoyage_primary_text_color);
-				int countColor = ContextCompat.getColor(context, R.color.wikivoyage_secondary_text);
+				int countColor = ContextCompat.getColor(context, R.color.text_color_secondary_light);
 
 				spannedName.setSpan(new ForegroundColorSpan(nameColor), 0, displayName.length(), SPANNED_FLAG);
 				spannedName.setSpan(new ForegroundColorSpan(countColor), displayName.length() + 1,
@@ -526,8 +521,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 		public View getChildView(int groupPosition, int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
 			View row = convertView;
 			if (row == null) {
-				LayoutInflater inflater = LayoutInflater.from(view.getContext());
-				row = inflater.inflate(R.layout.track_points_list_item, parent, false);
+				row = themedInflater.inflate(R.layout.track_points_list_item, parent, false);
 			}
 
 			GpxDisplayGroup group = getGroup(groupPosition);
@@ -538,7 +532,9 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 
 			TextView description = row.findViewById(R.id.waypoint_description);
 			if (!Algorithms.isEmpty(gpxItem.description)) {
-				description.setText(gpxItem.description.replace("\n", " "));
+				String content = getPartialContent(gpxItem.description);
+				content = content != null ? content.replace("\n", " ") : null;
+				description.setText(content);
 				AndroidUiHelper.updateVisibility(description, true);
 			} else {
 				AndroidUiHelper.updateVisibility(description, false);
@@ -574,7 +570,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 				if (groupColor == 0) {
 					groupColor = ContextCompat.getColor(app, R.color.gpx_color_point);
 				}
-				icon.setImageDrawable(PointImageDrawable.getFromWpt(app, groupColor, false, wpt));
+				icon.setImageDrawable(PointImageUtils.getFromPoint(app, groupColor, false, wpt));
 			} else {
 				icon.setImageDrawable(getContentIcon(R.drawable.ic_action_marker_dark));
 			}
@@ -615,7 +611,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 		ImageView arrow = container.findViewById(R.id.direction_arrow);
 
 		OsmandApplication app = (OsmandApplication) container.getContext().getApplicationContext();
-		app.getUIUtilities().updateLocationView(cache, arrow, text, point.lat, point.lon);
+		UpdateLocationUtils.updateLocationView(app, cache, arrow, text, point.lat, point.lon);
 
 		String address = point.getAddress();
 		TextView addressContainer = container.findViewById(R.id.address);
@@ -635,7 +631,7 @@ public class TrackPointsCard extends MapBaseCard implements OnChildClickListener
 				Set<Object> filter = new HashSet<>();
 				String cs = constraint.toString().toLowerCase();
 				for (GpxDisplayGroup g : getOriginalGroups()) {
-					for (GpxDisplayItem i : g.getModifiableList()) {
+					for (GpxDisplayItem i : g.getDisplayItems()) {
 						if (i.name.toLowerCase().contains(cs)) {
 							filter.add(i);
 						} else if (i.locationStart != null && !TextUtils.isEmpty(i.locationStart.category)

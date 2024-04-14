@@ -1,11 +1,11 @@
 package net.osmand.plus.backup.ui.status;
 
 import static net.osmand.plus.backup.NetworkSettingsHelper.SYNC_ITEMS_KEY;
+import static net.osmand.plus.backup.ui.BackupUiUtils.getLastBackupTimeDescription;
 import static net.osmand.plus.backup.ui.status.BackupStatus.BACKUP_COMPLETE;
 import static net.osmand.plus.backup.ui.status.BackupStatus.CONFLICTS;
 import static net.osmand.plus.backup.ui.status.BackupStatus.MAKE_BACKUP;
 import static net.osmand.plus.base.OsmandBaseExpandableListAdapter.adjustIndicator;
-import static net.osmand.plus.settings.fragments.MainSettingsFragment.getLastBackupTimeDescription;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -23,6 +23,7 @@ import androidx.fragment.app.FragmentActivity;
 import net.osmand.plus.R;
 import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.BackupInfo;
+import net.osmand.plus.backup.BackupUtils;
 import net.osmand.plus.backup.NetworkSettingsHelper;
 import net.osmand.plus.backup.PrepareBackupResult;
 import net.osmand.plus.backup.PrepareBackupTask.OnPrepareBackupListener;
@@ -171,7 +172,7 @@ public class CloudSyncCard extends BaseCard implements OnBackupSyncListener, OnP
 	private void setupCloudChangesButton(@NonNull PrepareBackupResult backup) {
 		BackupInfo info = backup.getBackupInfo();
 		int itemsSize = info != null
-				? BackupHelper.getItemsMapForRestore(info, backup.getSettingsItems()).size() + info.filteredLocalFilesToDelete.size()
+				? BackupUtils.getItemsMapForRestore(info, backup.getSettingsItems()).size() + info.filteredLocalFilesToDelete.size()
 				: -1;
 		String count = itemsSize >= 0 ? String.valueOf(itemsSize) : null;
 		String title = app.getString(R.string.cloud_changes);

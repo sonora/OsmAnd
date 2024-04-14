@@ -1,25 +1,23 @@
 package net.osmand.plus.settings.bottomsheets;
 
+import static net.osmand.plus.base.dialog.data.DialogExtra.SELECTED_INDEX;
+import static net.osmand.plus.base.dialog.data.DialogExtra.SHOW_BOTTOM_BUTTONS;
+import static net.osmand.plus.base.dialog.data.DialogExtra.SUBTITLE;
+import static net.osmand.plus.base.dialog.data.DialogExtra.TITLE;
+
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.plus.R;
 import net.osmand.plus.base.bottomsheetmenu.BaseBottomSheetItem;
 import net.osmand.plus.base.bottomsheetmenu.BottomSheetItemWithCompoundButton;
+import net.osmand.plus.base.bottomsheetmenu.BottomSheetItemWithCompoundButton.Builder;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.DividerItem;
+import net.osmand.plus.base.bottomsheetmenu.simpleitems.LongDescriptionItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.TitleItem;
-import net.osmand.plus.settings.backend.ApplicationMode;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayDataProvider;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayItem;
-import net.osmand.plus.settings.bottomsheets.displaydata.DialogDisplayData;
-import net.osmand.plus.settings.bottomsheets.displaydata.OnDialogItemSelectedListener;
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.base.dialog.data.DisplayItem;
 import net.osmand.plus.utils.UiUtilities;
 
 import java.util.List;
@@ -27,126 +25,75 @@ import java.util.List;
 /**
  * Implementation of Single Selection Bottom Sheet.
  * Only displays the data passed to it in the form of DialogDisplayData.
- * When choosing one of the options, the selected option is passed to the target fragment
+ * When choosing one of the options, the selected option is passed to the controller
  * and dialog automatically closed without the need for confirmation by the user.
- *
- * To use this dialog you should implement two interfaces in your class:
- * 1. DisplayDataProvider to collect and prepare the data for display.
- * 2. OnDialogItemSelectedListener to process selected result.
- *
- * "Dialog id" need to recognize the process for which the dialog was called,
- * to provide the correct data for display and to correctly process selected
- * result in target fragment.
  */
-public class CustomizableSingleSelectionBottomSheet extends BasePreferenceBottomSheet {
+public class CustomizableSingleSelectionBottomSheet extends CustomizableBottomSheet {
 
 	public static final String TAG = CustomizableSingleSelectionBottomSheet.class.getSimpleName();
-
-	private static final String DIALOG_ID = "dialog_id";
-	private static final String SELECTED_ITEM_INDEX = "selected_item_index";
-
-	private String dialogId;
-	private int selectedItemIndex;
-	private DialogDisplayData dataToDisplay;
-
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		Bundle args = getArguments();
-		if (args != null) {
-			dialogId = args.getString(DIALOG_ID);
-			selectedItemIndex = args.getInt(SELECTED_ITEM_INDEX, -1);
-			refreshDataToDisplay();
-		}
-	}
 
 	@Override
 	public void createMenuItems(Bundle savedInstanceState) {
 		Context ctx = getContext();
-		if (ctx == null || dataToDisplay == null) {
+		if (ctx == null || displayData == null) {
 			return;
 		}
 		ctx = UiUtilities.getThemedContext(ctx, nightMode);
 
-		TitleItem titleItem = new TitleItem(dataToDisplay.getTitle());
-		items.add(titleItem);
+		String title = (String) displayData.getExtra(TITLE);
+		if (title != null) {
+			TitleItem titleItem = new TitleItem(title);
+			items.add(titleItem);
+		}
 
-		int dividerStartPadding = getDimen(R.dimen.bottom_sheet_divider_margin_start);
-		List<DialogDisplayItem> displayItems = dataToDisplay.getDisplayItems();
+		String description = (String) displayData.getExtra(SUBTITLE);
+		if (description != null) {
+			LongDescriptionItem descriptionItem = new LongDescriptionItem(description);
+			items.add(descriptionItem);
+		}
+
+		List<DisplayItem> displayItems = displayData.getDisplayItems();
 		for (int i = 0; i < displayItems.size(); i++) {
-			DialogDisplayItem displayItem = displayItems.get(i);
-			boolean isChecked = i == selectedItemIndex;
-			Drawable icon = isChecked ? displayItem.selectedIcon : displayItem.normalIcon;
-			BaseBottomSheetItem[] preferenceItem = new BottomSheetItemWithCompoundButton[1];
-			preferenceItem[0] = new BottomSheetItemWithCompoundButton.Builder()
+			DisplayItem displayItem = displayItems.get(i);
+			Integer selectedIndex = (Integer) displayData.getExtra(SELECTED_INDEX);
+			boolean isChecked = selectedIndex != null && selectedIndex == i;
+			BaseBottomSheetItem[] rowItem = new BottomSheetItemWithCompoundButton[1];
+			rowItem[0] = new Builder()
 					.setChecked(isChecked)
-					.setButtonTintList(AndroidUtils.createCheckedColorIntStateList(
-							ColorUtilities.getColor(ctx, R.color.icon_color_default_light),
-							isProfileDependent() ?
-									getAppMode().getProfileColor(nightMode) :
-									ColorUtilities.getActiveColor(ctx, nightMode)))
-					.setDescription(displayItem.description)
-					.setTitle(displayItem.title)
-					.setIcon(icon)
+					.setButtonTintList(createCompoundButtonTintList(displayItem))
+					.setDescription(displayItem.getDescription())
+					.setTitle(displayItem.getTitle())
+					.setIcon(isChecked ? displayItem.getSelectedIcon() : displayItem.getNormalIcon())
+					.setBackground(createSelectableBackground(displayItem))
 					.setTag(i)
-					.setLayoutId(displayItem.layoutId)
-					.setOnClickListener(v -> {
-						selectedItemIndex = (int) preferenceItem[0].getTag();
+					.setLayoutId(displayItem.getLayoutId())
+					.setOnClickListener(displayItem.isClickable() ? v -> {
+						displayData.putExtra(SELECTED_INDEX, (int) rowItem[0].getTag());
 						onItemSelected(displayItem);
 						dismiss();
-					})
+					} : null)
 					.create();
-			items.add(preferenceItem[0]);
-			if (i != displayItems.size() - 1) {
-				DividerItem divider = new DividerItem(ctx);
-				divider.setMargins(dividerStartPadding, 0, 0, 0);
+			items.add(rowItem[0]);
+
+			DividerItem divider = createDividerIfNeeded(ctx, displayItem);
+			if (divider != null) {
 				items.add(divider);
 			}
 		}
 	}
 
-	private void refreshDataToDisplay() {
-		Fragment target = getTargetFragment();
-		if (target instanceof DialogDisplayDataProvider) {
-			DialogDisplayDataProvider dataProvider = (DialogDisplayDataProvider) target;
-			dataToDisplay = dataProvider.provideDialogDisplayData(dialogId);
-		}
-	}
-
-	private void onItemSelected(@NonNull DialogDisplayItem selectedItem) {
-		Fragment target = getTargetFragment();
-		if (target instanceof OnDialogItemSelectedListener) {
-			OnDialogItemSelectedListener listener = (OnDialogItemSelectedListener) target;
-			listener.onDialogItemSelected(dialogId, selectedItem);
-		}
-	}
-
-	@Override
-	public void onSaveInstanceState(@NonNull Bundle outState) {
-		super.onSaveInstanceState(outState);
-		outState.putString(DIALOG_ID, dialogId);
-		outState.putInt(SELECTED_ITEM_INDEX, selectedItemIndex);
-	}
-
 	@Override
 	protected boolean hideButtonsContainer() {
-		return true;
+		Boolean showBottomButtons = (Boolean) displayData.getExtra(SHOW_BOTTOM_BUTTONS);
+		return showBottomButtons == null || !showBottomButtons;
 	}
 
 	public static boolean showInstance(@NonNull FragmentManager fragmentManager,
-	                                   @NonNull Fragment target, boolean usedOnMap,
-	                                   @NonNull String dialogId, int selectedItemIndex,
-	                                   @NonNull ApplicationMode appMode, boolean profileDependent) {
+	                                   @NonNull String processId, boolean usedOnMap) {
 		try {
 			CustomizableSingleSelectionBottomSheet fragment = new CustomizableSingleSelectionBottomSheet();
-			Bundle args = new Bundle();
-			args.putString(DIALOG_ID, dialogId);
-			args.putInt(SELECTED_ITEM_INDEX, selectedItemIndex);
-			fragment.setArguments(args);
+			fragment.setProcessId(processId);
 			fragment.setUsedOnMap(usedOnMap);
-			fragment.setAppMode(appMode);
-			fragment.setProfileDependent(profileDependent);
-			fragment.setTargetFragment(target, 0);
 			fragment.show(fragmentManager, TAG);
 			return true;
 		} catch (RuntimeException e) {

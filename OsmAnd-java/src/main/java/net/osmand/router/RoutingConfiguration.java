@@ -32,6 +32,7 @@ public class RoutingConfiguration {
 	public static final int DEFAULT_MEMORY_LIMIT = 30;
 	public static final int DEFAULT_NATIVE_MEMORY_LIMIT = 256;
 	public static final float DEVIATION_RADIUS = 3000;
+	public static final double DEFAULT_PENALTY_FOR_REVERSE_DIRECTION = 60; // if no penaltyForReverseDirection in xml
 	public Map<String, String> attributes = new LinkedHashMap<String, String>();
 
 	// 1. parameters of routing and different tweaks
@@ -54,12 +55,17 @@ public class RoutingConfiguration {
 	
 	// 1.4 Used to calculate route in movement
 	public Double initialDirection;
-	
+	public Double targetDirection;
+	public double penaltyForReverseDirection = DEFAULT_PENALTY_FOR_REVERSE_DIRECTION; // -1 means reverse is forbidden
+
 	// 1.5 Recalculate distance help
 	public float recalculateDistance = 20000f;
 
 	// 1.6 Time to calculate all access restrictions based on conditions
 	public long routeCalculationTime = 0;
+	
+	// 1.7 Maximum visited segments
+	public int MAX_VISITED = -1;
 
 
 	// extra points to be inserted in ways (quad tree is based on 31 coords)
@@ -197,6 +203,7 @@ public class RoutingConfiguration {
 			i.minStepApproximation = parseSilentFloat(getAttribute(i.router, "minStepApproximation"), i.minStepApproximation);
 			i.maxStepApproximation = parseSilentFloat(getAttribute(i.router, "maxStepApproximation"), i.maxStepApproximation);
 			i.smoothenPointsNoRoute = parseSilentFloat(getAttribute(i.router, "smoothenPointsNoRoute"), i.smoothenPointsNoRoute);
+			i.penaltyForReverseDirection = parseSilentFloat(getAttribute(i.router, "penaltyForReverseDirection"), (float) i.penaltyForReverseDirection);
 
 			i.router.setImpassableRoads(new HashSet<>(impassableRoadLocations));
 			i.ZOOM_TO_LOAD_TILES = parseSilentInt(getAttribute(i.router, "zoomToLoadTiles"), i.ZOOM_TO_LOAD_TILES);
@@ -311,13 +318,18 @@ public class RoutingConfiguration {
 
 	public static RoutingConfiguration.Builder getDefault() {
 		if (DEFAULT == null) {
-			try {
-				DEFAULT = parseFromInputStream(RoutingConfiguration.class.getResourceAsStream("routing.xml"));
-			} catch (Exception e) {
-				throw new IllegalStateException(e);
-			}
+			DEFAULT = parseDefault();
 		}
 		return DEFAULT;
+	}
+
+
+	public static Builder parseDefault() {
+		try {
+			return parseFromInputStream(RoutingConfiguration.class.getResourceAsStream("routing.xml"));
+		} catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	public static RoutingConfiguration.Builder parseFromInputStream(InputStream is) throws IOException, XmlPullParserException {
@@ -428,7 +440,7 @@ public class RoutingConfiguration {
 			}
 			
 			RouteAttributeContext ctx = currentRouter.getObjContext(attr);
-			if("select".equals(rr.tagName)) {
+			if ("select".equals(rr.tagName)) {
 				String val = parser.getAttributeValue("", "value");
 				String type = rr.type;
 				ctx.registerNewRule(val, type);
@@ -436,6 +448,11 @@ public class RoutingConfiguration {
 				for (int i = 0; i < stack.size(); i++) {
 					addSubclause(stack.get(i), ctx);
 				}
+			} else if ("min".equals(rr.tagName) || "max".equals(rr.tagName)) {
+				String initVal = parser.getAttributeValue("", "value1");
+				String type = rr.type;
+				ctx.registerNewRule(initVal, type);
+				addSubclause(rr, ctx);
 			} else if (stack.size() > 0 && "select".equals(stack.peek().tagName)) {
 				addSubclause(rr, ctx);
 			}
@@ -445,7 +462,8 @@ public class RoutingConfiguration {
 
 	private static boolean checkTag(String pname) {
 		return "select".equals(pname) || "if".equals(pname) || "ifnot".equals(pname)
-				|| "gt".equals(pname) || "le".equals(pname) || "eq".equals(pname);
+				|| "gt".equals(pname) || "le".equals(pname) || "eq".equals(pname)
+				|| "min".equals(pname) || "max".equals(pname);
 	}
 
 	private static void addSubclause(RoutingRule rr, RouteAttributeContext ctx) {
@@ -456,19 +474,29 @@ public class RoutingConfiguration {
 		if (!Algorithms.isEmpty(rr.t)) {
 			ctx.getLastRule().registerAndTagValueCondition(rr.t, Algorithms.isEmpty(rr.v) ? null : rr.v, not);
 		}
-		if ("gt".equals(rr.tagName)) {
-			ctx.getLastRule().registerGreatCondition(rr.value1, rr.value2, rr.type);
-		} else if ("le".equals(rr.tagName)) {
-			ctx.getLastRule().registerLessCondition(rr.value1, rr.value2, rr.type);
-		} else if ("eq".equals(rr.tagName)) {
-			ctx.getLastRule().registerEqualCondition(rr.value1, rr.value2, rr.type);
+		switch (rr.tagName) {
+			case "gt":
+				ctx.getLastRule().registerGreatCondition(rr.value1, rr.value2, rr.type);
+				break;
+			case "le":
+				ctx.getLastRule().registerLessCondition(rr.value1, rr.value2, rr.type);
+				break;
+			case "eq":
+				ctx.getLastRule().registerEqualCondition(rr.value1, rr.value2, rr.type);
+				break;
+			case "min":
+				ctx.getLastRule().registerMinExpression(rr.value1, rr.value2, rr.type);
+				break;
+			case "max":
+				ctx.getLastRule().registerMaxExpression(rr.value1, rr.value2, rr.type);
+				break;
 		}
 	}
 
 	private static GeneralRouter parseRoutingProfile(XmlPullParser parser, final RoutingConfiguration.Builder config, String filename) {
 		String currentSelectedRouterName = parser.getAttributeValue("", "name");
 		Map<String, String> attrs = new LinkedHashMap<String, String>();
-		for(int i=0; i< parser.getAttributeCount(); i++) {
+		for (int i = 0; i < parser.getAttributeCount(); i++) {
 			attrs.put(parser.getAttributeName(i), parser.getAttributeValue(i));
 		}
 		GeneralRouterProfile c = Algorithms.parseEnumValue(GeneralRouterProfile.values(), 

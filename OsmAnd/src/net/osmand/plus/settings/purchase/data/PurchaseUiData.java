@@ -1,11 +1,16 @@
 package net.osmand.plus.settings.purchase.data;
 
 
+import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.PROMO;
+import static net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin.TRIPLTEK_PROMO;
+
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-import net.osmand.plus.inapp.InAppPurchases.InAppSubscription.SubscriptionOrigin;
+import net.osmand.plus.inapp.InAppPurchases.InAppPurchase.PurchaseOrigin;
 import net.osmand.plus.inapp.InAppPurchases.InAppSubscription.SubscriptionState;
+import net.osmand.util.CollectionUtils;
 
 public class PurchaseUiData {
 
@@ -20,13 +25,14 @@ public class PurchaseUiData {
 	private final boolean isAutoRenewing;
 	private final boolean isRenewVisible;
 	private final SubscriptionState subscriptionState;
-	private final SubscriptionOrigin origin;
+	private final PurchaseOrigin origin;
 
-	public PurchaseUiData(String sku, String title, int iconId, String purchaseType,
-	                      long expireTime, long purchaseTime, boolean isSubscription,
-	                      boolean isLiveUpdateSubscription, boolean isAutoRenewing,
-	                      boolean isRenewVisible, SubscriptionState subscriptionState,
-	                      SubscriptionOrigin origin) {
+	public PurchaseUiData(@Nullable String sku, @NonNull String title, @DrawableRes int iconId,
+	                      @NonNull String purchaseType, long expireTime, long purchaseTime,
+	                      boolean isSubscription, boolean isLiveUpdateSubscription,
+	                      boolean isAutoRenewing, boolean isRenewVisible,
+	                      @NonNull SubscriptionState subscriptionState,
+	                      @NonNull PurchaseOrigin origin) {
 		this.sku = sku;
 		this.title = title;
 		this.iconId = iconId;
@@ -41,7 +47,7 @@ public class PurchaseUiData {
 		this.origin = origin;
 	}
 
-	@NonNull
+	@Nullable
 	public String getSku() {
 		return sku;
 	}
@@ -83,7 +89,7 @@ public class PurchaseUiData {
 	}
 
 	@NonNull
-	public SubscriptionOrigin getOrigin() {
+	public PurchaseOrigin getOrigin() {
 		return origin;
 	}
 
@@ -96,7 +102,6 @@ public class PurchaseUiData {
 	}
 
 	public boolean isPromo() {
-		return origin == SubscriptionOrigin.PROMO;
+		return CollectionUtils.equalsToAny(origin, PROMO, TRIPLTEK_PROMO);
 	}
-
 }

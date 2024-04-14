@@ -1,5 +1,7 @@
 package net.osmand.plus.quickaction.actions;
 
+import static net.osmand.plus.quickaction.QuickActionIds.FAVORITE_ACTION_ID;
+
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -23,8 +25,8 @@ import net.osmand.plus.mapcontextmenu.editors.FavoritePointEditor;
 import net.osmand.plus.mapcontextmenu.editors.SelectFavouriteGroupBottomSheet;
 import net.osmand.plus.mapcontextmenu.editors.SelectPointsCategoryBottomSheet;
 import net.osmand.plus.mapcontextmenu.editors.SelectPointsCategoryBottomSheet.CategorySelectionListener;
-import net.osmand.plus.myplaces.FavoriteGroup;
-import net.osmand.plus.myplaces.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.FavoriteGroup;
+import net.osmand.plus.myplaces.favorites.FavouritesHelper;
 import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.quickaction.QuickActionType;
 import net.osmand.plus.widgets.AutoCompleteTextViewEx;
@@ -32,7 +34,7 @@ import net.osmand.plus.widgets.AutoCompleteTextViewEx;
 public class FavoriteAction extends QuickAction {
 
 
-	public static final QuickActionType TYPE = new QuickActionType(3,
+	public static final QuickActionType TYPE = new QuickActionType(FAVORITE_ACTION_ID,
 			"fav.add", FavoriteAction.class).
 			nameRes(R.string.quick_action_add_favorite).iconRes(R.drawable.ic_action_favorite).
 			category(QuickActionType.CREATE_CATEGORY);

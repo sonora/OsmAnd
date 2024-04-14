@@ -1,7 +1,5 @@
 package net.osmand.plus.track.fragments;
 
-import static net.osmand.plus.utils.UiUtilities.DialogButtonType.SECONDARY_ACTIVE;
-
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -22,11 +20,13 @@ import net.osmand.plus.base.bottomsheetmenu.BottomSheetItemWithDescription;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.DividerItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.TitleItem;
 import net.osmand.plus.chooseplan.OsmAndProPlanFragment;
-import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseListener;
-import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseTaskType;
+import net.osmand.plus.inapp.InAppPurchaseUtils;
+import net.osmand.plus.plugins.PluginsHelper;
+import net.osmand.plus.plugins.srtm.SRTMPlugin;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
 
 public class TrackAltitudeBottomSheet extends MenuBottomSheetDialogFragment implements InAppPurchaseListener {
 
@@ -51,13 +51,18 @@ public class TrackAltitudeBottomSheet extends MenuBottomSheetDialogFragment impl
 	public void createMenuItems(Bundle savedInstanceState) {
 		items.add(new TitleItem(getString(R.string.get_altitude_data)));
 		createAttachToRoadsItem();
-		if (InAppPurchaseHelper.isOsmAndProAvailable(app)) {
-			int margin = getResources().getDimensionPixelSize(R.dimen.settings_divider_margin_start);
+		if (InAppPurchaseUtils.is3dMapsAvailable(app)) {
+			int margin = getResources().getDimensionPixelSize(R.dimen.divider_color_light_margin_start);
 			DividerItem dividerItem = new DividerItem(app);
 			dividerItem.setMargins(margin, 0, 0, 0);
 			items.add(dividerItem);
 
-			createOnlineItem();
+			SRTMPlugin plugin = PluginsHelper.getActivePlugin(SRTMPlugin.class);
+			if (plugin != null && plugin.is3DReliefAllowed()) {
+				createOfflineItem();
+			} else {
+				createOnlineItem();
+			}
 		} else {
 			createOsmAndProItem();
 		}
@@ -97,6 +102,23 @@ public class TrackAltitudeBottomSheet extends MenuBottomSheetDialogFragment impl
 		items.add(attachToRoadsItem);
 	}
 
+	private void createOfflineItem() {
+		BaseBottomSheetItem attachToRoadsItem = new BottomSheetItemWithDescription.Builder()
+				.setDescription(getString(R.string.calculate_offline_altitude_descr))
+				.setTitle(getString(R.string.calculate_offline))
+				.setIcon(getActiveIcon(R.drawable.ic_action_world_globe))
+				.setLayoutId(R.layout.bottom_sheet_item_with_descr_active)
+				.setOnClickListener(v -> {
+					Fragment fragment = getTargetFragment();
+					if (fragment instanceof CalculateAltitudeListener) {
+						((CalculateAltitudeListener) fragment).calculateOfflineSelected(segmentIndex);
+					}
+					dismiss();
+				})
+				.create();
+		items.add(attachToRoadsItem);
+	}
+
 	private void createOsmAndProItem() {
 		LayoutInflater inflater = UiUtilities.getInflater(app, nightMode);
 		View view = inflater.inflate(R.layout.online_srtm_promo_item, itemsContainer, false);
@@ -105,8 +127,7 @@ public class TrackAltitudeBottomSheet extends MenuBottomSheetDialogFragment impl
 		int color = AndroidUtils.getColorFromAttr(view.getContext(), R.attr.switch_button_active);
 		view.setBackground(utilities.getPaintedIcon(R.drawable.promo_banner_bg, color));
 
-		View button = view.findViewById(R.id.button_action);
-		UiUtilities.setupDialogButton(nightMode, button, SECONDARY_ACTIVE, R.string.shared_string_get);
+		DialogButton button = view.findViewById(R.id.button_action);
 		button.findViewById(R.id.button_container).setBackground(null);
 
 		Drawable icon = utilities.getIcon(R.drawable.ic_action_osmand_pro_logo_colored);
@@ -156,5 +177,7 @@ public class TrackAltitudeBottomSheet extends MenuBottomSheetDialogFragment impl
 		void attachToRoadsSelected(int segmentIndex);
 
 		void calculateOnlineSelected(int segmentIndex);
+
+		void calculateOfflineSelected(int segmentIndex);
 	}
 }

@@ -1,12 +1,12 @@
 package net.osmand.data;
 
 import net.osmand.util.Algorithms;
+import net.osmand.util.CollectionUtils;
 import net.osmand.util.MapUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 public class TransportStop extends MapObject {
@@ -14,7 +14,7 @@ public class TransportStop extends MapObject {
 	private static final int DELETED_STOP = -1;
 	public static final String MISSING_STOP_NAME = "#Missing Stop";
 
-	private int[] referencesToRoutes = null;
+	private long[] referencesToRoutes = null;
 	private long[] deletedRoutesIds;
 	private long[] routesIds;
 	public int distance;
@@ -45,11 +45,11 @@ public class TransportStop extends MapObject {
 		this.routes.add(rt);
 	}
 
-	public int[] getReferencesToRoutes() {
+	public long[] getReferencesToRoutes() {
 		return referencesToRoutes;
 	}
 
-	public void setReferencesToRoutes(int[] referencesToRoutes) {
+	public void setReferencesToRoutes(long[] referencesToRoutes) {
 		this.referencesToRoutes = referencesToRoutes;
 	}
 
@@ -72,7 +72,7 @@ public class TransportStop extends MapObject {
 	}
 
 	public void setDeleted() {
-		this.referencesToRoutes = new int[] { DELETED_STOP };
+		this.referencesToRoutes = new long[] { DELETED_STOP };
 	}
 
 	public long[] getDeletedRoutesIds() {
@@ -85,11 +85,11 @@ public class TransportStop extends MapObject {
 	
 	public void addRouteId(long routeId) {
 		// make assumption that ids are sorted
-		routesIds = Algorithms.addToArrayL(routesIds, routeId, true);
+		routesIds = CollectionUtils.addToArrayL(routesIds, routeId, true);
 	}
 	 
 	public void addDeletedRouteId(long routeId) {
-		deletedRoutesIds = Algorithms.addToArrayL(deletedRoutesIds, routeId, true);
+		deletedRoutesIds = CollectionUtils.addToArrayL(deletedRoutesIds, routeId, true);
 	}
 
 	public boolean isRouteDeleted(long routeId) {

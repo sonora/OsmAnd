@@ -64,9 +64,9 @@ public class OsmandRegions {
 	private static final org.apache.commons.logging.Log LOG = PlatformUtil.getLog(OsmandRegions.class);
 
 	WorldRegion worldRegion = new WorldRegion(WorldRegion.WORLD);
-	Map<String, WorldRegion> fullNamesToRegionData = new HashMap<String, WorldRegion>();
-	Map<String, String> downloadNamesToFullNames = new HashMap<String, String>();
-	Map<String, LinkedList<BinaryMapDataObject>> countriesByDownloadName = new HashMap<String, LinkedList<BinaryMapDataObject>>();
+	Map<String, WorldRegion> fullNamesToRegionData = new HashMap<>();
+	Map<String, String> downloadNamesToFullNames = new HashMap<>();
+	Map<String, LinkedList<BinaryMapDataObject>> countriesByDownloadName = new HashMap<>();
 
 
 	QuadTree<String> quadTree;
@@ -116,27 +116,57 @@ public class OsmandRegions {
 	public BinaryMapIndexReader prepareFile(String fileName) throws IOException {
 		reader = new BinaryMapIndexReader(new RandomAccessFile(fileName, "r"), new File(fileName));
 //		final Collator clt = OsmAndCollator.primaryCollator();
-		final Map<String, String> parentRelations = new LinkedHashMap<String, String>();
+		final Map<String, String> parentRelations = new LinkedHashMap<>();
+		final Map<String, List<BinaryMapDataObject>> unattachedBoundaryMapObjectsByRegions = new HashMap<>();
 		final ResultMatcher<BinaryMapDataObject> resultMatcher = new ResultMatcher<BinaryMapDataObject>() {
 
 			@Override
 			public boolean publish(BinaryMapDataObject object) {
 				initTypes(object);
+
+				boolean boundary = false;
 				int[] types = object.getTypes();
-				for (int i = 0; i < types.length; i++) {
-					TagValuePair tp = object.getMapIndex().decodeType(types[i]);
+				for (int type : types) {
+					TagValuePair tp = object.getMapIndex().decodeType(type);
 					if ("boundary".equals(tp.value)) {
-						return false;
+						boundary = true;
+						break;
 					}
 				}
-				WorldRegion rd = initRegionData(parentRelations, object);
-				if (rd == null) {
+
+				if (boundary) {
+					String fullRegionName = getFullName(object);
+					WorldRegion region = fullNamesToRegionData.get(fullRegionName);
+					if (region != null) {
+						addPolygonToRegionIfValid(object, region);
+					} else {
+						List<BinaryMapDataObject> unattachedMapObjects = unattachedBoundaryMapObjectsByRegions.get(fullRegionName);
+						if (unattachedMapObjects == null) {
+							unattachedMapObjects = new ArrayList<>();
+							unattachedBoundaryMapObjectsByRegions.put(fullRegionName, unattachedMapObjects);
+						}
+						unattachedMapObjects.add(object);
+					}
 					return false;
 				}
-				if (rd.regionDownloadName != null) {
-					downloadNamesToFullNames.put(rd.regionDownloadName, rd.regionFullName);
+
+				WorldRegion region = initRegionData(parentRelations, object);
+				if (region == null) {
+					return false;
 				}
-				fullNamesToRegionData.put(rd.regionFullName, rd);
+
+				List<BinaryMapDataObject> unattachedMapObjects = unattachedBoundaryMapObjectsByRegions.get(region.regionFullName);
+				if (unattachedMapObjects != null) {
+					for (BinaryMapDataObject mapObject : unattachedMapObjects) {
+						addPolygonToRegionIfValid(mapObject, region);
+					}
+					unattachedBoundaryMapObjectsByRegions.remove(region.regionFullName);
+				}
+
+				if (region.regionDownloadName != null) {
+					downloadNamesToFullNames.put(region.regionDownloadName, region.regionFullName);
+				}
+				fullNamesToRegionData.put(region.regionFullName, region);
 				return false;
 			}
 
@@ -157,7 +187,7 @@ public class OsmandRegions {
 				parent.addSubregion(rd);
 			}
 		}
-		structureWorldRegions(new ArrayList<WorldRegion>(fullNamesToRegionData.values()));
+		structureWorldRegions(new ArrayList<>(fullNamesToRegionData.values()));
 		return reader;
 	}
 
@@ -171,15 +201,20 @@ public class OsmandRegions {
 	}
 
 	public String getLocaleName(String downloadName, boolean includingParent, boolean reversed) {
+		String divider = reversed ? ", " : " ";
+		return getLocaleName(downloadName, divider, includingParent, reversed);
+	}
+
+	public String getLocaleName(String downloadName, String divider, boolean includingParent, boolean reversed) {
 		final String lc = downloadName.toLowerCase();
 		if (downloadNamesToFullNames.containsKey(lc)) {
 			String fullName = downloadNamesToFullNames.get(lc);
-			return getLocaleNameByFullName(fullName, includingParent, reversed);
+			return getLocaleNameByFullName(fullName, divider, includingParent, reversed);
 		}
 		return downloadName.replace('_', ' ');
 	}
 
-	public String getLocaleNameByFullName(String fullName, boolean includingParent, boolean reversed) {
+	public String getLocaleNameByFullName(String fullName, String divider, boolean includingParent, boolean reversed) {
 		WorldRegion region = fullNamesToRegionData.get(fullName);
 		if (region == null) {
 			return fullName.replace('_', ' ');
@@ -202,13 +237,13 @@ public class OsmandRegions {
 			}
 			List<WorldRegion> superRegions = region.getSuperRegions();
 			if (!Algorithms.isEmpty(superRegions)) {
-				return getLocaleNameWithParent(superRegions, regionName, reversed);
+				return getLocaleNameWithParent(superRegions, regionName, divider, reversed);
 			}
 		}
 		return regionName;
 	}
 
-	private String getLocaleNameWithParent(List<WorldRegion> superRegions, String regionName, boolean reversed) {
+	private String getLocaleNameWithParent(List<WorldRegion> superRegions, String regionName, String divider, boolean reversed) {
 		StringBuilder builder = new StringBuilder();
 		List<String> topRegionsIds = getTopRegionsIds();
 		if (reversed) {
@@ -217,7 +252,7 @@ public class OsmandRegions {
 				String regionId = region.getRegionId();
 				if ((!topRegionsIds.contains(regionId) || WorldRegion.RUSSIA_REGION_ID.equals(regionId))
 						&& (!WorldRegion.WORLD.equals(regionId))) {
-					builder.append(", ").append(region.getLocaleName());
+					builder.append(divider).append(region.getLocaleName());
 				}
 			}
 		} else {
@@ -227,7 +262,7 @@ public class OsmandRegions {
 				String regionId = region.getRegionId();
 				if ((!topRegionsIds.contains(regionId) || WorldRegion.RUSSIA_REGION_ID.equals(regionId))
 						&& (!WorldRegion.WORLD.equals(regionId))) {
-					builder.append(region.getLocaleName()).append(" ");
+					builder.append(region.getLocaleName()).append(divider);
 				}
 			}
 			builder.append(regionName);
@@ -243,7 +278,7 @@ public class OsmandRegions {
 		return reader != null;
 	}
 
-	public boolean contain(BinaryMapDataObject bo, int tx, int ty) {
+	public static boolean contain(BinaryMapDataObject bo, int tx, int ty) {
 		int t = 0;
 		for (int i = 1; i < bo.getPointsLength(); i++) {
 			int fx = MapAlgorithms.ray_intersect_x(bo.getPoint31XTile(i - 1),
@@ -257,7 +292,7 @@ public class OsmandRegions {
 		return t % 2 == 1;
 	}
 
-	public boolean intersect(BinaryMapDataObject bo, int lx, int ty, int rx, int by) {
+	public static boolean intersect(BinaryMapDataObject bo, int lx, int ty, int rx, int by) {
 		// 1. polygon in object 
 		if (contain(bo, lx, ty)) {
 			return true;
@@ -429,8 +464,11 @@ public class OsmandRegions {
 	}
 
 
-	public WorldRegion getRegionData(String fullname) {
-		return fullNamesToRegionData.get(fullname);
+	public WorldRegion getRegionData(String fullName) {
+		if (WorldRegion.WORLD.equals(fullName)) {
+			return worldRegion;
+		}
+		return fullNamesToRegionData.get(fullName);
 	}
 
 	public WorldRegion getRegionDataByDownloadName(String downloadName) {
@@ -449,8 +487,23 @@ public class OsmandRegions {
 		return mapIndexFields.get(mapIndexFields.fullNameType, o);
 	}
 
+	public List<String> getFlattenedWorldRegionIds() {
+		List<String> regionIds = new ArrayList<>();
+		for (WorldRegion region : getFlattenedWorldRegions()) {
+			regionIds.add(region.getRegionId());
+		}
+		return regionIds;
+	}
+
+	public List<WorldRegion> getFlattenedWorldRegions() {
+		List<WorldRegion> result = new ArrayList<>();
+		result.add(getWorldRegion());
+		result.addAll(getAllRegionData());
+		return result;
+	}
+
 	public List<WorldRegion> getAllRegionData() {
-		return new ArrayList<WorldRegion>(fullNamesToRegionData.values());
+		return new ArrayList<>(fullNamesToRegionData.values());
 	}
 
 
@@ -566,6 +619,10 @@ public class OsmandRegions {
 
 
 	public Map<String, LinkedList<BinaryMapDataObject>> cacheAllCountries() throws IOException {
+		return cacheAllCountries(true);
+	}
+	
+	public Map<String, LinkedList<BinaryMapDataObject>> cacheAllCountries(final boolean useDownloadName) throws IOException {
 		quadTree = new QuadTree<String>(new QuadRect(0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE),
 				8, 0.55f);
 		final ResultMatcher<BinaryMapDataObject> resultMatcher = new ResultMatcher<BinaryMapDataObject>() {
@@ -576,7 +633,7 @@ public class OsmandRegions {
 					return false;
 				}
 				initTypes(object);
-				String nm = mapIndexFields.get(mapIndexFields.downloadNameType, object);
+				String nm = mapIndexFields.get(useDownloadName ? mapIndexFields.downloadNameType : mapIndexFields.fullNameType, object);
 				if (!countriesByDownloadName.containsKey(nm)) {
 					LinkedList<BinaryMapDataObject> ls = new LinkedList<BinaryMapDataObject>();
 					countriesByDownloadName.put(nm, ls);
@@ -879,5 +936,32 @@ public class OsmandRegions {
 			}
 		}
 		return keyNames;
+	}
+
+	private void addPolygonToRegionIfValid(BinaryMapDataObject mapObject, WorldRegion worldRegion) {
+		if (mapObject.getPointsLength() < 3) {
+			return;
+		}
+
+		List<LatLon> polygon = new ArrayList<>();
+		for (int i = 0; i < mapObject.getPointsLength(); i++) {
+			int x = mapObject.getPoint31XTile(i);
+			int y = mapObject.getPoint31YTile(i);
+			double lat = MapUtils.get31LatitudeY(y);
+			double lon = MapUtils.get31LongitudeX(x);
+			polygon.add(new LatLon(lat, lon));
+		}
+
+		boolean outside = true;
+		for (LatLon point : polygon) {
+			if (worldRegion.containsPoint(point)) {
+				outside = false;
+				break;
+			}
+		}
+
+		if (outside) {
+			worldRegion.additionalPolygons.add(polygon);
+		}
 	}
 }

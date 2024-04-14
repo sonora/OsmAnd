@@ -1,6 +1,7 @@
 package net.osmand.plus.views.mapwidgets.widgets;
 
 import android.content.Context;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,10 +12,14 @@ import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.DayNightHelper;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
+import net.osmand.plus.settings.enums.SunPositionMode;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
+import net.osmand.plus.views.mapwidgets.WidgetType;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 import net.osmand.plus.views.mapwidgets.widgetstates.SunriseSunsetWidgetState;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 import net.osmand.util.SunriseSunset;
 
 import java.text.SimpleDateFormat;
@@ -23,16 +28,18 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class SunriseSunsetWidget extends TextInfoWidget {
+public class SunriseSunsetWidget extends SimpleWidget {
 
 	private static final String NEXT_TIME_FORMAT = "HH:mm E";
 
 	private static final int TIME_LEFT_UPDATE_INTERVAL_MS = 60_000; // every minute
+	private static final float LOCATION_CHANGE_ACCURACY = 0.0001f; // approximately 10 meters
 
 	private final OsmandMapTileView mapView;
 	private final DayNightHelper dayNightHelper;
 	private final SunriseSunsetWidgetState widgetState;
 
+	private boolean lastIsDaytime;
 	private long lastUpdateTime;
 	private long timeToNextUpdate;
 	private long cachedNextTime;
@@ -40,23 +47,55 @@ public class SunriseSunsetWidget extends TextInfoWidget {
 	private boolean isLocationChanged;
 	private boolean forceUpdate;
 
-	public SunriseSunsetWidget(@NonNull MapActivity mapActivity, @NonNull SunriseSunsetWidgetState widgetState) {
-		super(mapActivity, widgetState.getWidgetType());
-		dayNightHelper = app.getDaynightHelper();
+	public SunriseSunsetWidget(@NonNull MapActivity mapActivity, @NonNull SunriseSunsetWidgetState widgetState, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
+		super(mapActivity, widgetState.getWidgetType(), customId, widgetsPanel);
+		this.dayNightHelper = app.getDaynightHelper();
 		this.widgetState = widgetState;
 		this.mapView = mapActivity.getMapView();
 		setIcons(widgetState.getWidgetType());
 		setText(NO_VALUE, null);
-		setOnClickListener(v -> {
+		setOnClickListener(getOnClickListener());
+		updateWidgetName();
+	}
+
+	@Override
+	protected View.OnClickListener getOnClickListener() {
+		return v -> {
 			forceUpdate = true;
 			widgetState.changeToNextState();
 			updateInfo(null);
 			mapActivity.refreshMap();
-		});
+			updateWidgetName();
+		};
+	}
+
+	@Nullable
+	protected String getAdditionalWidgetName() {
+		if (widgetState != null) {
+			return getString(widgetState.getPreference().get() ? R.string.shared_string_time_left : R.string.shared_string_next);
+		}
+		return null;
+	}
+
+	@Nullable
+	protected String getWidgetName() {
+		SunPositionMode sunPositionMode = null;
+		if (widgetState != null) {
+			sunPositionMode = widgetState.getSunPositionPreference().get();
+		}
+		int sunsetStringId = R.string.shared_string_sunset;
+		int sunriseStringId = R.string.shared_string_sunrise;
+		if (WidgetType.SUNSET == widgetType || (WidgetType.SUN_POSITION == widgetType && sunPositionMode == SunPositionMode.SUNSET_MODE)) {
+			return getString(sunsetStringId);
+		} else if (WidgetType.SUN_POSITION == widgetType && sunPositionMode == SunPositionMode.SUN_POSITION_MODE) {
+			return getString(lastIsDaytime ? sunsetStringId : sunriseStringId);
+		} else {
+			return getString(sunriseStringId);
+		}
 	}
 
 	@Override
-	public void updateInfo(@Nullable DrawSettings drawSettings) {
+	protected void updateSimpleWidgetInfo(@Nullable DrawSettings drawSettings) {
 		updateCachedLocation();
 		if (!isUpdateNeeded()) {
 			return;
@@ -77,6 +116,9 @@ public class SunriseSunsetWidget extends TextInfoWidget {
 			setText(NO_VALUE, null);
 			forceUpdate = true;
 		}
+		if (widgetType == WidgetType.SUN_POSITION) {
+			updateWidgetName();
+		}
 	}
 
 	@Override
@@ -91,10 +133,6 @@ public class SunriseSunsetWidget extends TextInfoWidget {
 		}
 	}
 
-	public boolean isSunriseMode() {
-		return widgetState.isSunriseMode();
-	}
-
 	public boolean isShowTimeLeft() {
 		return getPreference().get();
 	}
@@ -104,22 +142,22 @@ public class SunriseSunsetWidget extends TextInfoWidget {
 		return widgetState.getPreference();
 	}
 
+	@Nullable
+	public OsmandPreference<SunPositionMode> getSunPositionPreference() {
+		return widgetState != null ? widgetState.getSunPositionPreference() : null;
+	}
+
 	private void updateCachedLocation() {
 		RotatedTileBox tileBox = mapView.getCurrentRotatedTileBox();
 		LatLon newCenterLatLon = tileBox.getCenterLatLon();
-		if (!isLocationsEqual(cachedCenterLatLon, newCenterLatLon)) {
+		if (!areLocationsEqual(cachedCenterLatLon, newCenterLatLon)) {
 			cachedCenterLatLon = newCenterLatLon;
 			isLocationChanged = true;
 		}
 	}
 
-	private boolean isLocationsEqual(@Nullable LatLon previousLatLon, @Nullable LatLon newLatLon) {
-		if (previousLatLon != null && newLatLon != null) {
-			double lat = previousLatLon.getLatitude();
-			double newLat = newLatLon.getLatitude();
-			return Math.abs(lat - newLat) <= 0.001;
-		}
-		return false;
+	private boolean areLocationsEqual(@Nullable LatLon previousLatLon, @Nullable LatLon newLatLon) {
+		return MapUtils.areLatLonEqual(previousLatLon, newLatLon, LOCATION_CHANGE_ACCURACY);
 	}
 
 	public long getTimeLeft() {
@@ -131,22 +169,32 @@ public class SunriseSunsetWidget extends TextInfoWidget {
 		if (cachedCenterLatLon != null) {
 			double lat = cachedCenterLatLon.getLatitude();
 			double lon = cachedCenterLatLon.getLongitude();
-			SunriseSunset bundle = dayNightHelper.getSunriseSunset(lat, lon);
-			if (bundle != null) {
-				Date nextTimeDate = isSunriseMode() ? bundle.getSunrise() : bundle.getSunset();
-				if (nextTimeDate != null) {
-					long now = System.currentTimeMillis();
-					if (isLocationChanged || now >= cachedNextTime) {
-						Calendar calendar = Calendar.getInstance();
-						calendar.setTime(nextTimeDate);
-						// If sunrise or sunset has passed today, move the date to the next day
-						if (calendar.getTimeInMillis() <= now) {
-							calendar.add(Calendar.DAY_OF_MONTH, 1);
-						}
-						cachedNextTime = calendar.getTimeInMillis();
+			SunriseSunset sunriseSunset = dayNightHelper.getSunriseSunset(lat, lon);
+			Date sunrise = sunriseSunset.getSunrise();
+			Date sunset = sunriseSunset.getSunset();
+			Date nextTimeDate;
+			SunPositionMode sunPositionMode = widgetState.getSunPositionPreference().get();
+			WidgetType type = widgetState.getWidgetType();
+			if (WidgetType.SUNSET == type || (WidgetType.SUN_POSITION == type && sunPositionMode == SunPositionMode.SUNSET_MODE)) {
+				nextTimeDate = sunset;
+			} else if (WidgetType.SUN_POSITION == type && sunPositionMode == SunPositionMode.SUN_POSITION_MODE) {
+				lastIsDaytime = sunriseSunset.isDaytime();
+				nextTimeDate = lastIsDaytime ? sunset : sunrise;
+			} else {
+				nextTimeDate = sunrise;
+			}
+			if (nextTimeDate != null) {
+				long now = System.currentTimeMillis();
+				if (isLocationChanged || now >= cachedNextTime) {
+					Calendar calendar = Calendar.getInstance();
+					calendar.setTime(nextTimeDate);
+					// If sunrise or sunset has passed today, move the date to the next day
+					if (calendar.getTimeInMillis() <= now) {
+						calendar.add(Calendar.DAY_OF_MONTH, 1);
 					}
-					return cachedNextTime;
+					cachedNextTime = calendar.getTimeInMillis();
 				}
+				return cachedNextTime;
 			}
 		}
 		return -1;

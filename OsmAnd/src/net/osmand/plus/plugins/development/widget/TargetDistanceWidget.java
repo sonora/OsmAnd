@@ -14,32 +14,31 @@ import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.WidgetType;
-import net.osmand.plus.views.mapwidgets.widgets.TextInfoWidget;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
+import net.osmand.plus.views.mapwidgets.widgets.SimpleWidget;
 
-public class TargetDistanceWidget extends TextInfoWidget {
+public class TargetDistanceWidget extends SimpleWidget {
 
 	private final OsmandMapTileView mapView;
 	private float cachedTargetDistance = -1;
 
-	public TargetDistanceWidget(@NonNull MapActivity mapActivity) {
-		super(mapActivity, WidgetType.DEV_TARGET_DISTANCE);
+	public TargetDistanceWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
+		super(mapActivity, DEV_TARGET_DISTANCE, customId, widgetsPanel);
 		this.mapView = mapActivity.getMapView();
-		updateInfo(null);
+		updateSimpleWidgetInfo(null);
 		setIcons(DEV_TARGET_DISTANCE);
 	}
 
 	@Override
-	public void updateInfo(@Nullable DrawSettings drawSettings) {
+	protected void updateSimpleWidgetInfo(@Nullable DrawSettings drawSettings) {
 		float targetDistance = getTargetDistanceInMeters();
 		if (isUpdateNeeded() || targetDistance != cachedTargetDistance) {
 			cachedTargetDistance = targetDistance;
 			if (cachedTargetDistance > 0) {
-				setText(NO_VALUE, null);
-			} else {
-				MetricsConstants metricsConstants = settings.METRIC_SYSTEM.get();
-				OsmAndFormatter.FormattedValue formattedDistance = OsmAndFormatter.getFormattedDistanceValue(cachedTargetDistance,
-						app, false, metricsConstants);
+				OsmAndFormatter.FormattedValue formattedDistance = OsmAndFormatter.getFormattedDistanceValue(cachedTargetDistance, app);
 				setText(formattedDistance.value, formattedDistance.unit);
+			} else {
+				setText(NO_VALUE, null);
 			}
 		}
 	}
@@ -58,11 +57,6 @@ public class TargetDistanceWidget extends TextInfoWidget {
 			}			
 		}
 		return 0;
-	}
-
-	private String formatDistance(float distanceInMeters) {
-		return OsmAndFormatter.getFormattedDistance(distanceInMeters, app, true,
-				MetricsConstants.KILOMETERS_AND_METERS);
 	}
 
 }

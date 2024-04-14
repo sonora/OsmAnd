@@ -17,8 +17,7 @@ import net.osmand.StateChangedListener;
 import net.osmand.binary.RouteDataObject;
 import net.osmand.data.PointDescription;
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.helpers.WaypointHelper.LocationPointWrapper;
-import net.osmand.plus.routing.AlarmInfo.AlarmInfoType;
+import net.osmand.plus.helpers.LocationPointWrapper;
 import net.osmand.plus.routing.RouteCalculationResult.NextDirectionInfo;
 import net.osmand.plus.routing.data.AnnounceTimeDistances;
 import net.osmand.plus.routing.data.StreetName;
@@ -196,6 +195,9 @@ public class VoiceRouter {
 		//STATUS_UNKNOWN=0 -> STATUS_LONG_PREPARE=1 -> STATUS_PREPARE=2 -> STATUS_TURN_IN=3 -> STATUS_TURN=4 -> STATUS_TOLD=5
 		if (previousStatus != STATUS_TOLD) {
 			this.currentStatus = previousStatus + 1;
+			if (previousStatus == STATUS_TURN) {
+				waitAnnouncedOffRoute = 0;
+			}
 		} else {
 			this.currentStatus = previousStatus;
 		}
@@ -218,7 +220,7 @@ public class VoiceRouter {
 	}
 
 	public void announceOffRoute(double dist) {
-		if (dist > atd.getOffRouteDistance()) {
+		if (settings.SPEAK_ROUTE_DEVIATION.get() && dist > atd.getOffRouteDistance()) {
 			long ms = System.currentTimeMillis();
 			if (waitAnnouncedOffRoute == 0 || ms - lastAnnouncedOffRoute > waitAnnouncedOffRoute) {
 				CommandBuilder p = getNewCommandPlayerToPlay();
@@ -233,19 +235,25 @@ public class VoiceRouter {
 					waitAnnouncedOffRoute *= 2.5;
 				}
 				lastAnnouncedOffRoute = ms;
+			// Avoid offRoute/onRoute loop, #16571:
+			} else if (announceBackOnRoute && (dist < 0.3 * atd.getOffRouteDistance())) {
+				announceBackOnRoute();
 			}
 		}
 	}
 
-	public void announceBackOnRoute() {
-		if (announceBackOnRoute) {
+	private void announceBackOnRoute() {
+		//if (announceBackOnRoute) {
+		if (settings.SPEAK_ROUTE_DEVIATION.get()) {
 			CommandBuilder p = getNewCommandPlayerToPlay();
 			if (p != null) {
 				p.backOnRoute();
 			}
 			play(p);
-			announceBackOnRoute = false;
 		}
+		announceBackOnRoute = false;
+		waitAnnouncedOffRoute = 0;
+		//}
 	}
 
 	public void approachWaypoint(Location location, List<LocationPointWrapper> points) {
@@ -560,7 +568,6 @@ public class VoiceRouter {
 			return new StreetName(result);
 		}
 		if (player != null && player.supportsStructuredStreetNames()) {
-
 			// Issue 2377: Play Dest here only if not already previously announced, to avoid repetition
 			if (includeDest == true) {
 				result.put(TO_REF, getNonNullString(getSpeakablePointName(i.getRef())));
@@ -592,17 +599,24 @@ public class VoiceRouter {
 					result.put(FROM_DEST, "");
 				}
 			}
-
 		} else {
 			result.put(TO_REF, getNonNullString(getSpeakablePointName(i.getRef())));
 			result.put(TO_STREET_NAME, getNonNullString(getSpeakablePointName(i.getStreetName())));
 			result.put(TO_DEST, "");
 		}
-		// Delimit refs if followed by street names to create a brief pause. Also solves unintentional concatenation of numbers (Issue #16256). (Need to apply in sync for toRef and fromRef.)
-		String refDelimiter = ", ";
-		if (!result.get(TO_REF).equals("") && !result.get(TO_STREET_NAME).equals("")) {
-			result.replace(TO_REF, result.get(TO_REF) + refDelimiter);
-			result.replace(FROM_REF, result.get(FROM_REF) + refDelimiter);
+		// Delimit refs if followed by street names to create a brief pause. Need to apply in sync for toRef and fromRef.
+		String refDelimiter = ", "; 
+		//Issue #16256: Some TTS engines, at least in English, pronounce coincidental number concatenations like "nn, nnn" as "thousands":
+		if ((player != null) && (player.getLanguage().startsWith("en"))) {
+			refDelimiter = "; ";
+		}
+		String toRef = result.get(TO_REF);
+		String fromRef = result.get(FROM_REF);
+		if (!Algorithms.isEmpty(toRef) && !Algorithms.isEmpty(result.get(TO_STREET_NAME))) {
+			result.put(TO_REF, toRef + refDelimiter);
+			if (!Algorithms.isEmpty(fromRef)) {
+				result.put(FROM_REF, fromRef + refDelimiter);
+			}
 		}
 		return new StreetName(result);
 	}
@@ -882,6 +896,7 @@ public class VoiceRouter {
 		play(p);
 		if (newRoute) {
 			playGoAheadDist = -1;
+			waitAnnouncedOffRoute = 0;
 		}
 		currentStatus = STATUS_UNKNOWN;
 		suppressDest = false;

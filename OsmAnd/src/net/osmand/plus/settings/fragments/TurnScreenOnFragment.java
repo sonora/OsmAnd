@@ -2,6 +2,7 @@ package net.osmand.plus.settings.fragments;
 
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
@@ -27,7 +28,7 @@ public class TurnScreenOnFragment extends BaseSettingsFragment {
 	}
 
 	@Override
-	protected void onBindPreferenceViewHolder(Preference preference, PreferenceViewHolder holder) {
+	protected void onBindPreferenceViewHolder(@NonNull Preference preference, @NonNull PreferenceViewHolder holder) {
 		super.onBindPreferenceViewHolder(preference, holder);
 		String prefId = preference.getKey();
 		if (settings.TURN_SCREEN_ON_TIME_INT.getId().equals(prefId) && preference instanceof ListPreferenceEx) {
@@ -107,7 +108,7 @@ public class TurnScreenOnFragment extends BaseSettingsFragment {
 	}
 
 	@Override
-	public void onPreferenceChanged(String prefId) {
+	public void onPreferenceChanged(@NonNull String prefId) {
 		if (settings.USE_SYSTEM_SCREEN_TIMEOUT.getId().equals(prefId)) {
 			Preference turnScreenOnTime = findPreference(settings.TURN_SCREEN_ON_TIME_INT.getId());
 			if (turnScreenOnTime != null) {

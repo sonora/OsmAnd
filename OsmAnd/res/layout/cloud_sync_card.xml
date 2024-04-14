@@ -25,7 +25,6 @@
 			<View
 				android:layout_width="match_parent"
 				android:layout_height="1dp"
-				android:layout_marginStart="@dimen/content_padding"
 				android:background="?attr/divider_color_basic" />
 
 			<include
@@ -53,7 +52,5 @@
 			layout="@layout/cloud_sync_button" />
 
 	</LinearLayout>
-
-	<include layout="@layout/card_bottom_divider" />
 
 </LinearLayout>

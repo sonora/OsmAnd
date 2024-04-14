@@ -19,41 +19,39 @@ public abstract class DownloadItem {
 	protected DownloadActivityType type;
 	protected DownloadResourceGroup relatedGroup;
 
-	public DownloadItem(DownloadActivityType type) {
+	public DownloadItem(@NonNull DownloadActivityType type) {
 		this.type = type;
 	}
 
+	@NonNull
 	public DownloadActivityType getType() {
 		return type;
 	}
 
-	public void setRelatedGroup(DownloadResourceGroup relatedGroup) {
+	public void setRelatedGroup(@Nullable DownloadResourceGroup relatedGroup) {
 		this.relatedGroup = relatedGroup;
 	}
 
+	@Nullable
 	public DownloadResourceGroup getRelatedGroup() {
 		return relatedGroup;
 	}
 
 	@NonNull
-	public String getSizeDescription(Context ctx) {
+	public String getSizeDescription(@NonNull Context ctx) {
 		return getFormattedMb(ctx, getSizeToDownloadInMb());
 	}
 
-	public String getVisibleName(Context ctx, OsmandRegions osmandRegions) {
-		return getVisibleName(ctx, osmandRegions, true);
+	public String getVisibleName(@NonNull Context ctx, @NonNull OsmandRegions regions) {
+		return getVisibleName(ctx, regions, true);
 	}
 
-	public String getVisibleName(Context ctx, OsmandRegions osmandRegions, boolean includingParent) {
-		return getVisibleName(ctx, osmandRegions, includingParent, false);
+	public String getVisibleName(@NonNull Context ctx, @NonNull OsmandRegions regions, boolean includingParent) {
+		return getVisibleName(ctx, regions, includingParent, false);
 	}
 
-	public String getVisibleName(Context ctx, OsmandRegions osmandRegions, boolean includingParent, boolean useShortName) {
-		return type.getVisibleName(this, ctx, osmandRegions, includingParent, useShortName);
-	}
-
-	public String getVisibleDescription(OsmandApplication ctx) {
-		return type.getVisibleDescription(this, ctx);
+	public String getVisibleName(@NonNull Context ctx, @NonNull OsmandRegions regions, boolean includingParent, boolean useShortName) {
+		return type.getVisibleName(this, ctx, regions, includingParent, useShortName);
 	}
 
 	@NonNull
@@ -85,11 +83,21 @@ public abstract class DownloadItem {
 
 	public abstract String getFileName();
 
+	public abstract boolean isFree();
+
+	public abstract String getFreeMessage();
+
 	public abstract String getDate(@NonNull DateFormat dateFormat, boolean remote);
 
 	@NonNull
 	public static String getFormattedMb(@NonNull Context ctx, double sizeInMb) {
 		String size = String.format(Locale.US, "%.2f", sizeInMb);
 		return ctx.getString(R.string.ltr_or_rtl_combine_via_space, size, "MB");
+	}
+
+	@NonNull
+	@Override
+	public String toString() {
+		return getFileName();
 	}
 }

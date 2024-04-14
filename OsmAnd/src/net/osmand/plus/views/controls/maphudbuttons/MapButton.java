@@ -19,6 +19,7 @@ import androidx.appcompat.content.res.AppCompatResources;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.base.containers.ThemedIconId;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.utils.UiUtilities;
@@ -36,16 +37,13 @@ public abstract class MapButton {
 	protected final OsmandSettings settings;
 	protected final MapActivity mapActivity;
 	protected final UiUtilities iconsCache;
-	protected final WidgetsVisibilityHelper widgetsVisibilityHelper;
+	protected final WidgetsVisibilityHelper visibilityHelper;
 
-	public final ImageView view;
-	public final String id;
+	protected final String id;
+	protected final ImageView view;
+	protected final boolean alwaysVisible;
 
-	@DrawableRes
-	private int dayIconId;
-	@DrawableRes
-	private int nightIconId;
-
+	private ThemedIconId themedIconId;
 	@DrawableRes
 	private int dayBackgroundId;
 	@DrawableRes
@@ -65,14 +63,25 @@ public abstract class MapButton {
 	private boolean routeDialogOpened;
 	private boolean showBottomButtons;
 
-	public MapButton(@NonNull MapActivity mapActivity, @NonNull ImageView view, @NonNull String id) {
+	public MapButton(@NonNull MapActivity mapActivity, @NonNull ImageView view, @NonNull String id, boolean alwaysVisible) {
+		this.id = id;
+		this.view = view;
+		this.mapActivity = mapActivity;
+		this.alwaysVisible = alwaysVisible;
 		this.app = mapActivity.getMyApplication();
 		this.settings = app.getSettings();
-		this.mapActivity = mapActivity;
 		this.iconsCache = app.getUIUtilities();
-		this.widgetsVisibilityHelper = mapActivity.getWidgetsVisibilityHelper();
-		this.view = view;
-		this.id = id;
+		this.visibilityHelper = mapActivity.getWidgetsVisibilityHelper();
+	}
+
+	@NonNull
+	public String getId() {
+		return id;
+	}
+
+	@NonNull
+	public ImageView getView() {
+		return view;
 	}
 
 	protected void setRoundTransparentBackground() {
@@ -96,13 +105,12 @@ public abstract class MapButton {
 	}
 
 	protected void setIconId(@DrawableRes int iconId) {
-		setIconId(iconId, iconId);
+		setIconId(new ThemedIconId(iconId, iconId));
 	}
 
-	protected void setIconId(@DrawableRes int dayIconId, @DrawableRes int nightIconId) {
-		if (this.dayIconId != dayIconId || this.nightIconId != nightIconId) {
-			this.dayIconId = dayIconId;
-			this.nightIconId = nightIconId;
+	protected void setIconId(@NonNull ThemedIconId themedIconId) {
+		if (!Algorithms.objectEquals(this.themedIconId, themedIconId)) {
+			this.themedIconId = themedIconId;
 			this.forceUpdate = true;
 		}
 	}
@@ -128,6 +136,29 @@ public abstract class MapButton {
 		}
 	}
 
+	public void updateIcon(boolean nightMode) {
+		if (nightBackgroundId != 0 && dayBackgroundId != 0) {
+			view.setBackground(AppCompatResources.getDrawable(app, nightMode ? nightBackgroundId : dayBackgroundId));
+		}
+		Drawable drawable = null;
+		int iconId = themedIconId != null ? themedIconId.getIconId(nightMode) : 0;
+		if (iconId != 0) {
+			if (iconColor != null) {
+				drawable = iconsCache.getPaintedIcon(iconId, iconColor);
+			} else {
+				drawable = iconsCache.getIcon(iconId, getIconColorId());
+			}
+		}
+		if (drawable != null) {
+			setDrawable(drawable);
+		}
+	}
+
+	@ColorRes
+	protected int getIconColorId() {
+		return nightMode ? nightIconColorId : dayIconColorId;
+	}
+
 	protected void setIconColor(@ColorInt int iconColor) {
 		if (!Algorithms.objectEquals(this.iconColor, iconColor)) {
 			this.iconColor = iconColor;
@@ -139,8 +170,7 @@ public abstract class MapButton {
 		this.routeDialogOpened = routeDialogOpened;
 		this.showBottomButtons = bottomButtonsAllowed;
 
-		boolean show = shouldShow();
-		updateVisibility(show);
+		updateVisibility();
 
 		if (view.getVisibility() != View.VISIBLE) {
 			return;
@@ -154,23 +184,7 @@ public abstract class MapButton {
 		this.forceUpdate = false;
 		this.nightMode = nightMode;
 
-		if (nightBackgroundId != 0 && dayBackgroundId != 0) {
-			view.setBackground(AppCompatResources.getDrawable(app, nightMode ? nightBackgroundId : dayBackgroundId));
-		}
-
-		Drawable drawable = null;
-		int iconId = nightMode ? nightIconId : dayIconId;
-		if (iconId != 0) {
-			if (iconColor != null) {
-				drawable = iconsCache.getPaintedIcon(iconId, iconColor);
-			} else {
-				drawable = iconsCache.getIcon(iconId, nightMode ? nightIconColorId : dayIconColorId);
-			}
-		}
-
-		if (drawable != null) {
-			setDrawable(drawable);
-		}
+		updateIcon(nightMode);
 	}
 
 	protected abstract boolean shouldShow();
@@ -179,8 +193,12 @@ public abstract class MapButton {
 		// Not implemented
 	}
 
-	protected void setDrawable(@NonNull Drawable drawable) {
+	protected void setDrawable(@Nullable Drawable drawable) {
 		setMapButtonIcon(view, drawable);
+	}
+
+	public boolean updateVisibility() {
+		return updateVisibility(shouldShow());
 	}
 
 	protected boolean updateVisibility(boolean visible) {
@@ -211,6 +229,16 @@ public abstract class MapButton {
 	}
 
 	protected void setContentDesc(@StringRes int descId) {
-		view.setContentDescription(app.getString(descId));
+		setContentDesc(app.getString(descId));
+	}
+
+	protected void setContentDesc(@Nullable String description) {
+		view.setContentDescription(description);
+	}
+
+	public void onDestroyButton() {
+	}
+
+	public void refresh() {
 	}
 }

@@ -13,34 +13,45 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.Nullable;
 
-import net.osmand.plus.DialogListItemAdapter;
 import net.osmand.plus.R;
+import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
+import net.osmand.plus.settings.enums.SunPositionMode;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.widgets.SunriseSunsetWidget;
+import net.osmand.plus.widgets.alert.AlertDialogData;
+import net.osmand.plus.widgets.alert.CustomAlert;
 
-public class SunriseSunsetSettingsFragment extends WidgetSettingsBaseFragment {
+public class SunriseSunsetSettingsFragment extends BaseSimpleWidgetSettingsFragment {
 
 	private static final String SHOW_TIME_TO_LEFT = "show_time_to_left";
+	private static final String SUN_POSITION_MODE = "sun_position_mode";
 
 	private static final int UPDATE_UI_PERIOD_MS = 60_000; // every minute
 
 	private OsmandPreference<Boolean> preference;
+	@Nullable
+	private OsmandPreference<SunPositionMode> sunPositionPreference;
 	private SunriseSunsetWidget widget;
+	private WidgetType widgetType;
 	private TextView timeDescription;
+	private TextView sunPositionDescription;
 
-	private boolean sunriseMode;
+	private int selectedSunPositionMode;
 	private boolean showTimeToLeft;
 	private boolean updateEnable;
 
 	@NonNull
 	@Override
 	public WidgetType getWidget() {
-		return sunriseMode ? WidgetType.SUNRISE : WidgetType.SUNSET;
+		if (widgetType != null) {
+			return widgetType;
+		}
+		return WidgetType.SUNSET;
 	}
 
 	@Override
@@ -49,55 +60,94 @@ public class SunriseSunsetSettingsFragment extends WidgetSettingsBaseFragment {
 		MapWidgetInfo widgetInfo = widgetRegistry.getWidgetInfoById(widgetId);
 		if (widgetInfo != null) {
 			widget = (SunriseSunsetWidget) widgetInfo.widget;
-			sunriseMode = widget.isSunriseMode();
+			widgetType = widget.getWidgetType();
 			preference = widget.getPreference();
+			sunPositionPreference = widget.getSunPositionPreference();
 		}
 		boolean defaultShowTimeToLeft = preference.getModeValue(appMode);
 		showTimeToLeft = bundle.getBoolean(SHOW_TIME_TO_LEFT, defaultShowTimeToLeft);
+		selectedSunPositionMode = bundle.getInt(SUN_POSITION_MODE, sunPositionPreference != null ?
+				sunPositionPreference.getModeValue(appMode).ordinal() : SunPositionMode.SUN_POSITION_MODE.ordinal());
 	}
 
 	@Override
 	protected void setupContent(@NonNull LayoutInflater themedInflater, @NonNull ViewGroup container) {
 		themedInflater.inflate(R.layout.fragment_widget_settings_sunrise_sunset, container);
 		timeDescription = container.findViewById(R.id.preference_description);
+		sunPositionDescription = container.findViewById(R.id.sun_position_description);
 
 		View preferenceButton = container.findViewById(R.id.preference_container);
 		preferenceButton.setOnClickListener(v -> showPreferenceDialog());
 		preferenceButton.setBackground(getPressedStateDrawable());
+		themedInflater.inflate(R.layout.divider, container);
+		if (widgetType == WidgetType.SUN_POSITION) {
+			setupSunPositionMode();
+		}
+
+		super.setupContent(themedInflater, container);
+	}
+
+	private void setupSunPositionMode() {
+		View divider = view.findViewById(R.id.sun_position_divider);
+		View sunPositionButton = view.findViewById(R.id.sun_position_container);
+		sunPositionButton.setOnClickListener(v -> showSunPositionDialog());
+		sunPositionButton.setBackground(getPressedStateDrawable());
+
+		AndroidUiHelper.updateVisibility(divider, true);
+		AndroidUiHelper.updateVisibility(sunPositionButton, true);
+	}
+
+	private void showSunPositionDialog() {
+		CharSequence[] items = new CharSequence[SunPositionMode.values().length];
+		for (int i = 0; i < SunPositionMode.values().length; i++) {
+			items[i] = getString(SunPositionMode.values()[i].getTitleId());
+		}
+
+		AlertDialogData dialogData = new AlertDialogData(timeDescription.getContext(), nightMode)
+				.setTitle(R.string.shared_string_mode)
+				.setControlsColor(ColorUtilities.getActiveColor(app, nightMode));
+
+		CustomAlert.showSingleSelection(dialogData, items, selectedSunPositionMode, v -> {
+			selectedSunPositionMode = (int) v.getTag();
+			updateSunPositionDescription();
+		});
+	}
+
+	private void updateSunPositionDescription() {
+		sunPositionDescription.setText(getString(SunPositionMode.values()[selectedSunPositionMode].getTitleId()));
 	}
 
 	@Override
 	protected void applySettings() {
+		super.applySettings();
 		preference.setModeValue(appMode, showTimeToLeft);
+		if (sunPositionPreference != null) {
+			sunPositionPreference.setModeValue(appMode, SunPositionMode.values()[selectedSunPositionMode]);
+		}
 	}
 
 	@Override
 	public void onSaveInstanceState(@NonNull Bundle outState) {
 		super.onSaveInstanceState(outState);
 		outState.putBoolean(SHOW_TIME_TO_LEFT, showTimeToLeft);
+		outState.putInt(SUN_POSITION_MODE, selectedSunPositionMode);
 	}
 
 	private void showPreferenceDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(timeDescription.getContext());
-		builder.setTitle(R.string.shared_string_show);
-
 		CharSequence[] items = new CharSequence[2];
 		items[0] = getFormattedTime(true);
 		items[1] = getFormattedTime(false);
-
 		int selected = showTimeToLeft ? 0 : 1;
-		int activeColor = ColorUtilities.getActiveColor(app, nightMode);
-		int themeRes = nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme;
 
-		DialogListItemAdapter adapter = DialogListItemAdapter.createSingleChoiceAdapter(items,
-				nightMode, selected, app, activeColor, themeRes, v -> {
-					int which = (int) v.getTag();
-					showTimeToLeft = which == 0;
-					updateTimeDescription();
-				}
-		);
-		builder.setAdapter(adapter, null);
-		adapter.setDialog(builder.show());
+		AlertDialogData dialogData = new AlertDialogData(timeDescription.getContext(), nightMode)
+				.setTitle(R.string.shared_string_show)
+				.setControlsColor(ColorUtilities.getActiveColor(app, nightMode));
+
+		CustomAlert.showSingleSelection(dialogData, items, selected, v -> {
+			int which = (int) v.getTag();
+			showTimeToLeft = which == 0;
+			updateTimeDescription();
+		});
 	}
 
 	private void updateTimeDescription() {
@@ -111,7 +161,7 @@ public class SunriseSunsetSettingsFragment extends WidgetSettingsBaseFragment {
 			title = getString(R.string.shared_string_time_left);
 			preview = formatTimeLeft(app, widget.getTimeLeft());
 		} else {
-			title = getString(sunriseMode ? R.string.shared_string_next_sunrise : R.string.shared_string_next_sunset);
+			title = getString(getNextEventStringId());
 			preview = formatNextTime(widget.getNextTime());
 		}
 		if (preview != null) {
@@ -127,11 +177,24 @@ public class SunriseSunsetSettingsFragment extends WidgetSettingsBaseFragment {
 		}
 	}
 
+	private int getNextEventStringId() {
+		switch (getWidget()) {
+			case SUN_POSITION:
+				return R.string.shared_string_next_event;
+			case SUNSET:
+				return R.string.shared_string_next_sunset;
+			case SUNRISE:
+			default:
+				return R.string.shared_string_next_sunrise;
+		}
+	}
+
 	@Override
 	public void onResume() {
 		super.onResume();
 		updateEnable = true;
 		updateTimeDescription();
+		updateSunPositionDescription();
 		startHandler();
 	}
 
@@ -146,6 +209,7 @@ public class SunriseSunsetSettingsFragment extends WidgetSettingsBaseFragment {
 		handler.postDelayed(() -> {
 			if (getView() != null && updateEnable) {
 				updateTimeDescription();
+				updateSunPositionDescription();
 				startHandler();
 			}
 		}, UPDATE_UI_PERIOD_MS);

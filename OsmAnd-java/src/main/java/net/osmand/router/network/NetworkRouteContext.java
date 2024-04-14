@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TLongObjectMap;
@@ -439,6 +438,8 @@ public class NetworkRouteContext {
 				int y31 = obj.getPoint31YTile(i);
 				intersects = intersects || (i > 0 && intersects(x31, y31, px, py));
 				if (getTileId(x31, y31) != tileId) {
+					px = x31;
+					py = y31;
 					continue;
 				}
 				intersects = true;
@@ -454,8 +455,6 @@ public class NetworkRouteContext {
 				if (i < len - 1) {
 					point.addObject(new NetworkRouteSegment(obj, rk, i, len - 1));
 				}
-				px = x31;
-				py = y31;
 			}
 			if (intersects) {
 				addUnique(new NetworkRouteSegment(obj, rk, 0, len - 1));

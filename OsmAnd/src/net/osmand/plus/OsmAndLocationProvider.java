@@ -36,18 +36,19 @@ import net.osmand.StateChangedListener;
 import net.osmand.binary.GeocodingUtilities.GeocodingResult;
 import net.osmand.binary.RouteDataObject;
 import net.osmand.data.LatLon;
-import net.osmand.data.QuadPoint;
 import net.osmand.plus.auto.NavigationSession;
 import net.osmand.plus.helpers.CurrentPositionHelper;
 import net.osmand.plus.helpers.LocationServiceHelper;
+import net.osmand.plus.helpers.LocationCallback;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.accessibility.NavigationInfo;
-import net.osmand.plus.routing.RouteSegmentSearchResult;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.LocationSource;
+import net.osmand.plus.simulation.OsmAndLocationSimulation;
+import net.osmand.plus.simulation.SimulationProvider;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.router.RouteSegmentResult;
 import net.osmand.util.Algorithms;
@@ -62,8 +63,6 @@ public class OsmAndLocationProvider implements SensorEventListener {
 
 	public static final int REQUEST_LOCATION_PERMISSION = 100;
 
-	public static final String SIMULATED_PROVIDER = "OsmAnd";
-	public static final String SIMULATED_PROVIDER_GPX = "GPX";
 
 	public interface OsmAndLocationListener {
 		void updateLocation(net.osmand.Location location);
@@ -78,6 +77,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 	private static final int RUN_SIMULATE_LOCATION_MSG_ID = OsmAndConstants.UI_HANDLER_LOCATION_SERVICE + 3;
 	private static final long LOST_LOCATION_CHECK_DELAY = 18000;
 	private static final long START_LOCATION_SIMULATION_DELAY = 2000;
+	private static final int UPCOMING_TUNNEL_DISTANCE = 250;
 
 	private static final float ACCURACY_FOR_GPX_AND_ROUTING = 50;
 
@@ -144,96 +144,11 @@ public class OsmAndLocationProvider implements SensorEventListener {
 
 	private StateChangedListener<LocationSource> locationSourceListener;
 
-	public static class SimulationProvider {
-		private int currentRoad;
-		private int currentSegment;
-		private QuadPoint currentPoint;
-		private net.osmand.Location startLocation;
-		private List<RouteSegmentResult> roads;
-
-
-		public void startSimulation(List<RouteSegmentResult> roads,
-									net.osmand.Location currentLocation) {
-			this.roads = roads;
-			startLocation = new net.osmand.Location(currentLocation);
-			long ms = System.currentTimeMillis();
-			if (ms - startLocation.getTime() > 5000 || ms < startLocation.getTime()) {
-				startLocation.setTime(ms);
-			}
-			RouteSegmentSearchResult searchResult =
-					RouteSegmentSearchResult.searchRouteSegment(currentLocation.getLatitude(), currentLocation.getLongitude(), -1, roads);
-			if (searchResult != null) {
-				currentRoad = searchResult.getRoadIndex();
-				currentSegment = searchResult.getSegmentIndex();
-				currentPoint = searchResult.getPoint();
-			} else {
-				currentRoad = -1;
-			}
-		}
-
-		private float proceedMeters(float meters, net.osmand.Location l) {
-			for (int i = currentRoad; i < roads.size(); i++) {
-				RouteSegmentResult road = roads.get(i);
-				boolean firstRoad = i == currentRoad;
-				boolean plus = road.getStartPointIndex() < road.getEndPointIndex();
-				for (int j = firstRoad ? currentSegment : road.getStartPointIndex() + 1; j <= road.getEndPointIndex(); ) {
-					RouteDataObject obj = road.getObject();
-					int st31x = obj.getPoint31XTile(j - 1);
-					int st31y = obj.getPoint31YTile(j - 1);
-					int end31x = obj.getPoint31XTile(j);
-					int end31y = obj.getPoint31YTile(j);
-					boolean last = i == roads.size() - 1 && j == road.getEndPointIndex();
-					boolean first = firstRoad && j == currentSegment;
-					if (first) {
-						st31x = (int) currentPoint.x;
-						st31y = (int) currentPoint.y;
-					}
-					double dd = MapUtils.measuredDist31(st31x, st31y, end31x, end31y);
-					if (meters > dd && !last) {
-						meters -= dd;
-					} else {
-						int prx = (int) (st31x + (end31x - st31x) * (meters / dd));
-						int pry = (int) (st31y + (end31y - st31y) * (meters / dd));
-						l.setLongitude(MapUtils.get31LongitudeX(prx));
-						l.setLatitude(MapUtils.get31LatitudeY(pry));
-						return (float) Math.max(meters - dd, 0);
-					}
-					j += plus ? 1 : -1;
-				}
-			}
-			return -1;
-		}
-
-		/**
-		 * @return null if it is not available of far from boundaries
-		 */
-		public net.osmand.Location getSimulatedLocation() {
-			if (!isSimulatedDataAvailable()) {
-				return null;
-			}
-
-			net.osmand.Location loc = new net.osmand.Location(SIMULATED_PROVIDER);
-			loc.setSpeed(startLocation.getSpeed());
-			loc.setAltitude(startLocation.getAltitude());
-			loc.setTime(System.currentTimeMillis());
-			float meters = startLocation.getSpeed() * ((System.currentTimeMillis() - startLocation.getTime()) / 1000);
-			float proc = proceedMeters(meters, loc);
-			if (proc < 0 || proc >= 100) {
-				return null;
-			}
-			return loc;
-		}
-
-		public boolean isSimulatedDataAvailable() {
-			return startLocation != null && startLocation.getSpeed() > 0 && currentRoad >= 0;
-		}
-	}
-
-	public OsmAndLocationProvider(OsmandApplication app) {
+	public OsmAndLocationProvider(@NonNull OsmandApplication app) {
 		this.app = app;
 		navigationInfo = new NavigationInfo(app);
 		currentPositionHelper = new CurrentPositionHelper(app);
-		locationSimulation = new OsmAndLocationSimulation(app, this);
+		locationSimulation = new OsmAndLocationSimulation(app);
 		locationServiceHelper = app.createLocationServiceHelper();
 		addLocationSourceListener();
 		addLocationListener(navigationInfo);
@@ -256,7 +171,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 			LocationManager locationService = (LocationManager) app.getSystemService(Context.LOCATION_SERVICE);
 			registerGpsStatusListener(locationService);
 			try {
-				locationServiceHelper.requestLocationUpdates(new LocationServiceHelper.LocationCallback() {
+				locationServiceHelper.requestLocationUpdates(new LocationCallback() {
 					@Override
 					public void onLocationResult(@NonNull List<net.osmand.Location> locations) {
 						net.osmand.Location location = null;
@@ -276,7 +191,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 			}
 			// try to always ask for network provide : it is faster way to find location
 			if (locationServiceHelper.isNetworkLocationUpdatesSupported()) {
-				locationServiceHelper.requestNetworkLocationUpdates(new LocationServiceHelper.LocationCallback() {
+				locationServiceHelper.requestNetworkLocationUpdates(new LocationCallback() {
 					@Override
 					public void onLocationResult(@NonNull List<net.osmand.Location> locations) {
 						if (!locations.isEmpty() && !useOnlyGPS() && !locationSimulation.isRouteAnimating()) {
@@ -287,7 +202,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 			}
 		}
 	}
-	
+
 	public void redownloadAGPS() {
 		try {
 			LocationManager service = (LocationManager) app.getSystemService(Context.LOCATION_SERVICE);
@@ -299,7 +214,6 @@ public class OsmAndLocationProvider implements SensorEventListener {
 			app.getSettings().AGPS_DATA_LAST_TIME_DOWNLOADED.set(System.currentTimeMillis());
 		} catch (Exception e) {
 			app.getSettings().AGPS_DATA_LAST_TIME_DOWNLOADED.set(0L);
-			e.printStackTrace();
 		}
 	}
 
@@ -375,35 +289,35 @@ public class OsmAndLocationProvider implements SensorEventListener {
 	}
 
 	@NonNull
-	public GPSInfo getGPSInfo(){
+	public GPSInfo getGPSInfo() {
 		return gpsInfo;
 	}
-	
+
 	public void updateScreenOrientation(int orientation) {
 		currentScreenOrientation = orientation;
 	}
-	
+
 	public void addLocationListener(@NonNull OsmAndLocationListener listener) {
 		if (!locationListeners.contains(listener)) {
 			locationListeners.add(listener);
 		}
 	}
-	
+
 	public void removeLocationListener(@NonNull OsmAndLocationListener listener) {
 		locationListeners.remove(listener);
 	}
-	
+
 	public void addCompassListener(@NonNull OsmAndCompassListener listener) {
 		if (!compassListeners.contains(listener)) {
 			compassListeners.add(listener);
 		}
 	}
-	
+
 	public void removeCompassListener(@NonNull OsmAndCompassListener listener) {
 		compassListeners.remove(listener);
 	}
 
-	private void addLocationSourceListener(){
+	private void addLocationSourceListener() {
 		locationSourceListener = change -> {
 			pauseAllUpdates();
 			locationServiceHelper = app.createLocationServiceHelper();
@@ -414,13 +328,16 @@ public class OsmAndLocationProvider implements SensorEventListener {
 
 	@Nullable
 	public net.osmand.Location getFirstTimeRunDefaultLocation(@Nullable OsmAndLocationListener locationListener) {
-		return isLocationPermissionAvailable(app)
-				? locationServiceHelper.getFirstTimeRunDefaultLocation(locationListener != null ? new LocationServiceHelper.LocationCallback() {
-			@Override
-			public void onLocationResult(@NonNull List<net.osmand.Location> locations) {
-				locationListener.updateLocation(locations.isEmpty() ? null : locations.get(0));
-			}
-		} : null) : null;
+		if (isLocationPermissionAvailable(app)) {
+			LocationCallback callback = locationListener == null ? null : new LocationCallback() {
+				@Override
+				public void onLocationResult(@NonNull List<net.osmand.Location> locations) {
+					locationListener.updateLocation(locations.isEmpty() ? null : locations.get(0));
+				}
+			};
+			return locationServiceHelper.getFirstTimeRunDefaultLocation(callback);
+		}
+		return null;
 	}
 
 	public boolean hasOrientationSensor() {
@@ -608,18 +525,18 @@ public class OsmAndLocationProvider implements SensorEventListener {
 				previousCompassValuesB[previousCompassIndB] = lastValCos;
 			}
 		}
-	}	
+	}
 
 	private void updateCompassVal() {
 		for (OsmAndCompassListener c : compassListeners) {
 			c.updateCompassValue(heading);
 		}
 	}
-	
+
 	public Float getHeading() {
 		return heading;
 	}
-	
+
 	private float getAngle(float sinA, float cosA) {
 		return MapUtils.unifyRotationTo360((float) (Math.atan2(sinA, cosA) * 180 / Math.PI));
 	}
@@ -696,12 +613,12 @@ public class OsmAndLocationProvider implements SensorEventListener {
 		}
 		return r;
 	}
-	
-	
+
+
 	private void scheduleCheckIfGpsLost(net.osmand.Location location) {
 		RoutingHelper routingHelper = app.getRoutingHelper();
 		if (location != null && routingHelper.isFollowingMode() && routingHelper.getLeftDistance() > 0
-				&& simulatePosition == null ) {
+				&& simulatePosition == null) {
 			long fixTime = location.getTime();
 			app.runMessageInUIThreadAndCancelPrevious(LOST_LOCATION_MSG_ID, () -> {
 				net.osmand.Location lastKnown = getLastKnownLocation();
@@ -723,20 +640,20 @@ public class OsmAndLocationProvider implements SensorEventListener {
 					return;
 				}
 				// Speed 120kmh, 2 seconds -> 60 m
-				List<RouteSegmentResult> tunnel = routingHelper.getUpcomingTunnel(250);
+				List<RouteSegmentResult> tunnel = routingHelper.getUpcomingTunnel(UPCOMING_TUNNEL_DISTANCE);
 				if (tunnel != null) {
-					simulatePosition = new SimulationProvider();
-					simulatePosition.startSimulation(tunnel, location);
+					simulatePosition = new SimulationProvider(location, tunnel);
+					simulatePosition.startSimulation();
 					simulatePositionImpl();
 				}
 			}, START_LOCATION_SIMULATION_DELAY);
 		}
 	}
-	
+
 	public void simulatePosition() {
 		app.runMessageInUIThreadAndCancelPrevious(RUN_SIMULATE_LOCATION_MSG_ID, this::simulatePositionImpl, 600);
 	}
-	
+
 	private void simulatePositionImpl() {
 		if (simulatePosition != null) {
 			net.osmand.Location loc = simulatePosition.getSimulatedLocation();
@@ -776,6 +693,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 		RoutingHelper routingHelper = app.getRoutingHelper();
 		app.getSavingTrackHelper().updateLocation(location, heading);
 		app.getAverageSpeedComputer().updateLocation(location);
+		app.getAverageGlideComputer().updateLocation(location);
 		PluginsHelper.updateLocationPlugins(location);
 		routingHelper.updateLocation(location);
 		app.getWaypointHelper().locationChanged(location);
@@ -819,6 +737,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 		if (location != null) {
 			app.getSavingTrackHelper().updateLocation(location, heading);
 			app.getAverageSpeedComputer().updateLocation(location);
+			app.getAverageGlideComputer().updateLocation(location);
 			PluginsHelper.updateLocationPlugins(location);
 		}
 
@@ -829,14 +748,14 @@ public class OsmAndLocationProvider implements SensorEventListener {
 				// Update routing position and get location for sticking mode
 				updatedLocation = routingHelper.setCurrentLocation(location, app.getSettings().SNAP_TO_ROAD.get());
 			}
-		} else if(routingHelper.isRoutePlanningMode() && app.getSettings().getPointToStart() == null) {
+		} else if (routingHelper.isRoutePlanningMode() && app.getSettings().getPointToStart() == null) {
 			routingHelper.setCurrentLocation(location, false);
-		} else if(getLocationSimulation().isRouteAnimating()) {
+		} else if (getLocationSimulation().isRouteAnimating()) {
 			routingHelper.setCurrentLocation(location, false);
 		}
 		app.getWaypointHelper().locationChanged(location);
 		this.location = updatedLocation;
-		
+
 		// Update information
 		updateLocation(this.location);
 	}
@@ -869,7 +788,7 @@ public class OsmAndLocationProvider implements SensorEventListener {
 			hint = app.getString(R.string.no_info);
 		return hint;
 	}
-	
+
 	public String getNavigationHint(LatLon point) {
 		String hint = navigationInfo.getDirectionString(point, getHeading());
 		if (hint == null)
@@ -895,12 +814,12 @@ public class OsmAndLocationProvider implements SensorEventListener {
 	}
 
 	public boolean getRouteSegment(net.osmand.Location loc,
-								   @Nullable ApplicationMode appMode,
-								   boolean cancelPreviousSearch,
-								   ResultMatcher<RouteDataObject> result) {
+	                               @Nullable ApplicationMode appMode,
+	                               boolean cancelPreviousSearch,
+	                               ResultMatcher<RouteDataObject> result) {
 		return currentPositionHelper.getRouteSegment(loc, appMode, cancelPreviousSearch, result);
 	}
-	
+
 	public boolean getGeocodingResult(net.osmand.Location loc, ResultMatcher<GeocodingResult> result) {
 		return currentPositionHelper.getGeocodingResult(loc, result);
 	}
@@ -939,9 +858,9 @@ public class OsmAndLocationProvider implements SensorEventListener {
 
 	public void showNavigationInfo(TargetPoint pointToNavigate, Context uiActivity) {
 		getNavigationInfo().show(pointToNavigate, getHeading(), uiActivity);
-		
+
 	}
-	
+
 	public OsmAndLocationSimulation getLocationSimulation() {
 		return locationSimulation;
 	}
@@ -950,13 +869,6 @@ public class OsmAndLocationProvider implements SensorEventListener {
 		public int foundSatellites;
 		public int usedSatellites;
 		public boolean fixed;
-	}
-
-	public static boolean isNotSimulatedLocation(@Nullable net.osmand.Location location) {
-		if (location != null) {
-			return !SIMULATED_PROVIDER.equals(location.getProvider());
-		}
-		return true;
 	}
 
 	public boolean checkGPSEnabled(Context context) {

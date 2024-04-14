@@ -1,13 +1,14 @@
 package net.osmand.plus.wikivoyage.data;
 
+import static net.osmand.gpx.GPXUtilities.POINT_ELEVATION;
+import static net.osmand.gpx.GPXUtilities.WptPt;
+import static net.osmand.osm.MapPoiTypes.ROUTE_TRACK_POINT;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.data.Amenity;
 import net.osmand.gpx.GPXTrackAnalysis;
-
-import static net.osmand.gpx.GPXUtilities.*;
-import static net.osmand.osm.MapPoiTypes.ROUTE_TRACK_POINT;
 
 public class TravelGpx extends TravelArticle {
 
@@ -34,18 +35,19 @@ public class TravelGpx extends TravelArticle {
 	@Override
 	public GPXTrackAnalysis getAnalysis() {
 		GPXTrackAnalysis analysis = new GPXTrackAnalysis();
-		if(gpxFile.hasAltitude){
-			analysis =  gpxFile.getAnalysis(0);
+		if (gpxFile.hasAltitude) {
+			analysis = gpxFile.getAnalysis(0);
 		} else {
-			analysis.diffElevationDown = diffElevationDown;
-			analysis.diffElevationUp = diffElevationUp;
-			analysis.maxElevation = maxElevation;
-			analysis.minElevation = minElevation;
-			analysis.totalDistance = totalDistance;
+			analysis.setDiffElevationDown(diffElevationDown);
+			analysis.setDiffElevationUp(diffElevationUp);
+			analysis.setMaxElevation(maxElevation);
+			analysis.setMinElevation(minElevation);
+			analysis.setTotalDistance(totalDistance);
 			analysis.totalDistanceWithoutGaps = totalDistance;
-			analysis.avgElevation = avgElevation;
+			analysis.setAvgElevation(avgElevation);
+
 			if (!Double.isNaN(maxElevation) || !Double.isNaN(minElevation)) {
-				analysis.hasElevationData = true;
+				analysis.setHasData(POINT_ELEVATION, true);
 			}
 		}
 		return analysis;

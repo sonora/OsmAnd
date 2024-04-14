@@ -1,7 +1,7 @@
 package net.osmand.plus.mapcontextmenu.editors;
 
-import static net.osmand.plus.myplaces.FavoriteGroup.PERSONAL_CATEGORY;
-import static net.osmand.plus.myplaces.FavoriteGroup.isPersonalCategoryDisplayName;
+import static net.osmand.plus.myplaces.favorites.FavoriteGroup.PERSONAL_CATEGORY;
+import static net.osmand.plus.myplaces.favorites.FavoriteGroup.isPersonalCategoryDisplayName;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -9,9 +9,11 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -25,16 +27,21 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputLayout;
 
+import net.osmand.data.LatLon;
 import net.osmand.gpx.GPXUtilities.PointsGroup;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.mapcontextmenu.MapContextMenu;
+import net.osmand.plus.myplaces.tracks.MapBitmapDrawerListener;
+import net.osmand.plus.myplaces.tracks.MapDrawParams;
+import net.osmand.plus.myplaces.tracks.PointBitmapDrawer;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -47,6 +54,7 @@ public abstract class PointEditorFragment extends EditorFragment {
 	private TextView addAddressBtn;
 	private TextView addToHiddenGroupInfo;
 	private ImageView deleteAddressIcon;
+	private ImageView image;
 	private ImageView nameIcon;
 	private GroupAdapter groupListAdapter;
 	private RecyclerView groupRecyclerView;
@@ -56,6 +64,7 @@ public abstract class PointEditorFragment extends EditorFragment {
 	private EditText addressEdit;
 
 	protected PointsGroup selectedGroup;
+	protected PointBitmapDrawer pointDrawer;
 	protected boolean skipConfirmationDialog;
 
 	@Override
@@ -66,10 +75,11 @@ public abstract class PointEditorFragment extends EditorFragment {
 	@SuppressLint("ClickableViewAccessibility")
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+		updateNightMode();
 		Context context = requireContext();
 		PointEditor editor = getEditor();
 		if (editor == null) {
-			view = UiUtilities.getInflater(context, nightMode).inflate(getLayoutId(), container, false);
+			view = themedInflater.inflate(getLayoutId(), container, false);
 			AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 			return view;
 		}
@@ -92,6 +102,7 @@ public abstract class PointEditorFragment extends EditorFragment {
 		TextInputLayout nameCaption = view.findViewById(R.id.name_caption);
 		nameCaption.setHint(getString(R.string.shared_string_name));
 
+		image = view.findViewById(R.id.image);
 		nameIcon = view.findViewById(R.id.name_icon);
 		addressEdit = view.findViewById(R.id.address_edit);
 		descriptionEdit = view.findViewById(R.id.description_edit);
@@ -212,6 +223,7 @@ public abstract class PointEditorFragment extends EditorFragment {
 			descriptionEdit.getParent().requestDisallowInterceptTouchEvent(true);
 			return false;
 		});
+		drawPointImage();
 
 		return view;
 	}
@@ -244,9 +256,10 @@ public abstract class PointEditorFragment extends EditorFragment {
 	protected void setupButtons() {
 		super.setupButtons();
 		AndroidUiHelper.updateVisibility(view.findViewById(R.id.buttons_divider), true);
-		View cancelButton = view.findViewById(R.id.dismiss_button);
+		DialogButton cancelButton = view.findViewById(R.id.dismiss_button);
 		cancelButton.setOnClickListener(v -> showExitDialog());
-		UiUtilities.setupDialogButton(nightMode, cancelButton, DialogButtonType.SECONDARY, R.string.shared_string_cancel);
+		cancelButton.setButtonType(DialogButtonType.SECONDARY);
+		cancelButton.setTitleId(R.string.shared_string_cancel);
 	}
 
 	@Override
@@ -312,6 +325,9 @@ public abstract class PointEditorFragment extends EditorFragment {
 		if (!wasSaved() && editor != null && !editor.isNew() && !cancelled) {
 			save(false);
 		}
+		if (pointDrawer != null) {
+			pointDrawer.setDrawingAllowed(false);
+		}
 		super.onDestroyView();
 	}
 
@@ -360,6 +376,34 @@ public abstract class PointEditorFragment extends EditorFragment {
 		groupRecyclerView.scrollToPosition(position);
 	}
 
+	protected void drawPointImage() {
+		LatLon latLon = getPointCoordinates();
+		MapDrawParams params = getMapDrawParams();
+		pointDrawer = new PointBitmapDrawer(app, params, latLon);
+		pointDrawer.addListener(new MapBitmapDrawerListener() {
+			@Override
+			public void onBitmapDrawn(boolean success) {
+				if (image != null) {
+					image.setClipToOutline(true);
+					image.setImageBitmap(pointDrawer.getMapBitmap());
+				}
+			}
+		});
+		pointDrawer.initAndDraw();
+	}
+
+	@NonNull
+	private MapDrawParams getMapDrawParams() {
+		WindowManager mgr = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
+		DisplayMetrics metrics = new DisplayMetrics();
+		mgr.getDefaultDisplay().getMetrics(metrics);
+
+		int width = metrics.widthPixels - AndroidUtils.dpToPx(app, 32);
+		int height = getResources().getDimensionPixelSize(R.dimen.point_image_height);
+
+		return new MapDrawParams(metrics.density, width, height);
+	}
+
 	protected String getLastUsedGroup() {
 		return "";
 	}
@@ -391,6 +435,9 @@ public abstract class PointEditorFragment extends EditorFragment {
 
 	@NonNull
 	protected abstract Map<String, PointsGroup> getPointsGroups();
+
+	@NonNull
+	protected abstract LatLon getPointCoordinates();
 
 	protected abstract String getAddressInitValue();
 

@@ -1,7 +1,6 @@
 package net.osmand.plus.settings.fragments;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,18 +21,16 @@ import androidx.fragment.app.FragmentManager;
 
 import com.github.ksoichiro.android.observablescrollview.ScrollUtils;
 
-import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.utils.ColorUtilities;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
-import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.settings.backend.ExportSettingsCategory;
-import net.osmand.plus.settings.backend.ExportSettingsType;
+import net.osmand.plus.settings.backend.ExportCategory;
+import net.osmand.plus.settings.backend.backup.exporttype.ExportType;
 import net.osmand.plus.settings.fragments.ExportSettingsAdapter.OnItemSelectedListener;
+import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.widgets.TextViewEx;
 import net.osmand.util.Algorithms;
 
@@ -47,10 +44,8 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 
 	public static final String SETTINGS_LIST_TAG = "settings_list_tag";
 
-	protected OsmandApplication app;
-
-	protected Map<ExportSettingsType, List<?>> selectedItemsMap = new EnumMap<>(ExportSettingsType.class);
-	protected Map<ExportSettingsCategory, SettingsCategoryItems> dataList = new LinkedHashMap<>();
+	protected Map<ExportType, List<?>> selectedItemsMap = new EnumMap<>(ExportType.class);
+	protected Map<ExportCategory, SettingsCategoryItems> dataList = new LinkedHashMap<>();
 
 	protected View header;
 	protected View continueBtn;
@@ -65,7 +60,6 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 	protected ExportSettingsAdapter adapter;
 
 	protected boolean exportMode;
-	protected boolean nightMode;
 	private boolean wasDrawerDisabled;
 
 	@Override
@@ -76,9 +70,6 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
-		nightMode = !app.getSettings().isLightContent();
-
 		requireActivity().getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
 			@Override
 			public void handleOnBackPressed() {
@@ -94,7 +85,7 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(app, nightMode);
+		updateNightMode();
 		View root = themedInflater.inflate(R.layout.fragment_import, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), root);
 
@@ -116,17 +107,13 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 		availableSpaceDescr = availableSpaceContainer.findViewById(R.id.warning_descr);
 
 		continueBtn = root.findViewById(R.id.continue_button);
-		UiUtilities.setupDialogButton(nightMode, continueBtn, DialogButtonType.PRIMARY, getString(R.string.shared_string_continue));
-		root.findViewById(R.id.continue_button_container).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if (expandableList.getHeaderViewsCount() <= 1) {
-					if (hasSelectedData()) {
-						onContinueButtonClickAction();
-					}
-				} else {
-					expandableList.smoothScrollToPosition(0);
+		root.findViewById(R.id.continue_button_container).setOnClickListener(v -> {
+			if (expandableList.getHeaderViewsCount() <= 1) {
+				if (hasSelectedData()) {
+					onContinueButtonClickAction();
 				}
+			} else {
+				expandableList.smoothScrollToPosition(0);
 			}
 		});
 
@@ -174,12 +161,7 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 		dismissDialog.setTitle(getString(R.string.shared_string_dismiss));
 		dismissDialog.setMessage(getString(R.string.exit_without_saving));
 		dismissDialog.setNegativeButton(R.string.shared_string_cancel, null);
-		dismissDialog.setPositiveButton(R.string.shared_string_exit, new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dismissFragment();
-			}
-		});
+		dismissDialog.setPositiveButton(R.string.shared_string_exit, (dialog, which) -> dismissFragment());
 		dismissDialog.show();
 	}
 
@@ -187,14 +169,11 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 		int color = ColorUtilities.getActiveButtonsAndLinksTextColor(app, nightMode);
 		toolbar.setNavigationIcon(getPaintedContentIcon(R.drawable.ic_action_close, color));
 		toolbar.setNavigationContentDescription(R.string.shared_string_close);
-		toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				if (hasSelectedData()) {
-					showExitDialog();
-				} else {
-					dismissFragment();
-				}
+		toolbar.setNavigationOnClickListener(v -> {
+			if (hasSelectedData()) {
+				showExitDialog();
+			} else {
+				dismissFragment();
 			}
 		});
 	}
@@ -268,40 +247,43 @@ public abstract class BaseSettingsListFragment extends BaseOsmAndFragment implem
 	}
 
 	@Override
-	public void onCategorySelected(ExportSettingsCategory category, boolean selected) {
-		SettingsCategoryItems categoryItems = dataList.get(category);
-		for (ExportSettingsType type : categoryItems.getNotEmptyTypes()) {
-			List<?> selectedItems = selected ? categoryItems.getItemsForType(type) : new ArrayList<>();
-			selectedItemsMap.put(type, selectedItems);
+	public void onCategorySelected(@NonNull ExportCategory exportCategory, boolean selected) {
+		SettingsCategoryItems categoryItems = dataList.get(exportCategory);
+		for (ExportType exportType : categoryItems.getNotEmptyTypes()) {
+			List<?> selectedItems = selected ? categoryItems.getItemsForType(exportType) : new ArrayList<>();
+			selectedItemsMap.put(exportType, selectedItems);
 		}
 		updateAvailableSpace();
 	}
 
 	@Override
-	public void onItemsSelected(ExportSettingsType type, List<?> selectedItems) {
-		selectedItemsMap.put(type, selectedItems);
+	public void onItemsSelected(@NonNull ExportType exportType, List<?> selectedItems) {
+		selectedItemsMap.put(exportType, selectedItems);
 		adapter.notifyDataSetChanged();
 		updateAvailableSpace();
 	}
 
-	protected List<Object> getItemsForType(ExportSettingsType type) {
+	@Nullable
+	protected List<?> getItemsForType(@NonNull ExportType exportType) {
 		for (SettingsCategoryItems categoryItems : dataList.values()) {
-			if (categoryItems.getTypes().contains(type)) {
-				return (List<Object>) categoryItems.getItemsForType(type);
+			if (categoryItems.getTypes().contains(exportType)) {
+				return categoryItems.getItemsForType(exportType);
 			}
 		}
 		return null;
 	}
 
-	protected List<Object> getSelectedItemsForType(ExportSettingsType type) {
-		return (List<Object>) selectedItemsMap.get(type);
+	@Nullable
+	protected List<Object> getSelectedItemsForType(@NonNull ExportType exportType) {
+		List<?> itemsForType = selectedItemsMap.get(exportType);
+		return itemsForType != null ? new ArrayList<>(itemsForType) : null;
 	}
 
 	@Override
-	public void onTypeClicked(ExportSettingsType type) {
+	public void onTypeClicked(@NonNull ExportType exportType) {
 		FragmentManager fragmentManager = getFragmentManager();
-		if (fragmentManager != null && type != ExportSettingsType.GLOBAL && type != ExportSettingsType.SEARCH_HISTORY) {
-			ExportItemsBottomSheet.showInstance(fragmentManager, type, this, exportMode);
+		if (fragmentManager != null && exportType != ExportType.GLOBAL && exportType != ExportType.SEARCH_HISTORY && exportType != ExportType.NAVIGATION_HISTORY) {
+			ExportItemsBottomSheet.showInstance(fragmentManager, exportType, this, exportMode);
 		}
 	}
 }

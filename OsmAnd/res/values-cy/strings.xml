@@ -317,7 +317,7 @@
     <string name="my_location">Fy lleoliad</string>
     <string name="show_map">Dangos map</string>
     <string name="shared_string_road">Ffordd</string>
-    <string name="shared_string_view">Golwg</string>
+    <string name="shared_string_view">Gweld</string>
     <string name="shared_string_back">Nôl</string>
     <string name="go_to_next_field">Maes nesaf</string>
     <string name="shared_string_paste">Gludo</string>
@@ -468,7 +468,7 @@
     <string name="you_can_get_feature_as_part_of_pattern">Cael \"%1$s\" fel rhan o gynllun %2$s. Cymhariaeth:</string>
     <string name="user_password">Cyfrinair</string>
     <string name="map_widget_monitoring">Recordio taith</string>
-    <string name="shared_string_preparing">Yn paratoi</string>
+    <string name="shared_string_preparing">Wrthi\'n paratoi</string>
     <string name="shared_string_world">Byd</string>
     <string name="shared_string_automatic">Awtomatig</string>
     <string name="shared_string_continue">Parhau</string>
@@ -556,10 +556,8 @@
     <string name="shared_string_not_included">Dim yn cynnwys</string>
     <string name="cancel_anytime_in_gplay">Cansla unrhyw bryd ar Google Play.</string>
     <string name="osmand_maps_plus_tagline">Cael nodweddion estynedig</string>
-    <string name="terrain_maps">Mapiau tirwedd</string>
     <string name="offline_wikivoyage">Wikivoyage All-lein</string>
     <string name="offline_wikipeadia">Wikipedia All-lein</string>
-    <string name="terrain_maps_contour_lines_hillshade_slope">Mapiau tirwedd: cyfuchliniau, cysgodion bryniau, llethrau</string>
     <string name="backup_conflicts">Gwrthdrawiadau</string>
     <string name="restore_complete">Adferwyd</string>
     <string name="shared_string_offline">All-lein</string>
@@ -657,9 +655,9 @@
     <string name="shared_string_edit">Golygu</string>
     <string name="shared_string_copy">Copïo</string>
     <string name="shared_string_ellipsis">…</string>
-    <string name="shared_string_cancel">Diddymu</string>
-    <string name="shared_string_dismiss">Diystyru</string>
-    <string name="shared_string_yes">Iawn</string>
+    <string name="shared_string_cancel">Canslo</string>
+    <string name="shared_string_dismiss">Cau</string>
+    <string name="shared_string_yes">Ie</string>
     <string name="shared_string_next">Nesaf</string>
     <string name="shared_string_disable">Analluogi</string>
     <string name="shared_string_enabled">Galluogwyd</string>
@@ -693,7 +691,7 @@
     <string name="keep_navigation_service">Cadw</string>
     <string name="lang_en">Saesneg</string>
     <string name="voice_pref_title">Llais</string>
-    <string name="lang_al">Albanieg</string>
+    <string name="lang_al">Albaneg</string>
     <string name="osmo_connect_menu">Cysylltu</string>
     <string name="lang_hy">Armeneg</string>
     <string name="lang_eu">Basgeg</string>
@@ -717,7 +715,7 @@
     <string name="lang_pt">Portiwgaleg</string>
     <string name="lang_ro">Rwmaneg</string>
     <string name="lang_sc">Sardinieg</string>
-    <string name="app_mode_boat">Morio</string>
+    <string name="app_mode_boat">Cwch</string>
     <string name="app_mode_truck">Lori</string>
     <string name="auto_zoom_none">Dim chwyddo awtomatig</string>
     <string name="map_magnifier">Chwyddwr y map</string>
@@ -980,7 +978,6 @@
     <string name="map_widget_av_notes">Nodiadau sain/fideo</string>
     <string name="map_widget_distancemeasurement">Mesuriad pellter</string>
     <string name="audionotes_location_not_defined">Tapia \'Defnyddio lleoliad...\' i ychwanegu nodyn i\'r lleoliad.</string>
-    <string name="index_srtm_ele">Cyfuchliniau</string>
     <string name="download_regular_maps">Map safonol</string>
     <string name="download_roads_only_maps">Map ffyrdd yn unig</string>
     <string name="enable_plugin_monitoring_services">Galluogwch yr ategyn \"Trip recording\" i ddefnyddio gwasanaethau logio lleoliad (logio GPX, tracio arlein)</string>
@@ -1029,7 +1026,7 @@
     <string name="routing_attr_piste_type_sled_name">Sled</string>
     <string name="app_mode_pedestrian">Cerdded</string>
     <string name="position_on_map_center">Canol</string>
-    <string name="navigate_point_format_D">GGG.GGGGG</string>
+    <string name="navigate_point_format_D">DDD.DDDDD</string>
     <string name="daily">Dyddiol</string>
     <string name="favorite_empty_place_name">Lle</string>
     <string name="run_full_osmand_header">Dechrau OsmAnd\?</string>
@@ -1057,7 +1054,6 @@
     <string name="clear_dest_confirm">Tynnu dy gyrchfan (a mannau ar hyd y ffordd)\?</string>
     <string name="av_use_external_recorder">Defnyddio recordydd y system</string>
     <string name="recording_description">Yn recordio %1$s %3$s %2$s</string>
-    <string name="index_srtm_parts">rhannau</string>
     <string name="rendering_attr_roadColors_name">Cynllun lliwiau ffyrdd</string>
     <string name="map_widget_show_destination_arrow">Dangos cyfeiriad y gyrchfan</string>
     <string name="target_point">Cyrchfan %1$s</string>
@@ -1108,13 +1104,13 @@
     <string name="incomplete_locale">anghyflawn</string>
     <string name="finished_task">Cwblhawyd</string>
     <string name="search_activity">Chwilio</string>
-    <string name="poi_remove_success">Dileuwyd</string>
+    <string name="poi_remove_success">Dilëwyd</string>
     <string name="poi_dialog_opening_hours">Agor</string>
     <string name="av_camera_focus_auto">Awto-ffocws</string>
     <string name="index_name_europe">Ewrop</string>
     <string name="city_type_hamlet">Pentrefan</string>
     <string name="city_type_village">Pentref</string>
-    <string name="lang_af">Affricaneg</string>
+    <string name="lang_af">Affricâneg</string>
     <string name="rendering_attr_hideText_name">Testun</string>
     <string name="srtm_plugin_description">Mae\'r ategyn hwn yn cynnig troshaen cyfuchlinau a haen cysgodion bryniau (tirwedd) i\'w dangos dros ben mapiau safonol OsmAnd. Gwerthfawrogir y nodwedd hon mwyaf gan athletwyr, heicwyr, cerddwyr mynyddoedd, ac unrhyw un â diddordeb yn ffurf tirwedd. (Noder fod data cyfuchlinau a thirwedd ar gael ac i\'w lwytho ar wahân ar ôl gosod yr ategyn.)
 \n
@@ -1166,7 +1162,7 @@
     <string name="localization_pref_title">Lleoleiddiad</string>
     <string name="arrival_distance_factor_late">Hwyr</string>
     <string name="local_index_mi_backup">Dad-actifadu</string>
-    <string name="gpx_selection_segment_title">Segment</string>
+    <string name="gpx_selection_segment_title">Cydran</string>
     <string name="home_button">Cartref</string>
     <string name="shared_string_ok">Iawn</string>
     <string name="shared_string_no">Na</string>
@@ -1187,14 +1183,14 @@
     <string name="lang_ga">Gwyddeleg</string>
     <string name="shared_string_select">Dewis</string>
     <string name="day">Dydd</string>
-    <string name="shared_sting_tiles">Teils</string>
+    <string name="shared_string_tiles">Teils</string>
     <string name="shared_string_maps">Mapiau</string>
     <string name="lang_la">Lladin</string>
     <string name="shared_string_undo">Dad-wneud</string>
     <string name="tab_title_basic">Sylfaenol</string>
     <string name="other_menu_group">Eraill</string>
     <string name="versions_item">Fersiynau</string>
-    <string name="contact_us">Cysylltu</string>
+    <string name="shared_string_contact">Cysylltu</string>
     <string name="shared_string_skip">Neidio</string>
     <string name="plugin_settings">Ategolion</string>
     <string name="shared_string_navigation">Llywio</string>
@@ -1222,7 +1218,7 @@
     <string name="shared_string_contents">Cynnwys</string>
     <string name="shared_string_finish">Gorffen</string>
     <string name="shared_string_result">Canlyniad</string>
-    <string name="shared_string_wikivoyage">Wikivoyage</string>
+    <string name="shared_string_wikivoyage">Wicidaith</string>
     <string name="app_mode_horse">Ceffyl</string>
     <string name="shared_string_read">Darllen</string>
     <string name="rendering_attr_highway_class_bridleway_name">Llwybr march</string>
@@ -1289,7 +1285,7 @@
     <string name="rendering_value_fine_name">Manwl</string>
     <string name="shared_string_hide">Cuddio</string>
     <string name="rendering_value_walkingRoutesOSMC_name">OSMC</string>
-    <string name="shared_string_previous">Blaenorol</string>
+    <string name="shared_string_previous">Cynt</string>
     <string name="settings_privacy">Preifatrwydd</string>
     <string name="search_radius_proximity">O fewn</string>
     <string name="lang_be">Belarwseg</string>
@@ -1384,7 +1380,7 @@
     <string name="select_segments">Dewis segmentau</string>
     <string name="uploading_count">Yn uwchlwytho %1$d o %2$d</string>
     <string name="routing_engine_vehicle_type_walking">Cerdded</string>
-    <string name="announcement_time_title">Amser cyfarwyddiadau</string>
+    <string name="announcement_time_title">Amser cyhoeddi</string>
     <string name="announcement_time_intervals">Cyfnodau amser a phellter</string>
     <string name="announcement_time_arrive">Cyrraedd pen y daith</string>
     <string name="routing_attr_allow_streams_name">Caniatáu nentydd a ffosydd</string>
@@ -1443,13 +1439,13 @@
     <string name="nautical_depth">Dyfnder morol</string>
     <string name="shared_string_filters">Hidlyddion</string>
     <string name="srtm_plugin_name">Cyfuchliniau</string>
-    <string name="audionotes_plugin_name">Nodiadau sain/fideo</string>
+    <string name="audionotes_plugin_name">Nodiadau sain / fideo</string>
     <string name="speak_speed_limit">Terfyn cyflymder</string>
     <string name="files_limit">%1$d ffeil yn weddill</string>
     <string name="shared_string_target_points">Cyrchfannau</string>
     <string name="gpx_tags_txt">Tagiau</string>
     <string name="oclock">o\'r gloch</string>
-    <string name="local_openstreetmap_uploading">Yn uwchlwytho…</string>
+    <string name="local_openstreetmap_uploading">Wrthi\'n uwchlwytho…</string>
     <string name="index_name_asia">Asia</string>
     <string name="amenity_type_finance">Ariannol</string>
     <string name="app_mode_car">Gyrru</string>
@@ -1477,10 +1473,10 @@
     <string name="select_folder_descr">Dewiswch ffolder neu ychwanegu un newydd</string>
     <string name="shared_string_folders">Ffolderi</string>
     <string name="edit_track">Golygu trac</string>
-    <string name="upload_to_openstreetmap">Uchwlwytho i OpenStreetMap</string>
+    <string name="upload_to_openstreetmap">Uwchlwytho i OpenStreetMap</string>
     <string name="transport_nearby_routes">O fewn</string>
     <string name="shared_string_upload">Uwchlwytho</string>
-    <string name="osmand_parking_time_left">yn weddill</string>
+    <string name="osmand_parking_time_left">ar ôl</string>
     <string name="poi_filter_car_aid">Cymorth ceir</string>
     <string name="poi_filter_restaurants">Bwytai</string>
     <string name="gps_filter_precision">Cywirdeb GPS</string>
@@ -1504,7 +1500,7 @@
     <string name="rendering_value_car_name">Car</string>
     <string name="app_mode_motorcycle">Beic modur</string>
     <string name="yard">llth</string>
-    <string name="poi">MODd</string>
+    <string name="poi">POI</string>
     <string name="app_name_osmand">OsmAnd</string>
     <string name="selected_waypoints_descr">Caiff y cyfeirbwyntiau dan sylw eu hychwanegu i\'r trac \"%1$s\"</string>
     <string name="shared_string_reading_file">Yn darllen ffeil…</string>
@@ -1614,7 +1610,7 @@
     <string name="routeInfo_tracktype_description">Lliwio llinell y llwybr neu drac yn ôl y mathau o wyneb. Mwyaf defnyddiol pan fo\'r ffyrdd yn bennaf heb wynebau caled.</string>
     <string name="select_backup_data_descr">Dewiswch ddata a ffolderi i\'w cadw wrth gefn.</string>
     <string name="display_route_tracks_as_poi">Dangos traciau fel MODd</string>
-    <string name="contour_lines_hillshades_slope">Cyfuchliniau, cysgodion bryniau, llethrau</string>
+    <string name="contour_lines_hillshade_slope">Cyfuchliniau, cysgodion bryniau, llethrau</string>
     <string name="backup_delete_old_data_warning">Rydych ar fin dileu hanes newid y data a lwythwyd yn flaenorol.
 \n
 \nBydd y fersiwn cyfredol o ddata yn cael ei gadw ar y gweinydd, ond ni fydd yn bosib troi nôl i\'r newidiadau a gwnaed yn flaenorol.</string>
@@ -2161,7 +2157,7 @@
     <string name="coordinates_format">Fformat cyfesurynnau</string>
     <string name="osn_modify_dialog_title">Addasu nodyn</string>
     <string name="elevation_profile">Proffil uchder</string>
-    <string name="update_all_maps_added">Diweddaru pob map wedi\'i uchwanegu at %1$s\?</string>
+    <string name="update_all_maps_added">Diweddaru pob map wedi\'i ychwanegu at %1$s?</string>
     <string name="osmand_live_cancelled">Wedi\'i ganslo</string>
     <string name="monthly_subscription">Tanysgrifiad misol</string>
     <string name="waypoints_added_to_map_markers">Cyfeirbwyntiau wedi\'u hychwanegu at nodau map</string>
@@ -2271,7 +2267,7 @@
     <string name="loading_list_of_routing_services">Yn llwytho rhestr o\'r gwasanaethau llwybro ar gael</string>
     <string name="next_billing_date">Dyddiad taliad nesaf: %1$s</string>
     <string name="shared_string_marker">Nod</string>
-    <string name="app_mode_aircraft">Hedfan</string>
+    <string name="app_mode_aircraft">Awyren</string>
     <string name="unzipping_file">Yn datgywasgu’r ffeil…</string>
     <string name="reload_tile">Ail-lwytho\'r teilsen</string>
     <string name="markers_history_is_disabled_descr">Galluogwch hanes i gofio rhestr o nodau map yr ymwelwyd â nhw.</string>
@@ -2323,7 +2319,7 @@
     <string name="rendering_category_details">Manylion</string>
     <string name="map_widget_top">Bar statws</string>
     <string name="map_widget_right">Panel y dd</string>
-    <string name="shared_string_all">Y cwbl</string>
+    <string name="shared_string_all">Popeth</string>
     <string name="live_monitoring_m_descr">Anfon data tracio at wasanaeth penodol arlein os nad yw logio GPX ymlaen.</string>
     <string name="live_monitoring_start">Dechrau tracio arlein</string>
     <string name="global_settings">Gosodiadau Byd-eang</string>
@@ -2485,7 +2481,7 @@
 \nEfallai nad yw rhai mapiau wedi\'i llwytho. Gellir gwirio ar-lein am y mapiau angenrheidiol.</string>
     <string name="attribute">Priodoledd</string>
     <string name="km_h">km/a</string>
-    <string name="foot">td</string>
+    <string name="foot">ft</string>
     <string name="purchases_feature_desc_terrain">Cyfuchlinellau\'r dirwedd, map cysgodion bryniau gyda chysgodion tywyll, a mapiau llethrau gyda lliwiau i ddangos copaon ac iseldiroedd.</string>
     <string name="send_crash_log">Anfon log chwalu</string>
     <string name="backup_complete">Wedi cwblhau copi wrth gefn</string>
@@ -2509,7 +2505,7 @@
     <string name="nm_h">kn</string>
     <string name="min_mile">mun/m</string>
     <string name="min_km">mun/km</string>
-    <string name="traffic_warning_hazard">Peryg</string>
+    <string name="traffic_warning_hazard">Perygl</string>
     <string name="rendering_value__name">Rhagosodedig</string>
     <string name="make_backup">Cadw copi wrth gefn</string>
     <string name="rendering_attr_surface_pebblestone_name">Caregos</string>
@@ -3165,7 +3161,7 @@
     <string name="attach_to_the_roads">Atodi i\'r ffyrdd</string>
     <string name="nearest_point">Y pwynt agosaf</string>
     <string name="plan_route_exit_dialog_descr">Hepgor pob newid yn y llwybr arfaethedig\?</string>
-    <string name="shared_string_custom">Cyfaddas</string>
+    <string name="shared_string_custom">Addas</string>
     <string name="select_track_width">Dewis lled</string>
     <string name="app_mode_motor_scooter">Sgwter modur</string>
     <string name="add_hidden_group_info">Mae\'r pwynt ychwanegol i\'w weld yn \"%s\". Datguddia\'r grŵp a ddewiswyd i\'w ddangos ar y map.</string>
@@ -3252,7 +3248,6 @@
     <string name="monitoring_min_accuracy_descr">Bydd hyn yn cofnodi pwyntiau a fesurir gyda\'r isafswm cywirdeb yn unig (mewn metrau / troedfeddi, fel yr adroddwyd gan Android ar gyfer eich chipset). Cywirdeb yw agosrwydd mesuriadau i\'r gwir sefyllfa, ac nid yw\'n uniongyrchol gysylltiedig â manwl gywirdeb, sef gwasgariad mesuriadau dro ar ôl tro.</string>
     <string name="monitoring_min_accuracy_descr_recommendation">Argymhelliad: Mae\'n anodd rhagweld beth fydd yn cael ei gofnodi a beth na fydd, efallai mai\'r peth gorau fyddai diffodd yr hidlydd hwn.</string>
     <string name="monitoring_min_accuracy_descr_remark">Sylw: Pe bai GPS wedi bod i ffwrdd yn union cyn recordiad, efallai y bydd cywirdeb y pwynt cyntaf a fesurwyd yn llai, felly yn ein cod efallai y byddwn am aros eiliad neu ddwy cyn cofnodi pwynt (neu gofnodi\'r gorau o 3 phwynt yn olynol, ac ati .), ond nid yw hyn wedi ei weithredu eto.</string>
-    <string name="live_monitoring_adress_descr">Nodwch y cyfeiriad gwe gyda chystrawen y paramedr: lat={0}, lon={1}, timestamp={2}, hdop={3}, height={4}, speed={5}, bearing={6}.</string>
     <string name="multimedia_photo_play_sound">Sain caead camera</string>
     <string name="monitoring_min_distance_descr_recommendation">Argymhelliad: Gall gosodiad o 5 metr weithio’n dda i chi os nad oes angen i chi gasglu manylion yn fanylach na hynny, ac nad ydych am gipio data’n benodol tra byddwch yn gorffwys.</string>
     <string name="osm_authorization_success">Mae\'r awdurdodiad yn llwyddiannus</string>
@@ -3294,7 +3289,6 @@
     <string name="files_present">Mae %1$d ffeil (%2$s) yn bresennol yn y lleoliad blaenorol \'%3$s\'.</string>
     <string name="routing_attr_avoid_footways_name">Osgoi llwybrau troed</string>
     <string name="use_live_public_transport">Data OsmAnd Live</string>
-    <string name="contour_lines_and_hillshade">Cyfuchliniau a chysgod bryniau</string>
     <string name="magnetic_bearing_widget_desc">Yr ongl rhwng gogledd magnetig a\'r pwynt targed a welwyd o dy leoliad.</string>
     <string name="navigation_points">Pwyntiau llywio</string>
     <string name="calculate_online">Cyfrifo ar-lein</string>
@@ -3600,7 +3594,7 @@
     <string name="rendering_attr_surface_paved_name">Palmantog</string>
     <string name="map_view_3d">Golwg Map 3D</string>
     <string name="update_is_available">Diweddariad ar gael</string>
-    <string name="shared_string_bookmark">Nod Tudalen</string>
+    <string name="shared_string_bookmark">Nod tudalen</string>
     <string name="trace_rendering">Gwybodaeth dadfygio rendro</string>
     <string name="quick_action_resume_pause_navigation">Oedi/ailddechrau llywio</string>
     <string name="use_internet">Defnyddio\'r rhyngrwyd</string>
@@ -3696,7 +3690,6 @@
     <string name="wrong_format">Fformat anghywir</string>
     <string name="apply_filters">Gosod hidlyddion</string>
     <string name="amenity_type_user_defined">Dewis y defnyddiwr</string>
-    <string name="index_settings">Rheoli ffeiliau\'r ap</string>
     <string name="global_app_settings">Gosodiadau\'r ap cyfan</string>
     <string name="local_index_mi_upload_gpx">Anfon at OSM</string>
     <string name="favourites_delete_multiple_succesful">Dileuwyd hoff bwyntiau.</string>
@@ -3824,11 +3817,10 @@
     <string name="av_audio_format">Fformat allbwn sain</string>
     <string name="show_on_start_description">Mae \'Diffodd\' yn agor y map yn uniongyrchol.</string>
     <string name="copied_to_clipboard">Wedi\'i gopïo i\'r clipfwrdd</string>
-    <string name="rendering_attr_hideProposed_name">Gwrthrychau arfaethedig</string>
+    <string name="rendering_attr_showProposed_name">Gwrthrychau arfaethedig</string>
     <string name="simulate_initial_startup_descr">Yn gosod y faner sy\'n nodi cychwyn cyntaf yr ap, yn cadw\'r holl leoliadau eraill heb eu newid.</string>
     <string name="simulate_initial_startup">Efelychu cychwyn cyntaf ap</string>
     <string name="favorite_category_dublicate_message">Defnyddia enw categori nad yw\'n bodoli eisoes.</string>
-    <string name="srtm_plugin_disabled">Llinellau cyfuchlin wedi\'u hanalluogi</string>
     <string name="simulate_your_location_stop_descr">Peidio efelychu dy safle.</string>
     <string name="rendering_value_defaultTranslucentCyan_name">Rhagosodedig (cyan tryloyw)</string>
     <string name="rendering_value_translucent_lightblue_name">Glas golau tryloyw</string>
@@ -3837,7 +3829,7 @@
     <string name="read_full_article">Darllen yr erthygl lawn (ar-lein)</string>
     <string name="osm_edit_context_menu_delete">Dileu golygiad OSM</string>
     <string name="agps_data_last_downloaded">Data A-GPS wedi\'i lawrlwytho: %1$s</string>
-    <string name="please_specify_poi_type_only_from_list"></string>
+    <string name="please_specify_poi_type_only_from_list"/>
     <string name="welcome_select_region">I adlewyrchu\'r arwyddion traffig a\'r rheoliadau yn gywir, dewisa dy rhanbarth gyrru:</string>
     <string name="welcome_text">Mae OsmAnd yn darparu pori mapiau all-lein byd-eang a llywio all-lein.</string>
     <string name="osm_changes_added_to_local_edits">Newidiadau OSM wedi\'u hychwanegu at set newidiadau lleol</string>
@@ -3953,7 +3945,7 @@
     <string name="maps_you_need_descr">Yn seiliedig ar yr erthyglau y gwnes ti osod nod tudalen iddyn nhw, argymhellir y gelli lawrlwytho\'r mapiau canlynol:</string>
     <string name="wikivoyage_download_pics_descr">Gellir lawrlwytho delweddau erthygl i\'w defnyddio all-lein.
 \nAr gael bob amser yn \'Archwilio\' → \'Opsiynau\'.</string>
-    <string name="shared_string_explore">Darganfod</string>
+    <string name="shared_string_explore">Archwilio</string>
     <string name="group_will_be_removed_after_restart">Bydd y grŵp wedi mynd y tro nesaf y byddi di\'n dechrau\'r ap.</string>
     <string name="hide_from_zoom_level">Cuddio cychwyn o lefel chwyddo</string>
     <string name="index_item_world_wikivoyage">Erthyglau Wikivoyage ledled y byd</string>
@@ -3972,7 +3964,6 @@
     <string name="copying_osmand_file_failed">Methodd symud ffeiliau</string>
     <string name="avoid_roads_msg">Cychwyn lwybr amgen trwy ddewis ffyrdd i\'w hosgoi</string>
     <string name="maps_you_need">Mapiau sydd eu hangen arnat</string>
-    <string name="contour_lines_hillshade_maps">Llinellau cyfuchlin a mapiau cysgodion bryniau</string>
     <string name="pick_up_till">Codi tan</string>
     <string name="hide_passed">Cuddfan wedi\'i basio</string>
     <string name="show_direction">Arwydd pellter</string>
@@ -4121,4 +4112,60 @@
     <string name="no_camera_permission">Caniatáu mynediad camera.</string>
     <string name="get_it">Cael</string>
     <string name="share_geo">geo:</string>
+    <string name="import_export">Mewnforio / allforio</string>
+    <string name="gpx_split_interval">Split interval</string>
+    <string name="shared_string_modified">Addaswyd</string>
+    <string name="upload_all">Uwchlwytho popeth</string>
+    <string name="help_article_map_map_context_menu_name">Dewislen Cyd-destun map</string>
+    <string name="help_article_navigation_routing_name">Paramedrau llwybr</string>
+    <string name="help_article_plan_route_name">Cynllunio llwybr</string>
+    <string name="shared_string_finger">Bys</string>
+    <string name="shared_string_hand">Llaw</string>
+    <string name="shared_string_foot">Troed</string>
+    <string name="external_device_details_battery">Batri</string>
+    <string name="upload_change">Uwchlwytho newid</string>
+    <string name="help_article_troubleshooting_general_name">Cyffredinol</string>
+    <string name="help_article_personal_import_export_name">Mewnforio / Allforio</string>
+    <string name="help_article_purchases_giveaway_name">Rhodd</string>
+    <string name="shared_string_link">Dolen</string>
+    <string name="shared_string_license">Trwydded</string>
+    <string name="shared_string_author">Awdur</string>
+    <string name="shared_string_temperature">Tymheredd</string>
+    <string name="help_article_navigation_routing_brouter_name">BRouter</string>
+    <string name="help_article_personal_name">Fy nata</string>
+    <string name="help_article_personal_storage_name">Ystorfa</string>
+    <string name="help_article_start_with_main_menu_name">Prif ddewislen</string>
+    <string name="beats_per_minute_short">bpm</string>
+    <string name="external_device_characteristic_speed">Cyflymder</string>
+    <string name="external_device_characteristic_distance">Pellter</string>
+    <string name="external_device_details_information">Gwybodaeth</string>
+    <string name="weather_forecast">Rhagolwg tywydd</string>
+    <string name="weather_offline_forecast">Rhagolwg all-lein</string>
+    <string name="weather_online_cache">Ystorfa ar-lein</string>
+    <string name="shared_string_duplicate">Dyblygu</string>
+    <string name="shared_string_cache">Ystorfa</string>
+    <string name="local_changes">Newidiadau lleol</string>
+    <string name="help_article_search_search_all_name">Chwilio Popeth</string>
+    <string name="help_article_map_legend_ski_map_name">Arddull map sgi</string>
+    <string name="help_article_navigation_car_play_name">CarPlay</string>
+    <string name="help_article_map_tracks_on_map_name">Traciau a Llwybrau</string>
+    <string name="help_article_map_point_layers_on_map_name">Pwyntiau ar y map</string>
+    <string name="help_article_widgets_map_buttons_name">Botymau map</string>
+    <string name="help_article_navigation_setup_route_details_name">Manylion y Llwybr</string>
+    <string name="help_article_search_search_poi_name">Chwilio POI</string>
+    <string name="help_article_troubleshooting_crash_logs_name">Logiau chwal</string>
+    <string name="help_article_navigation_guidance_voice_navigation_name">Negeseuon llais / Hysbysiadau</string>
+    <string name="help_article_navigation_auto_car_name">Android Auto</string>
+    <string name="help_article_troubleshooting_maps_data_name">Mapiau &amp; Data</string>
+    <string name="external_device_menu_forget">Anghofio</string>
+    <string name="new_file">Ffeil newydd</string>
+    <string name="help_article_map_legend_nautical_map_name">Arddull map morol</string>
+    <string name="help_article_map_legend_osmand_name">Arddull map OsmAnd</string>
+    <string name="help_article_personal_profiles_name">Proffiliau (Gosodiadau)</string>
+    <string name="help_article_map_interact_with_map_name">Rhyngweithio â map</string>
+    <string name="help_article_map_raster_maps_name">Mapiau Raster (Ar-lein / All-lein)</string>
+    <string name="help_article_start_with_name">Dechrau ag OsmAnd</string>
+    <string name="help_article_start_with_first_steps_name">Camau cyntaf</string>
+    <string name="help_article_troubleshooting_track_recording_issues_name">Recordio traciau</string>
+    <string name="ant_plus_searching">Wrthi\'n chwilio</string>
 </resources>

@@ -1,8 +1,10 @@
 package net.osmand.plus.onlinerouting.ui;
 
 import static net.osmand.plus.onlinerouting.engine.OnlineRoutingEngine.CUSTOM_VEHICLE;
-import static net.osmand.plus.profiles.SelectOnlineApproxProfileBottomSheet.NETWORK_KEY;
-import static net.osmand.plus.profiles.SelectProfileBottomSheet.*;
+import static net.osmand.plus.profiles.SelectProfileBottomSheet.DERIVED_PROFILE_ARG;
+import static net.osmand.plus.profiles.SelectProfileBottomSheet.OnSelectProfileCallback;
+import static net.osmand.plus.profiles.SelectProfileBottomSheet.PROFILE_KEY_ARG;
+import static net.osmand.plus.settings.fragments.BaseSettingsFragment.APP_MODE_KEY;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -27,9 +29,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.data.LatLon;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndFragment;
@@ -44,8 +44,9 @@ import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.DialogButtonType;
 import net.osmand.plus.widgets.chips.ChipItem;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
 import net.osmand.util.Algorithms;
 
 import org.json.JSONException;
@@ -57,11 +58,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static net.osmand.plus.onlinerouting.engine.OnlineRoutingEngine.CUSTOM_VEHICLE;
-import static net.osmand.plus.profiles.SelectProfileBottomSheet.DERIVED_PROFILE_ARG;
-import static net.osmand.plus.profiles.SelectProfileBottomSheet.OnSelectProfileCallback;
-import static net.osmand.plus.profiles.SelectProfileBottomSheet.PROFILE_KEY_ARG;
-
 public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements OnSelectProfileCallback {
 
 
@@ -70,10 +66,8 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	private static final String ENGINE_TYPE_KEY = "engine_type";
 	private static final String ENGINE_CUSTOM_VEHICLE_KEY = "engine_custom_vehicle";
 	private static final String EXAMPLE_LOCATION_KEY = "example_location";
-	private static final String APP_MODE_KEY = "app_mode";
 	private static final String EDITED_ENGINE_KEY = "edited_engine_key";
 
-	private OsmandApplication app;
 	private ApplicationMode appMode;
 	private String approxRouteProfile;
 	private String approxDerivedProfile;
@@ -91,7 +85,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	private OnlineRoutingCard routingFallbackCard;
 	private OnlineRoutingCard exampleCard;
 	private View testResultsContainer;
-	private View saveButton;
+	private DialogButton saveButton;
 	private ScrollView scrollView;
 	private AppCompatImageView buttonsShadow;
 	private OnGlobalLayoutListener onGlobalLayout;
@@ -107,7 +101,6 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		mapActivity = getMapActivity();
 		helper = app.getOnlineRoutingHelper();
 		if (savedInstanceState != null) {
@@ -128,9 +121,10 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater,
-							 @Nullable ViewGroup container,
-							 @Nullable Bundle savedInstanceState) {
-		view = getInflater().inflate(
+	                         @Nullable ViewGroup container,
+	                         @Nullable Bundle savedInstanceState) {
+		updateNightMode();
+		view = themedInflater.inflate(
 				R.layout.online_routing_engine_fragment, container, false);
 		segmentsContainer = view.findViewById(R.id.segments_container);
 		scrollView = view.findViewById(R.id.segments_scroll);
@@ -205,6 +199,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 			String title = type.getTitle();
 			ChipItem item = new ChipItem(title);
 			item.title = title;
+			item.contentDescription = title;
 			item.tag = type;
 			typeItems.add(item);
 		}
@@ -253,6 +248,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 			String title = vehicle.getTitle(app);
 			ChipItem item = new ChipItem(title);
 			item.title = title;
+			item.contentDescription = title;
 			item.tag = vehicle;
 			vehicleItems.add(item);
 		}
@@ -276,9 +272,8 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 		setApproximateCardTitle();
 		approximateCard.onClickCheckBox(getString(R.string.attach_roads_descr), result -> {
 			if (getActivity() != null) {
-				boolean networkApproximateRoute = engine.shouldNetworkApproximateRoute();
 				SelectOnlineApproxProfileBottomSheet.showInstance(getActivity(), this,
-						appMode, approxRouteProfile, approxDerivedProfile, networkApproximateRoute, false);
+						appMode, approxRouteProfile, approxDerivedProfile, false);
 			}
 			return false;
 		});
@@ -294,10 +289,9 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 			appModeName = approxDerivedProfile != null ? approxDerivedProfile : approxRouteProfile;
 			appModeName = " (" + appModeName + ")";
 		}
-		appModeName = engine.shouldNetworkApproximateRoute() ? " (" + getString(R.string.network_provider) + ")" : appModeName;
 		String title = getString(R.string.attach_to_the_roads) + appModeName;
 		approximateCard.setHeaderTitle(title);
-		approximateCard.setCheckBox(approxRouteProfile != null || engine.shouldNetworkApproximateRoute());
+		approximateCard.setCheckBox(approxRouteProfile != null);
 	}
 
 	private void setupExternalTimestampsCard() {
@@ -355,6 +349,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 			String title = location.getName();
 			ChipItem item = new ChipItem(title);
 			item.title = title;
+			item.contentDescription = title;
 			item.tag = location;
 			locationItems.add(item);
 		}
@@ -375,7 +370,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	}
 
 	private void setupResultsContainer() {
-		testResultsContainer = getInflater().inflate(
+		testResultsContainer = themedInflater.inflate(
 				R.layout.bottom_sheet_item_with_descr_64dp, segmentsContainer, false);
 		testResultsContainer.setVisibility(View.GONE);
 		segmentsContainer.addView(testResultsContainer);
@@ -383,16 +378,16 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 
 	private void setupButtons() {
 		boolean nightMode = isNightMode();
-		View cancelButton = view.findViewById(R.id.dismiss_button);
-		UiUtilities.setupDialogButton(nightMode, cancelButton,
-				DialogButtonType.SECONDARY, R.string.shared_string_cancel);
+		DialogButton cancelButton = view.findViewById(R.id.dismiss_button);
+		cancelButton.setButtonType(DialogButtonType.SECONDARY);
+		cancelButton.setTitleId(R.string.shared_string_cancel);
 		cancelButton.setOnClickListener(v -> showExitDialog());
 
 		view.findViewById(R.id.buttons_divider).setVisibility(View.VISIBLE);
 
 		saveButton = view.findViewById(R.id.right_bottom_button);
-		UiUtilities.setupDialogButton(nightMode, saveButton,
-				UiUtilities.DialogButtonType.PRIMARY, R.string.shared_string_save);
+		saveButton.setButtonType(DialogButtonType.PRIMARY);
+		saveButton.setTitleId(R.string.shared_string_save);
 		saveButton.setVisibility(View.VISIBLE);
 		saveButton.setOnClickListener(v -> {
 			onSaveEngine();
@@ -492,7 +487,7 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 			try {
 				String method = engine.getHTTPMethod();
 				List<LatLon> path = Arrays.asList(location.getCityAirportLatLon(),
-												  location.getCityCenterLatLon());
+						location.getCityCenterLatLon());
 				String body = engine.getRequestBody(path, null);
 				Map<String, String> headers = engine.getRequestHeaders();
 				String response = helper.makeRequest(exampleCard.getEditedText(), method, body, headers);
@@ -508,19 +503,21 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	                             @NonNull String message,
 	                             @NonNull ExampleLocation location) {
 		app.runInUIThread(() -> {
-			testResultsContainer.setVisibility(View.VISIBLE);
-			ImageView ivImage = testResultsContainer.findViewById(R.id.icon);
-			TextView tvTitle = testResultsContainer.findViewById(R.id.title);
-			TextView tvDescription = testResultsContainer.findViewById(R.id.description);
-			if (resultOk) {
-				ivImage.setImageDrawable(getContentIcon(R.drawable.ic_action_gdirections_dark));
-				tvTitle.setText(getString(R.string.shared_string_ok));
-			} else {
-				ivImage.setImageDrawable(getContentIcon(R.drawable.ic_action_alert));
-				tvTitle.setText(String.format(getString(R.string.message_server_error), message));
+			if (isAdded()) {
+				testResultsContainer.setVisibility(View.VISIBLE);
+				ImageView ivImage = testResultsContainer.findViewById(R.id.icon);
+				TextView tvTitle = testResultsContainer.findViewById(R.id.title);
+				TextView tvDescription = testResultsContainer.findViewById(R.id.description);
+				if (resultOk) {
+					ivImage.setImageDrawable(getContentIcon(R.drawable.ic_action_gdirections_dark));
+					tvTitle.setText(getString(R.string.shared_string_ok));
+				} else {
+					ivImage.setImageDrawable(getContentIcon(R.drawable.ic_action_alert));
+					tvTitle.setText(String.format(getString(R.string.message_server_error), message));
+				}
+				tvDescription.setText(location.getName());
+				scrollView.post(() -> scrollView.scrollTo(0, scrollView.getChildAt(0).getBottom()));
 			}
-			tvDescription.setText(location.getName());
-			scrollView.post(() -> scrollView.scrollTo(0, scrollView.getChildAt(0).getBottom()));
 		});
 	}
 
@@ -600,10 +597,6 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 		}
 	}
 
-	private boolean isNightMode() {
-		return !app.getSettings().isLightContentForMode(getAppMode());
-	}
-
 	@NonNull
 	private ApplicationMode getAppMode() {
 		return appMode != null ? appMode : app.getSettings().getApplicationMode();
@@ -617,10 +610,6 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 		} else {
 			return null;
 		}
-	}
-
-	private LayoutInflater getInflater() {
-		return UiUtilities.getInflater(mapActivity, isNightMode());
 	}
 
 	@Override
@@ -696,8 +685,8 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 	}
 
 	public static void showInstance(@NonNull FragmentActivity activity,
-									@NonNull ApplicationMode appMode,
-									@Nullable String editedEngineKey) {
+	                                @NonNull ApplicationMode appMode,
+	                                @Nullable String editedEngineKey) {
 		FragmentManager fragmentManager = activity.getSupportFragmentManager();
 		if (AndroidUtils.isFragmentCanBeAdded(fragmentManager, TAG)) {
 			OnlineRoutingEngineFragment fragment = new OnlineRoutingEngineFragment();
@@ -807,8 +796,6 @@ public class OnlineRoutingEngineFragment extends BaseOsmAndFragment implements O
 
 	@Override
 	public void onProfileSelected(Bundle args) {
-		boolean isNetwork = args.getBoolean(NETWORK_KEY);
-		engine.put(EngineParameter.NETWORK_APPROXIMATE_ROUTE, String.valueOf(isNetwork));
 		engine.put(EngineParameter.APPROXIMATION_ROUTING_PROFILE, args.getString(PROFILE_KEY_ARG));
 		engine.put(EngineParameter.APPROXIMATION_DERIVED_PROFILE, args.getString(DERIVED_PROFILE_ARG));
 		setApproximateCardTitle();

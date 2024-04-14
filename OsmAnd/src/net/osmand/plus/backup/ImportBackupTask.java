@@ -11,12 +11,14 @@ import net.osmand.plus.backup.BackupImporter.NetworkImportProgressListener;
 import net.osmand.plus.backup.ExportBackupTask.ItemProgressInfo;
 import net.osmand.plus.backup.ImportBackupItemsTask.ImportItemsListener;
 import net.osmand.plus.backup.NetworkSettingsHelper.BackupCollectListener;
+import net.osmand.plus.backup.PrepareBackupResult.RemoteFilesType;
 import net.osmand.plus.settings.backend.backup.SettingsHelper.CheckDuplicatesListener;
 import net.osmand.plus.settings.backend.backup.SettingsHelper.ImportListener;
 import net.osmand.plus.settings.backend.backup.SettingsHelper.ImportType;
 import net.osmand.plus.settings.backend.backup.items.CollectionSettingsItem;
 import net.osmand.plus.settings.backend.backup.items.FileSettingsItem;
 import net.osmand.plus.settings.backend.backup.items.ProfileSettingsItem;
+import net.osmand.plus.settings.backend.backup.items.QuickActionsSettingsItem;
 import net.osmand.plus.settings.backend.backup.items.SettingsItem;
 
 import java.io.IOException;
@@ -35,6 +37,7 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 	private BackupCollectListener collectListener;
 	private CheckDuplicatesListener duplicatesListener;
 	private final BackupImporter importer;
+	private final RemoteFilesType filesType;
 
 	private List<SettingsItem> items = new ArrayList<>();
 	private List<SettingsItem> selectedItems = new ArrayList<>();
@@ -45,6 +48,8 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 	private final String key;
 	private final Map<String, ItemProgressInfo> itemsProgress = new HashMap<>();
 	private final ImportType importType;
+	private final boolean shouldReplace;
+	private final boolean restoreDeleted;
 
 	private int maxProgress;
 	private int generalProgress;
@@ -56,7 +61,10 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 		this.key = key;
 		this.helper = helper;
 		this.app = helper.getApp();
+		this.filesType = RemoteFilesType.UNIQUE;
 		this.collectListener = collectListener;
+		this.shouldReplace = true;
+		this.restoreDeleted = false;
 		importer = new BackupImporter(app.getBackupHelper(), getProgressListener());
 		importType = readData ? ImportType.COLLECT_AND_READ : ImportType.COLLECT;
 		maxProgress = calculateMaxProgress(app);
@@ -65,13 +73,19 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 	ImportBackupTask(@NonNull String key,
 	                 @NonNull NetworkSettingsHelper helper,
 	                 @NonNull List<SettingsItem> items,
+	                 @NonNull RemoteFilesType filesType,
 	                 @Nullable ImportListener importListener,
-	                 boolean forceReadData) {
+	                 boolean forceReadData,
+	                 boolean shouldReplace,
+	                 boolean restoreDeleted) {
 		this.key = key;
 		this.helper = helper;
 		this.app = helper.getApp();
+		this.filesType = filesType;
 		this.importListener = importListener;
 		this.items = items;
+		this.shouldReplace = shouldReplace;
+		this.restoreDeleted = restoreDeleted;
 		importer = new BackupImporter(app.getBackupHelper(), getProgressListener());
 		importType = forceReadData ? ImportType.IMPORT_FORCE_READ : ImportType.IMPORT;
 		maxProgress = calculateMaxProgress(app);
@@ -86,8 +100,11 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 		this.helper = helper;
 		this.app = helper.getApp();
 		this.items = items;
+		this.filesType = RemoteFilesType.UNIQUE;
 		this.duplicatesListener = duplicatesListener;
 		this.selectedItems = selectedItems;
+		this.shouldReplace = true;
+		this.restoreDeleted = false;
 		importer = new BackupImporter(app.getBackupHelper(), getProgressListener());
 		importType = ImportType.CHECK_DUPLICATES;
 		maxProgress = calculateMaxProgress(app);
@@ -99,7 +116,7 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 			case COLLECT:
 			case COLLECT_AND_READ:
 				try {
-					CollectItemsResult result = importer.collectItems(null, importType == ImportType.COLLECT_AND_READ);
+					CollectItemsResult result = importer.collectItems(null, importType == ImportType.COLLECT_AND_READ, restoreDeleted);
 					remoteFiles = result.remoteFiles;
 					return result.items;
 				} catch (IllegalArgumentException | IOException e) {
@@ -114,9 +131,9 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 				if (items != null && items.size() > 0) {
 					if (importType == ImportType.IMPORT_FORCE_READ) {
 						try {
-							CollectItemsResult result = importer.collectItems(items, true);
+							CollectItemsResult result = importer.collectItems(items, true, restoreDeleted);
 							for (SettingsItem item : result.items) {
-								item.setShouldReplace(true);
+								item.setShouldReplace(shouldReplace);
 							}
 							items = result.items;
 						} catch (IllegalArgumentException | IOException e) {
@@ -132,6 +149,11 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 				return items;
 		}
 		return null;
+	}
+
+	@Override
+	protected void onCancelled() {
+		onPostExecute(null);
 	}
 
 	@Override
@@ -161,7 +183,7 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 						helper.importAsyncTasks.remove(key);
 						helper.finishImport(importListener, succeed, items, needRestart);
 					};
-					new ImportBackupItemsTask(app, importer, items, itemsListener, forceReadData)
+					new ImportBackupItemsTask(app, importer, items, filesType, itemsListener, forceReadData, restoreDeleted)
 							.executeOnExecutor(app.getBackupHelper().getExecutor());
 				} else {
 					helper.importAsyncTasks.remove(key);
@@ -259,6 +281,10 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 				if (item.exists() && !isDefaultObfMap(settingsItem)) {
 					duplicateItems.add(settingsItem.getFile());
 				}
+			} else if (item instanceof QuickActionsSettingsItem) {
+				if (item.exists()) {
+					duplicateItems.add(((QuickActionsSettingsItem) item).getButtonState());
+				}
 			}
 		}
 		return duplicateItems;
@@ -278,25 +304,25 @@ public class ImportBackupTask extends AsyncTask<Void, ItemProgressInfo, List<Set
 			}
 
 			@Override
-			public void updateGeneralProgress(int downloadedItems, int uploadedKb) {
-				generalProgress = uploadedKb;
-				if (importListener != null) {
-					importListener.onImportProgressUpdate(generalProgress, uploadedKb);
-				}
+			public void itemExportDone(@NonNull String type, @NonNull String fileName) {
+				publishProgress(new ItemProgressInfo(type, fileName, 0, 0, true));
 			}
 
 			@Override
-			public void itemExportDone(@NonNull String type, @NonNull String fileName) {
-				publishProgress(new ItemProgressInfo(type, fileName, 0, 0, true));
+			public void updateGeneralProgress(int downloadedItems, int uploadedKb) {
 				if (isCancelled()) {
 					importer.cancel();
+				}
+				generalProgress = uploadedKb;
+				if (importListener != null) {
+					importListener.onImportProgressUpdate(generalProgress, uploadedKb);
 				}
 			}
 		};
 	}
 
 	private boolean isDefaultObfMap(@NonNull FileSettingsItem settingsItem) {
-		String fileName = BackupHelper.getItemFileName(settingsItem);
-		return BackupHelper.isDefaultObfMap(app, settingsItem, fileName);
+		String fileName = BackupUtils.getItemFileName(settingsItem);
+		return BackupUtils.isDefaultObfMap(app, settingsItem, fileName);
 	}
 }

@@ -70,9 +70,9 @@
     <string name="unit_of_length_descr">تغيير وحدات قياس المسافة.</string>
     <string name="unit_of_length">وحدات الطول</string>
     <string name="last_update_from_telegram_date">آخر تحديث من تيليجرام: %1$s</string>
-    <string name="last_response_date">الرد الأخير:٪ 1 $ s</string>
+    <string name="last_response_date">الرد الأخير: %1$s</string>
     <string name="last_update_from_telegram_duration">آخر تحديث من تيليجرام: %1$s قبل</string>
-    <string name="last_response_duration">الرد الأخير: قبل٪ 1 $ s</string>
+    <string name="last_response_duration">الرد الأخير: قبل %1$s</string>
     <string name="shared_string_error_short">خطا</string>
     <string name="privacy_policy_telegram_client">تتبع أوسماند هوأحد العملاء الذين يستخدمون منصة تيليجرام المفتوحة. يمكن لجهات الاتصال الخاصة بك استخدام أي عميل تيليجرام آخر.</string>
     <string name="privacy_policy_agree">من خلال النقر على \"متابعة\" أنت توافق على شروط سياسة الخصوصية لتطبيقي تيليجرام وأوسماند.</string>
@@ -275,4 +275,8 @@
     <string name="shared_string_error">خطأ</string>
     <string name="send_live_location_error">إرسال خطأ في الموقع المباشر: %1$s</string>
     <string name="ltr_or_rtl_combine_via_colon">%1$s: %2$s</string>
+    <string name="location_source">مصدر الموقع</string>
+    <string name="location_source_summary">بشكل افتراضي, OsmAnd الذي تم تثبيته من غوغل بلاي سيستخدم خدمات غوغل بلاي لتحديد الموقع.
+\n
+\nإذا حصلت على معلومات موقع غير دقيقة أو تستخدم جهاز بدون خدمات غوغل بلاي, حاول الانتقال إلى واجهة برمجة تطبيقات أندرويد (Android API)</string>
 </resources>

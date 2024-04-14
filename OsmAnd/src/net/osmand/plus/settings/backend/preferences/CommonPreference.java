@@ -133,10 +133,12 @@ public abstract class CommonPreference<T> extends PreferenceWithListener<T> {
 	public boolean setModeValue(ApplicationMode mode, T obj) {
 		if (global) {
 			return set(obj);
+		} else if (mode == null) {
+			return false;
 		}
 
 		Object profilePrefs = settings.getProfilePreferences(mode);
-		boolean changed = !Algorithms.objectEquals(obj, getValue(profilePrefs, obj));
+		boolean changed = !Algorithms.objectEquals(obj, getModeValue(mode));
 		boolean valueSaved = setValue(profilePrefs, obj);
 		if (valueSaved) {
 			if (changed) {
@@ -158,11 +160,15 @@ public abstract class CommonPreference<T> extends PreferenceWithListener<T> {
 		if (defaultValues != null && defaultValues.containsKey(mode)) {
 			return defaultValues.get(mode);
 		}
-		ApplicationMode pt = mode.getParent();
-		if (pt != null) {
-			return getProfileDefaultValue(pt);
+		ApplicationMode parentMode = mode != null ? mode.getParent() : null;
+		if (parentMode != null) {
+			return getProfileDefaultValue(parentMode);
 		}
 		return defaultValue;
+	}
+
+	public void setDefaultValue(T defaultValue) {
+		this.defaultValue = defaultValue;
 	}
 
 	public final boolean hasDefaultValues() {
@@ -186,6 +192,8 @@ public abstract class CommonPreference<T> extends PreferenceWithListener<T> {
 	public T getModeValue(ApplicationMode mode) {
 		if (global) {
 			return get();
+		} else if (mode == null) {
+			return defaultValue;
 		}
 		OsmandPlugin plugin = getRelatedPlugin();
 		if (plugin != null && plugin.disablePreferences()) {
@@ -228,7 +236,7 @@ public abstract class CommonPreference<T> extends PreferenceWithListener<T> {
 	@Override
 	public boolean set(T obj) {
 		Object prefs = getPreferences();
-		boolean changed = !Algorithms.objectEquals(obj, getValue(prefs, obj));
+		boolean changed = !Algorithms.objectEquals(obj, get());
 		if (setValue(prefs, obj)) {
 			if (changed && isShared() && isGlobal() && PluginsHelper.isDevelopment()) {
 				Log.d("CommonPreference", "SET GLOBAL id=" + getId() + " value=" + obj + " cached=" + cachedValue);

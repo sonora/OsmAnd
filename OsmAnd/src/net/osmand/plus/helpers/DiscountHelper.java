@@ -106,13 +106,14 @@ public class DiscountHelper {
 		mLastCheckTime = System.currentTimeMillis();
 		Map<String, String> pms = new LinkedHashMap<>();
 		pms.put("version", Version.getFullVersion(app));
-		pms.put("nd", app.getAppInitializer().getFirstInstalledDays() + "");
-		pms.put("ns", app.getAppInitializer().getNumberOfStarts() + "");
+		pms.put("nd", String.valueOf(app.getAppInitializer().getFirstInstalledDays()));
+		pms.put("ns", String.valueOf(app.getAppInitializer().getNumberOfStarts()));
 		pms.put("lang", app.getLanguage() + "");
 		try {
-			pms.put("aid", app.getUserAndroidId());
-		} catch (Exception e) {
-			e.printStackTrace();
+			if (app.isUserAndroidIdAllowed()) {
+				pms.put("aid", app.getUserAndroidId());
+			}
+		} catch (Exception ignore) {
 		}
 		new AsyncTask<Void, Void, String>() {
 
@@ -129,7 +130,7 @@ public class DiscountHelper {
 
 			@Override
 			protected void onPostExecute(String response) {
-				if (response != null) {
+				if (!Algorithms.isEmpty(response)) {
 					processDiscountResponse(response, mapActivity);
 				}
 			}
@@ -140,8 +141,10 @@ public class DiscountHelper {
 	private static void processDiscountResponse(String response, MapActivity mapActivity) {
 		try {
 			OsmandApplication app = mapActivity.getMyApplication();
-
 			JSONObject obj = new JSONObject(response);
+			if (obj.length() == 0) {
+				return;
+			}
 			ControllerData data = ControllerData.parse(app, obj);
 			SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy HH:mm");
 			Date start = df.parse(obj.getString("start"));
@@ -205,7 +208,7 @@ public class DiscountHelper {
 						settings.DISCOUNT_SHOW_NUMBER_OF_STARTS.set(app.getAppInitializer().getNumberOfStarts());
 						settings.DISCOUNT_SHOW_DATETIME_MS.set(System.currentTimeMillis());
 						if (showChristmasDialog) {
-							mapActivity.showXMasDialog();
+							mapActivity.getFragmentsHelper().showXMasDialog();
 						} else {
 							InAppPurchaseHelper purchaseHelper = mapActivity.getPurchaseHelper();
 							if (purchaseHelper != null) {
@@ -333,7 +336,7 @@ public class DiscountHelper {
 		} else if (url.startsWith(SEARCH_QUERY_PREFIX)) {
 			String query = url.substring(SEARCH_QUERY_PREFIX.length());
 			if (!query.isEmpty()) {
-				mapActivity.showQuickSearch(query);
+				mapActivity.getFragmentsHelper().showQuickSearch(query);
 			}
 		} else if (url.startsWith(SHOW_POI_PREFIX)) {
 			String names = url.substring(SHOW_POI_PREFIX.length());

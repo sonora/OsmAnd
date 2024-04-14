@@ -17,16 +17,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import net.osmand.data.LatLon;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
-import net.osmand.plus.track.helpers.GPXInfo;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
 import net.osmand.plus.mapmarkers.MapMarker;
 import net.osmand.plus.routepreparationmenu.cards.PreviousRouteCard;
-import net.osmand.plus.search.QuickSearchListAdapter;
+import net.osmand.plus.search.dialogs.QuickSearchListAdapter;
 import net.osmand.plus.search.listitems.QuickSearchListItem;
+import net.osmand.plus.track.data.GPXInfo;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
-import net.osmand.plus.utils.UiUtilities.UpdateLocationViewCache;
+import net.osmand.plus.utils.UpdateLocationUtils;
+import net.osmand.plus.utils.UpdateLocationUtils.UpdateLocationViewCache;
 import net.osmand.search.core.ObjectType;
 import net.osmand.search.core.SearchResult;
 
@@ -68,15 +70,15 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 	private final int defaultColorId;
 	private final boolean nightMode;
 
-	public HistoryAdapter(@NonNull OsmandApplication app, @Nullable OnItemSelectedListener listener, boolean nightMode) {
-		this.app = app;
+	public HistoryAdapter(@NonNull MapActivity activity, @Nullable OnItemSelectedListener listener, boolean nightMode) {
+		this.app = activity.getMyApplication();
 		this.listener = listener;
 		this.nightMode = nightMode;
 		activeColorId = ColorUtilities.getActiveColorId(nightMode);
 		defaultColorId = ColorUtilities.getDefaultIconColorId(nightMode);
 		uiUtilities = app.getUIUtilities();
 		themedInflater = UiUtilities.getInflater(app, nightMode);
-		locationViewCache = app.getUIUtilities().getUpdateLocationViewCache();
+		locationViewCache = UpdateLocationUtils.getUpdateLocationViewCache(activity);
 	}
 
 	public void updateSettingsItems(@NonNull List<Object> items,
@@ -224,7 +226,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
 		boolean showCompass = location != null;
 		if (showCompass) {
-			app.getUIUtilities().updateLocationView(locationViewCache, direction, distanceText, location);
+			UpdateLocationUtils.updateLocationView(app, locationViewCache, direction, distanceText, location);
 		}
 		AndroidUiHelper.updateVisibility(compassView, showCompass);
 	}

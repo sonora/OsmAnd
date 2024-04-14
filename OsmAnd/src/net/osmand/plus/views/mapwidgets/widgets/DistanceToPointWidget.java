@@ -3,6 +3,8 @@ package net.osmand.plus.views.mapwidgets.widgets;
 import static net.osmand.plus.views.mapwidgets.WidgetType.DISTANCE_TO_DESTINATION;
 import static net.osmand.plus.views.mapwidgets.WidgetType.INTERMEDIATE_DESTINATION;
 
+import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -17,8 +19,9 @@ import net.osmand.plus.views.AnimateDraggingMapThread;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 import net.osmand.plus.views.mapwidgets.WidgetType;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 
-public abstract class DistanceToPointWidget extends TextInfoWidget {
+public abstract class DistanceToPointWidget extends SimpleWidget {
 
 	private static final int DISTANCE_CHANGE_THRESHOLD = 10;
 	private static final int DESTINATION_REACHED_THRESHOLD = 20;
@@ -27,13 +30,18 @@ public abstract class DistanceToPointWidget extends TextInfoWidget {
 	private final float[] calculations = new float[1];
 	private int cachedMeters;
 
-	public DistanceToPointWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType) {
-		super(mapActivity, widgetType);
+	public DistanceToPointWidget(@NonNull MapActivity mapActivity, @NonNull WidgetType widgetType, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
+		super(mapActivity, widgetType, customId, widgetsPanel);
 		this.view = mapActivity.getMapView();
 
 		setIcons(widgetType);
 		setText(null, null);
-		setOnClickListener(v -> onClick(view));
+		setOnClickListener(getOnClickListener());
+	}
+
+	@Override
+	protected View.OnClickListener getOnClickListener() {
+		return v -> onClick(view);
 	}
 
 	protected void onClick(OsmandMapTileView view) {
@@ -41,21 +49,21 @@ public abstract class DistanceToPointWidget extends TextInfoWidget {
 		LatLon pointToNavigate = getPointToNavigate();
 		if (pointToNavigate != null) {
 			int fZoom = Math.max(view.getZoom(), 15);
-			thread.startMoving(pointToNavigate.getLatitude(), pointToNavigate.getLongitude(), fZoom, true);
+			thread.startMoving(pointToNavigate.getLatitude(), pointToNavigate.getLongitude(), fZoom);
 		}
 	}
 
 	@Override
-	public void updateInfo(@Nullable DrawSettings drawSettings) {
+	protected void updateSimpleWidgetInfo(@Nullable DrawSettings drawSettings) {
 		int distance = getDistance();
 		if (isUpdateNeeded() || cachedMeters == 0 || Math.abs(cachedMeters - distance) > DISTANCE_CHANGE_THRESHOLD) {
 			cachedMeters = distance;
 			if (cachedMeters <= DESTINATION_REACHED_THRESHOLD) {
 				cachedMeters = 0;
-				setText(null, null);
+				setText(isVerticalWidget() ? NO_VALUE : null, null);
 			} else {
 				FormattedValue formattedDistance = OsmAndFormatter
-						.getFormattedDistanceValue(cachedMeters, app, true, settings.METRIC_SYSTEM.get());
+						.getFormattedDistanceValue(cachedMeters, app, OsmAndFormatter.OsmAndFormatterParams.USE_LOWER_BOUNDS);
 				setText(formattedDistance.value, formattedDistance.unit);
 			}
 		}
@@ -80,8 +88,8 @@ public abstract class DistanceToPointWidget extends TextInfoWidget {
 
 	public static class DistanceToDestinationWidget extends DistanceToPointWidget {
 
-		public DistanceToDestinationWidget(@NonNull MapActivity mapActivity) {
-			super(mapActivity, DISTANCE_TO_DESTINATION);
+		public DistanceToDestinationWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel panel) {
+			super(mapActivity, DISTANCE_TO_DESTINATION, customId, panel);
 		}
 
 		@Override
@@ -102,8 +110,8 @@ public abstract class DistanceToPointWidget extends TextInfoWidget {
 
 		private final TargetPointsHelper targetPointsHelper;
 
-		public DistanceToIntermediateDestinationWidget(@NonNull MapActivity mapActivity) {
-			super(mapActivity, INTERMEDIATE_DESTINATION);
+		public DistanceToIntermediateDestinationWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel panel) {
+			super(mapActivity, INTERMEDIATE_DESTINATION, customId, panel);
 			targetPointsHelper = app.getTargetPointsHelper();
 		}
 

@@ -7,14 +7,14 @@ import android.widget.TextView;
 import androidx.annotation.DrawableRes;
 
 import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.download.CustomRegion;
+import net.osmand.plus.plugins.custom.CustomRegion;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.download.DownloadActivity;
 import net.osmand.plus.download.DownloadActivityType;
 import net.osmand.plus.download.DownloadResourceGroup;
-import net.osmand.plus.download.DownloadResourceGroup.DownloadResourceGroupType;
+import net.osmand.plus.download.DownloadResourceGroupType;
 import net.osmand.plus.download.IndexItem;
 
 public class DownloadGroupViewHolder {

@@ -16,7 +16,6 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
-import net.osmand.plus.inapp.InAppPurchases;
 import net.osmand.plus.inapp.InAppPurchases.InAppSubscription.SubscriptionState;
 import net.osmand.plus.routepreparationmenu.cards.BaseCard;
 import net.osmand.plus.settings.purchase.data.PurchaseUiData;
@@ -71,7 +70,7 @@ public class PurchaseItemCard extends BaseCard {
 
 		if (purchase.isSubscription() && !purchase.isPromo()) {
 			prepareSubscriptionCard();
-		} else if (purchase.isPromo()){
+		} else if (purchase.isPromo()) {
 			preparePromoCard();
 		} else {
 			prepareOneTimePaymentCard();
@@ -95,7 +94,9 @@ public class PurchaseItemCard extends BaseCard {
 			boolean renewVisible = purchase.isRenewVisible();
 			View renewContainer = view.findViewById(R.id.renewContainer);
 			renewContainer.setOnClickListener(v -> {
-				InAppPurchaseHelper.subscribe(activity, purchaseHelper, purchase.getSku());
+				if (purchase.getSku() != null) {
+					InAppPurchaseHelper.subscribe(activity, purchaseHelper, purchase.getSku());
+				}
 			});
 			AndroidUiHelper.updateVisibility(renewContainer, renewVisible);
 			AndroidUtils.setBackground(activity, renewContainer, nightMode, R.drawable.ripple_light, R.drawable.ripple_dark);
@@ -145,7 +146,7 @@ public class PurchaseItemCard extends BaseCard {
 			case ACTIVE:
 			case CANCELLED:
 			case IN_GRACE_PERIOD:
-				return app.getString(R.string.active_till, dateFormat.format(expireTime));
+				return expireTime > 0 ? app.getString(R.string.active_till, dateFormat.format(expireTime)) : app.getString(R.string.osm_live_active);
 			case EXPIRED:
 				String expired = app.getString(R.string.expired);
 				return app.getString(R.string.ltr_or_rtl_combine_via_space, expired, dateFormat.format(expireTime));

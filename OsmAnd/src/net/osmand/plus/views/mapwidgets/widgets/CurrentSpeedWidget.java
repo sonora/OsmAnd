@@ -10,23 +10,24 @@ import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.utils.OsmAndFormatter;
 import net.osmand.plus.utils.OsmAndFormatter.FormattedValue;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
+import net.osmand.plus.views.mapwidgets.WidgetsPanel;
 
-public class CurrentSpeedWidget extends TextInfoWidget {
+public class CurrentSpeedWidget extends SimpleWidget {
 
-	private static final float LOW_SPEED_THRESHOLD_MPS = 6;
-	private static final float UPDATE_THRESHOLD_MPS = .1f;
-	private static final float LOW_SPEED_UPDATE_THRESHOLD_MPS = .015f; // Update more often while walking/running
+	public static final float LOW_SPEED_THRESHOLD_MPS = 6;
+	public static final float UPDATE_THRESHOLD_MPS = .1f;
+	public static final float LOW_SPEED_UPDATE_THRESHOLD_MPS = .015f; // Update more often while walking/running
 
 	private float cachedSpeed;
 
-	public CurrentSpeedWidget(@NonNull MapActivity mapActivity) {
-		super(mapActivity, CURRENT_SPEED);
+	public CurrentSpeedWidget(@NonNull MapActivity mapActivity, @Nullable String customId, @Nullable WidgetsPanel widgetsPanel) {
+		super(mapActivity, CURRENT_SPEED, customId, widgetsPanel);
 		setIcons(CURRENT_SPEED);
 		setText(null, null);
 	}
 
 	@Override
-	public void updateInfo(@Nullable DrawSettings drawSettings) {
+	protected void updateSimpleWidgetInfo(@Nullable DrawSettings drawSettings) {
 		Location location = locationProvider.getLastKnownLocation();
 		if (location != null && location.hasSpeed()) {
 			float updateThreshold = cachedSpeed < LOW_SPEED_THRESHOLD_MPS
@@ -39,7 +40,7 @@ public class CurrentSpeedWidget extends TextInfoWidget {
 			}
 		} else if (cachedSpeed != 0) {
 			cachedSpeed = 0;
-			setText(null, null);
+			setText(isVerticalWidget() ? NO_VALUE : null, null);
 		}
 	}
 

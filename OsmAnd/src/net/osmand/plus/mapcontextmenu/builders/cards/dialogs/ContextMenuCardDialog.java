@@ -4,15 +4,13 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.mapillary.MapillaryImageDialog;
 import net.osmand.plus.plugins.mapillary.MapillaryPlugin;
-import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.views.OsmandMapTileView;
+
+import androidx.annotation.NonNull;
 
 public abstract class ContextMenuCardDialog {
 
@@ -26,7 +24,6 @@ public abstract class ContextMenuCardDialog {
 	protected String title;
 	protected String description;
 
-	private int prevMapPosition = OsmandSettings.CENTER_CONSTANT;
 	private final boolean portrait;
 
 	public enum CardDialogType {
@@ -37,7 +34,7 @@ public abstract class ContextMenuCardDialog {
 	protected ContextMenuCardDialog(MapActivity mapActivity, @NonNull CardDialogType type) {
 		this.mapActivity = mapActivity;
 		this.type = type;
-		this.portrait = AndroidUiHelper.isOrientationPortrait(mapActivity);
+		this.portrait = isOrientationPortrait();
 	}
 
 	public MapActivity getMapActivity() {
@@ -101,33 +98,15 @@ public abstract class ContextMenuCardDialog {
 	}
 
 	public void onResume() {
-		shiftMapPosition();
 		updateLayers(true);
 	}
 
 	public void onPause() {
-		restoreMapPosition();
 		updateLayers(false);
 	}
 
-	private void shiftMapPosition() {
-		OsmandMapTileView mapView = mapActivity.getMapView();
-		if (AndroidUiHelper.isOrientationPortrait(mapActivity)) {
-			if (mapView.getMapPosition() != OsmandSettings.MIDDLE_BOTTOM_CONSTANT) {
-				prevMapPosition = mapView.getMapPosition();
-				mapView.setMapPosition(OsmandSettings.MIDDLE_BOTTOM_CONSTANT);
-			}
-		} else {
-			mapView.setMapPositionX(1);
-		}
-	}
-
-	private void restoreMapPosition() {
-		if (AndroidUiHelper.isOrientationPortrait(mapActivity)) {
-			mapActivity.getMapView().setMapPosition(prevMapPosition);
-		} else {
-			mapActivity.getMapView().setMapPositionX(0);
-		}
+	protected boolean isOrientationPortrait() {
+		return AndroidUiHelper.isOrientationPortrait(mapActivity);
 	}
 
 	public abstract View getContentView();

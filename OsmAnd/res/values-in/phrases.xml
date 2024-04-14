@@ -368,7 +368,7 @@
     <string name="poi_water_source_river">Sungai</string>
     <string name="poi_water_source_water_tank">Tangki air</string>
     <string name="poi_vaccination_covid19">Vaksinasi: COVID19</string>
-    <string name="poi_health_specialty_vaccination_yes">Vaksinasi</string>
+    <string name="poi_healthcare_speciality_vaccination">Vaksinasi</string>
     <string name="poi_siren">Sirene</string>
     <string name="poi_nurse">Perawat</string>
     <string name="poi_diplomatic_services_citizen_services_no">Tidak</string>
@@ -825,10 +825,10 @@
     <string name="poi_government_ministry">Kementerian</string>
     <string name="poi_government_archive">Arsip</string>
     <string name="poi_network">Jaringan</string>
-    <string name="poi_boat_canoe_rental_rental_no">Kano: tidak</string>
-    <string name="poi_boat_canoe_rental_rental_yes">Kano: ya</string>
-    <string name="poi_boat_kayak_rental_rental_no">Kayak: tidak</string>
-    <string name="poi_boat_kayak_rental_rental_yes">Kayak: ya</string>
+    <string name="poi_boat_canoe_rental_no">Kano: tidak</string>
+    <string name="poi_boat_canoe_rental_yes">Kano: ya</string>
+    <string name="poi_boat_kayak_rental_no">Kayak: tidak</string>
+    <string name="poi_boat_kayak_rental_yes">Kayak: ya</string>
     <string name="poi_boat_jetski_rental_no">Jetski: tidak</string>
     <string name="poi_boat_jetski_rental_yes">Jetski: ya</string>
     <string name="poi_direction_exit">Arah: keluar</string>
@@ -1319,7 +1319,7 @@
     <string name="poi_permanent_camping">Perkemahan permanen</string>
     <string name="poi_baby_goods">Perlengkapan bayi</string>
     <string name="poi_star_rating">Peringkat bintang</string>
-    <string name="poi_health_specialty">Spesialis kesehatan</string>
+    <string name="poi_healthcare_speciality">Spesialis kesehatan</string>
     <string name="poi_ice_cream">Kedai es krim</string>
     <string name="poi_butcher_type">Jenis daging utama</string>
     <string name="poi_coffee_filter">Kopi</string>
@@ -1513,7 +1513,6 @@
     <string name="poi_escape_lane">Jalur keluar</string>
     <string name="poi_standpipe">Pipa berdiri</string>
     <string name="poi_wastewater_plant">Pabrik limbah air</string>
-    <string name="poi_climbing_bolted_filter">" "</string>
     <string name="poi_fire_water_pond">Danau air api</string>
     <string name="poi_fuel_biogas">Biogas</string>
     <string name="poi_fuel_octane_95">Oktan 95</string>

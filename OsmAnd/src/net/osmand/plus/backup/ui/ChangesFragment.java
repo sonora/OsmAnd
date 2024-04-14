@@ -6,7 +6,6 @@ import static net.osmand.plus.backup.NetworkSettingsHelper.SyncOperationType.SYN
 import static net.osmand.plus.backup.ui.ChangesFragment.RecentChangesType.RECENT_CHANGES_CONFLICTS;
 import static net.osmand.plus.backup.ui.ChangesFragment.RecentChangesType.RECENT_CHANGES_LOCAL;
 import static net.osmand.plus.backup.ui.ChangesFragment.RecentChangesType.RECENT_CHANGES_REMOTE;
-import static net.osmand.plus.utils.UiUtilities.DialogButtonType.SECONDARY;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -20,14 +19,15 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager.widget.ViewPager.SimpleOnPageChangeListener;
 
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.activities.TabActivity.OsmandFragmentPagerAdapter;
@@ -35,6 +35,7 @@ import net.osmand.plus.activities.TabActivity.TabItem;
 import net.osmand.plus.backup.BackupError;
 import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.BackupInfo;
+import net.osmand.plus.backup.BackupUtils;
 import net.osmand.plus.backup.NetworkSettingsHelper;
 import net.osmand.plus.backup.PrepareBackupResult;
 import net.osmand.plus.backup.PrepareBackupTask.OnPrepareBackupListener;
@@ -45,6 +46,10 @@ import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.controls.PagerSlidingTabStrip;
+import net.osmand.plus.widgets.dialogbutton.DialogButton;
+import net.osmand.plus.widgets.popup.PopUpMenu;
+import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
+import net.osmand.plus.widgets.popup.PopUpMenuItem;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -56,22 +61,19 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 
 	private static final String SELECTED_TAB_TYPE_KEY = "SELECTED_TAB_TYPE_KEY";
 
-	private OsmandApplication app;
 	private BackupHelper backupHelper;
 	private NetworkSettingsHelper settingsHelper;
 
 	private View buttonsContainer;
+	private View buttonsShadow;
 
 	private RecentChangesType tabType;
-	private boolean nightMode;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		backupHelper = app.getBackupHelper();
 		settingsHelper = app.getNetworkSettingsHelper();
-		nightMode = isNightMode(false);
 		if (savedInstanceState != null) {
 			tabType = RecentChangesType.valueOf(savedInstanceState.getString(SELECTED_TAB_TYPE_KEY, RECENT_CHANGES_LOCAL.name()));
 		}
@@ -80,7 +82,7 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		LayoutInflater themedInflater = UiUtilities.getInflater(getContext(), nightMode);
+		updateNightMode();
 		View view = themedInflater.inflate(R.layout.fragment_osmand_cloud_changes, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), view);
 
@@ -113,6 +115,67 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 				activity.onBackPressed();
 			}
 		});
+
+		ImageView actionButton = toolbar.findViewById(R.id.action_button);
+		actionButton.setImageDrawable(getIcon(R.drawable.ic_overflow_menu_white));
+		actionButton.setContentDescription(getString(R.string.shared_string_more));
+		actionButton.setOnClickListener(this::showOptionsMenu);
+		AndroidUiHelper.updateVisibility(actionButton, true);
+	}
+
+	private void showOptionsMenu(@NonNull View view) {
+		List<PopUpMenuItem> items = new ArrayList<>();
+
+		items.add(new PopUpMenuItem.Builder(app)
+				.setTitleId(R.string.upload_local_versions)
+				.setOnClickListener(item -> showConfirmationDialog(item.getTitle(), this::uploadLocalVersions))
+				.create());
+
+		items.add(new PopUpMenuItem.Builder(app)
+				.setTitleId(R.string.download_cloud_versions)
+				.setOnClickListener(item -> showConfirmationDialog(item.getTitle(), this::downloadCloudVersions))
+				.create());
+
+		PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+		displayData.anchorView = view;
+		displayData.menuItems = items;
+		displayData.nightMode = nightMode;
+		PopUpMenu.show(displayData);
+	}
+
+	private void showConfirmationDialog(@NonNull CharSequence title, @NonNull Runnable runnable) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(UiUtilities.getThemedContext(requireActivity(), nightMode));
+		builder.setTitle(title);
+		builder.setMessage(R.string.are_you_sure);
+		builder.setNegativeButton(R.string.shared_string_cancel, null);
+		builder.setPositiveButton(R.string.shared_string_ok, (dialog, which) -> runnable.run());
+		builder.show();
+
+	}
+
+	private void uploadLocalVersions() {
+		ChangesTabFragment fragment = getSelectedFragment();
+		if (fragment != null) {
+			fragment.uploadLocalVersions();
+		}
+	}
+
+	private void downloadCloudVersions() {
+		ChangesTabFragment fragment = getSelectedFragment();
+		if (fragment != null) {
+			fragment.downloadCloudVersions();
+		}
+	}
+
+	@Nullable
+	private ChangesTabFragment getSelectedFragment() {
+		FragmentManager manager = getChildFragmentManager();
+		for (Fragment fragment : manager.getFragments()) {
+			if (fragment.getClass() == tabType.fragment) {
+				return (ChangesTabFragment) fragment;
+			}
+		}
+		return null;
 	}
 
 	private void setupTabs(@NonNull View view) {
@@ -121,6 +184,8 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 			tabItems.add(new TabItem(tabType.titleId, getString(tabType.titleId), tabType.fragment));
 		}
 		ViewPager viewPager = view.findViewById(R.id.pager);
+		buttonsShadow = view.findViewById(R.id.buttons_shadow);
+
 		viewPager.setAdapter(new OsmandFragmentPagerAdapter(getChildFragmentManager(), tabItems));
 		viewPager.setCurrentItem(tabType.ordinal());
 		viewPager.addOnPageChangeListener(new SimpleOnPageChangeListener() {
@@ -142,11 +207,12 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 
 		setupSyncButton(syncing, preparing);
 		setupCancelButton(syncing, preparing);
+		AndroidUiHelper.updateVisibility(buttonsShadow, tabType != RECENT_CHANGES_CONFLICTS);
 		AndroidUiHelper.updateVisibility(buttonsContainer, tabType != RECENT_CHANGES_CONFLICTS);
 	}
 
 	private void setupSyncButton(boolean syncing, boolean preparing) {
-		View button = buttonsContainer.findViewById(R.id.action_button);
+		DialogButton button = buttonsContainer.findViewById(R.id.action_button);
 		if (tabType.buttonTextId != -1) {
 			button.setOnClickListener(v -> {
 				if (tabType == RECENT_CHANGES_REMOTE) {
@@ -158,7 +224,7 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 			});
 			boolean enabled = !syncing && !preparing && hasItems();
 			button.setEnabled(enabled);
-			UiUtilities.setupDialogButton(nightMode, button, SECONDARY, tabType.buttonTextId);
+			button.setTitleId(tabType.buttonTextId);
 
 			if (tabType.buttonIconId != -1) {
 				int defaultColor = ColorUtilities.getDefaultIconColor(app, nightMode);
@@ -174,13 +240,13 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 	}
 
 	private void setupCancelButton(boolean syncing, boolean preparing) {
-		View button = buttonsContainer.findViewById(R.id.cancel_button);
+		DialogButton button = buttonsContainer.findViewById(R.id.cancel_button);
 		button.setOnClickListener(v -> {
 			settingsHelper.cancelSync();
 			setupBottomButtons();
 		});
 		button.setEnabled(syncing && !preparing);
-		UiUtilities.setupDialogButton(nightMode, button, SECONDARY, R.string.shared_string_cancel);
+		button.setTitleId(R.string.shared_string_control_stop);
 		AndroidUiHelper.updateVisibility(button, syncing);
 	}
 
@@ -190,7 +256,7 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 		if (info != null) {
 			switch (tabType) {
 				case RECENT_CHANGES_REMOTE:
-					return BackupHelper.getItemsMapForRestore(info, backup.getSettingsItems()).size() > 0;
+					return BackupUtils.getItemsMapForRestore(info, backup.getSettingsItems()).size() > 0;
 				case RECENT_CHANGES_LOCAL:
 					return info.filteredFilesToDelete.size() + info.filteredFilesToUpload.size() > 0;
 				default:
@@ -232,17 +298,37 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 
 	@Override
 	public void onBackupPreparing() {
-		app.runInUIThread(this::setupBottomButtons);
+		app.runInUIThread(() -> {
+			if (isResumed()) {
+				setupBottomButtons();
+			}
+		});
 	}
 
 	@Override
 	public void onBackupPrepared(@Nullable PrepareBackupResult backupResult) {
-		app.runInUIThread(this::setupBottomButtons);
+		app.runInUIThread(() -> {
+			if (isResumed()) {
+				setupBottomButtons();
+			}
+		});
 	}
 
 	@Override
 	public void onBackupSyncStarted() {
-		app.runInUIThread(this::setupBottomButtons);
+		app.runInUIThread(() -> {
+			if (isResumed()) {
+				setupBottomButtons();
+			}
+		});
+	}
+
+	public void onBackupSyncTasksUpdated() {
+		app.runInUIThread(() -> {
+			if (isResumed()) {
+				setupBottomButtons();
+			}
+		});
 	}
 
 	@Override
@@ -252,7 +338,6 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 		} else if (!settingsHelper.isBackupSyncing() && !backupHelper.isBackupPreparing()) {
 			backupHelper.prepareBackup();
 		}
-		app.runInUIThread(this::setupBottomButtons);
 	}
 
 	@Nullable
@@ -274,12 +359,17 @@ public class ChangesFragment extends BaseOsmAndFragment implements OnPrepareBack
 		private final int buttonIconId;
 		private final Class<?> fragment;
 
-		RecentChangesType(@StringRes int titleId, @StringRes int buttonTextId, @StringRes int buttonIconId, @NonNull Class<?> fragment) {
+		RecentChangesType(@StringRes int titleId, @StringRes int buttonTextId, @DrawableRes int buttonIconId, @NonNull Class<?> fragment) {
 			this.titleId = titleId;
 			this.buttonTextId = buttonTextId;
 			this.buttonIconId = buttonIconId;
 			this.fragment = fragment;
 		}
+	}
+
+	@Override
+	public int getStatusBarColorId() {
+		return ColorUtilities.getStatusBarColorId(nightMode);
 	}
 
 	public static void showInstance(@NonNull FragmentManager manager, @NonNull RecentChangesType tabType) {

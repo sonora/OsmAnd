@@ -1,5 +1,7 @@
 package net.osmand.plus.quickaction.actions;
 
+import static net.osmand.plus.quickaction.QuickActionIds.SHOW_HIDE_POI_ACTION_ID;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
@@ -42,7 +44,7 @@ import java.util.Set;
 public class ShowHidePoiAction extends QuickAction {
 	private static final int defaultActionNameId = R.string.poi;
 
-	public static final QuickActionType TYPE = new QuickActionType(5,
+	public static final QuickActionType TYPE = new QuickActionType(SHOW_HIDE_POI_ACTION_ID,
 			"poi.showhide", ShowHidePoiAction.class)
 			.nameActionRes(R.string.quick_action_show_hide_title)
 			.nameRes(defaultActionNameId)
@@ -100,7 +102,7 @@ public class ShowHidePoiAction extends QuickAction {
 
 	@Override
 	public void execute(@NonNull MapActivity mapActivity) {
-		mapActivity.closeQuickSearch();
+		mapActivity.getFragmentsHelper().closeQuickSearch();
 
 		PoiFiltersHelper pf = mapActivity.getMyApplication().getPoiFilters();
 		List<PoiUIFilter> poiFilters = loadPoiFilters(mapActivity.getMyApplication().getPoiFilters());

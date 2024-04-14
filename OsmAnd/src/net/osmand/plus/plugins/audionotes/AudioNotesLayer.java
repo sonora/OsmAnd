@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import net.osmand.core.android.MapRendererView;
+import net.osmand.core.jni.PointI;
 import net.osmand.data.DataTileManager;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
@@ -21,6 +22,7 @@ import net.osmand.plus.plugins.audionotes.AudioVideoNotesPlugin.Recording;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.OsmandMapTileView;
 import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.views.layers.ContextMenuLayer;
 import net.osmand.plus.views.layers.ContextMenuLayer.ApplyMovedObjectCallback;
 import net.osmand.plus.views.layers.ContextMenuLayer.IContextMenuProvider;
@@ -29,12 +31,13 @@ import net.osmand.plus.views.layers.core.AudioNotesTileProvider;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class AudioNotesLayer extends OsmandMapLayer implements
 		IContextMenuProvider, ContextMenuLayer.IMoveObjectProvider {
 
-	private static final int startZoom = 10;
+	private static final int START_ZOOM = 10;
 	private final Context ctx;
 	private final AudioVideoNotesPlugin plugin;
 	private ContextMenuLayer contextMenuLayer;
@@ -57,7 +60,7 @@ public class AudioNotesLayer extends OsmandMapLayer implements
 
 	public int getRadiusPoi(RotatedTileBox tb) {
 		int r;
-		if (tb.getZoom() < startZoom) {
+		if (tb.getZoom() < START_ZOOM) {
 			r = 0;
 		} else {
 			r = 15;
@@ -115,7 +118,7 @@ public class AudioNotesLayer extends OsmandMapLayer implements
 				audioNotesTileProvider.drawSymbols(mapRenderer);
 			}
 		} else {
-			if (tileBox.getZoom() >= startZoom) {
+			if (tileBox.getZoom() >= START_ZOOM) {
 				float textScale = getTextScale();
 				float iconSize = getIconSize(app);
 				QuadTree<QuadRect> boundIntersections = initBoundIntersections(tileBox);
@@ -130,7 +133,7 @@ public class AudioNotesLayer extends OsmandMapLayer implements
 						float x = tileBox.getPixXFromLatLon(o.getLatitude(), o.getLongitude());
 						float y = tileBox.getPixYFromLatLon(o.getLatitude(), o.getLongitude());
 						if (intersects(boundIntersections, x, y, iconSize, iconSize)) {
-							PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx,
+							PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx,
 									ContextCompat.getColor(ctx, R.color.audio_video_icon_color), true);
 							pointImageDrawable.setAlpha(0.8f);
 							pointImageDrawable.drawSmallPoint(canvas, x, y, textScale);
@@ -161,7 +164,7 @@ public class AudioNotesLayer extends OsmandMapLayer implements
 		} else {
 			iconId = R.drawable.mx_special_video_camera;
 		}
-		PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx,
+		PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx,
 				ContextCompat.getColor(ctx, R.color.audio_video_icon_color), true, iconId);
 		pointImageDrawable.setAlpha(0.8f);
 		pointImageDrawable.drawPoint(canvas, x, y, textScale, false);
@@ -199,49 +202,40 @@ public class AudioNotesLayer extends OsmandMapLayer implements
 	}
 
 	@Override
-	public boolean disableSingleTap() {
-		return false;
-	}
-
-	@Override
-	public boolean disableLongPressOnMap(PointF point, RotatedTileBox tileBox) {
-		return false;
-	}
-
-	@Override
-	public boolean runExclusiveAction(Object o, boolean unknownLocation) {
-		return false;
-	}
-
-	@Override
-	public boolean showMenuAction(@Nullable Object o) {
-		return false;
-	}
-
-	@Override
 	public void collectObjectsFromPoint(PointF point, RotatedTileBox tileBox, List<Object> objects,
 	                                    boolean unknownLocation, boolean excludeUntouchableObjects) {
-		if (tileBox.getZoom() >= startZoom) {
+		if (tileBox.getZoom() >= START_ZOOM) {
 			getRecordingsFromPoint(point, tileBox, objects);
 		}
 	}
 
 	public void getRecordingsFromPoint(PointF point, RotatedTileBox tileBox, List<? super Recording> am) {
-		int ex = (int) point.x;
-		int ey = (int) point.y;
-		int compare = getScaledTouchRadius(getApplication(), getRadiusPoi(tileBox));
-		int radius = compare * 3 / 2;
-		for (Recording n : plugin.getAllRecordings()) {
-			PointF pixel = NativeUtilities.getPixelFromLatLon(getMapRenderer(), tileBox, n.getLatitude(), n.getLongitude());
-			if (calculateBelongs(ex, ey, (int) pixel.x, (int) pixel.y, compare)) {
-				compare = radius;
-				am.add(n);
+		Collection<Recording> allRecordings = plugin.getAllRecordings();
+		if (Algorithms.isEmpty(allRecordings)) {
+			return;
+		}
+
+		MapRendererView mapRenderer = getMapRenderer();
+		float radius = getScaledTouchRadius(getApplication(), getRadiusPoi(tileBox)) * TOUCH_RADIUS_MULTIPLIER;
+		List<PointI> touchPolygon31 = null;
+		if (mapRenderer != null) {
+			touchPolygon31 = NativeUtilities.getPolygon31FromPixelAndRadius(mapRenderer, point, radius);
+			if (touchPolygon31 == null) {
+				return;
 			}
 		}
-	}
 
-	private boolean calculateBelongs(int ex, int ey, int objx, int objy, int radius) {
-		return Math.abs(objx - ex) <= radius && (ey - objy) <= radius / 2 && (objy - ey) <= 3 * radius;
+		for (Recording recording : allRecordings) {
+			double lat = recording.getLatitude();
+			double lon = recording.getLongitude();
+
+			boolean add = mapRenderer != null
+					? NativeUtilities.isPointInsidePolygon(lat, lon, touchPolygon31)
+					: tileBox.isLatLonNearPixel(lat, lon, point.x, point.y, radius);
+			if (add) {
+				am.add(recording);
+			}
+		}
 	}
 
 	@Override

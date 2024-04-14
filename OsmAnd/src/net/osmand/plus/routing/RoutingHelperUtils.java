@@ -1,5 +1,7 @@
 package net.osmand.plus.routing;
 
+import static net.osmand.plus.routing.CurrentStreetName.*;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -9,12 +11,14 @@ import net.osmand.data.QuadRect;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.helpers.TargetPointsHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
+import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.router.GeneralRouter;
 import net.osmand.router.GeneralRouter.RoutingParameter;
+import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,27 +26,52 @@ import java.util.Map.Entry;
 public class RoutingHelperUtils {
 
 	private static final int CACHE_RADIUS = 100000;
-	public static final int MAX_BEARING_DEVIATION = 160;
+	public static final int MAX_BEARING_DEVIATION = 45;
 
 	@NonNull
-	public static String formatStreetName(String name, String ref, String destination, String towards) {
-		String formattedStreetName = "";
-		if (ref != null && ref.length() > 0) {
-			formattedStreetName = ref;
+	public static String formatStreetName(@Nullable String name, @Nullable String ref, @Nullable String destination,
+	                                      @NonNull String towards) {
+		return formatStreetName(name, ref, destination, towards, null);
+	}
+
+	@NonNull
+	public static String formatStreetName(@Nullable String name, @Nullable String originalRef, @Nullable String destination,
+	                                      @NonNull String towards, @Nullable List<RoadShield> shields) {
+		StringBuilder formattedStreetName = new StringBuilder();
+		if (originalRef != null && originalRef.length() > 0) {
+			String[] refs = originalRef.split(";");
+			for (String ref : refs) {
+				if (shields == null || !isRefEqualsShield(shields, ref)) {
+					if (formattedStreetName.length() > 0) {
+						formattedStreetName.append(" ");
+					}
+					formattedStreetName.append(ref);
+				}
+			}
 		}
 		if (name != null && name.length() > 0) {
 			if (formattedStreetName.length() > 0) {
-				formattedStreetName = formattedStreetName + " ";
+				formattedStreetName.append(" ");
 			}
-			formattedStreetName = formattedStreetName + name;
+			formattedStreetName.append(name);
 		}
 		if (destination != null && destination.length() > 0) {
 			if (formattedStreetName.length() > 0) {
-				formattedStreetName = formattedStreetName + " ";
+				formattedStreetName.append(" ");
 			}
-			formattedStreetName = formattedStreetName + towards + " " + destination;
+			formattedStreetName.append(towards).append(" ").append(destination);
 		}
-		return formattedStreetName.replace(";", ", ");
+		return formattedStreetName.toString().replace(";", ", ");
+	}
+
+	private static boolean isRefEqualsShield(@NonNull List<RoadShield> shields, @NonNull String ref) {
+		for (RoadShield shield : shields) {
+			String shieldValue = shield.getValue();
+			if (ref.equals(shieldValue) || String.valueOf(Algorithms.extractIntegerNumber(ref)).equals(shieldValue)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Nullable
@@ -81,13 +110,35 @@ public class RoutingHelperUtils {
 		return locationProjection;
 	}
 
-	public static void approximateBearingIfNeeded(@NonNull RoutingHelper helper, @NonNull Location locationProjection,
-	                                              @NonNull Location loc, @NonNull Location from, @NonNull Location to) {
-		float bearingTo = MapUtils.normalizeDegrees360(from.bearingTo(to));
-		double projectDist = helper.getMaxAllowedProjectDist(loc);
-		if ((!loc.hasBearing() || Math.abs(loc.getBearing() - bearingTo) < MAX_BEARING_DEVIATION) &&
-				loc.distanceTo(locationProjection) < projectDist) {
-			locationProjection.setBearing(bearingTo);
+	public static void approximateBearingIfNeeded(@NonNull RoutingHelper routingHelper,
+	                                              @NonNull Location projection,
+	                                              @NonNull Location location,
+	                                              @NonNull Location previousRouteLocation,
+	                                              @NonNull Location currentRouteLocation,
+	                                              @NonNull Location nextRouteLocation) {
+		double dist = location.distanceTo(projection);
+		double maxDist = routingHelper.getMaxAllowedProjectDist(currentRouteLocation);
+		if (dist >= maxDist) {
+			return;
+		}
+
+		float projectionOffsetN = (float) MapUtils.getProjectionCoeff(
+				location.getLatitude(), location.getLongitude(),
+				previousRouteLocation.getLatitude(), previousRouteLocation.getLongitude(),
+				currentRouteLocation.getLatitude(), currentRouteLocation.getLongitude());
+		float currentSegmentBearing = MapUtils.normalizeDegrees360(previousRouteLocation.bearingTo(currentRouteLocation));
+		float nextSegmentBearing = MapUtils.normalizeDegrees360(currentRouteLocation.bearingTo(nextRouteLocation));
+		float segmentsBearingDelta = MapUtils.unifyRotationDiff(currentSegmentBearing, nextSegmentBearing)
+				* projectionOffsetN;
+		float approximatedBearing = MapUtils.normalizeDegrees360(currentSegmentBearing + segmentsBearingDelta);
+
+		boolean setApproximated = true;
+		if (location.hasBearing() && dist >= maxDist / 2) {
+			float rotationDiff = MapUtils.unifyRotationDiff(location.getBearing(), approximatedBearing);
+			setApproximated = Math.abs(rotationDiff) < MAX_BEARING_DEVIATION;
+		}
+		if (setApproximated) {
+			projection.setBearing(approximatedBearing);
 		}
 	}
 
@@ -128,7 +179,7 @@ public class RoutingHelperUtils {
 					? prevRouteLocation.bearingTo(nextRouteLocation)
 					: currentLocation.bearingTo(nextRouteLocation);
 			double diff = MapUtils.degreesDiff(bearingMotion, bearingToRoute);
-			if (Math.abs(diff) > 60f) {
+			if (Math.abs(diff) > 90f) {
 				// require delay interval since first detection, to avoid false positive
 				//but leave out for now, as late detection is worse than false positive (it may reset voice router then cause bogus turn and u-turn prompting)
 				//if (wrongMovementDetected == 0) {
@@ -179,20 +230,21 @@ public class RoutingHelperUtils {
 	}
 
 
-	public static void checkAndUpdateStartLocation(@NonNull OsmandApplication app, LatLon newStartLocation, boolean force) {
-		if (newStartLocation != null) {
-			LatLon lastStartLocation = app.getSettings().getLastStartPoint();
+	public static void updateDrivingRegionIfNeeded(@NonNull OsmandApplication app, @Nullable LatLon newStartLocation, boolean force) {
+		OsmandSettings settings = app.getSettings();
+		if (settings.DRIVING_REGION_AUTOMATIC.get() && newStartLocation != null) {
+			LatLon lastStartLocation = settings.getLastStartPoint();
 			if (lastStartLocation == null || MapUtils.getDistance(newStartLocation, lastStartLocation) > CACHE_RADIUS || force) {
 				app.getMapViewTrackingUtilities().detectDrivingRegion(newStartLocation);
-				app.getSettings().setLastStartPoint(newStartLocation);
+				settings.setLastStartPoint(newStartLocation);
 			}
 		}
 	}
 
-	public static void checkAndUpdateStartLocation(@NonNull OsmandApplication app, Location nextStartLocation, boolean force) {
+	public static void updateDrivingRegionIfNeeded(@NonNull OsmandApplication app, @Nullable Location nextStartLocation, boolean force) {
 		if (nextStartLocation != null) {
 			LatLon newStartLocation = new LatLon(nextStartLocation.getLatitude(), nextStartLocation.getLongitude());
-			checkAndUpdateStartLocation(app, newStartLocation, force);
+			updateDrivingRegionIfNeeded(app, newStartLocation, force);
 		}
 	}
 
@@ -203,7 +255,7 @@ public class RoutingHelperUtils {
 	@NonNull
 	public static Map<String, RoutingParameter> getParametersForDerivedProfile(@NonNull ApplicationMode appMode, @NonNull GeneralRouter router) {
 		String derivedProfile = appMode.getDerivedProfile();
-		Map<String, RoutingParameter> parameters = new HashMap<>();
+		Map<String, RoutingParameter> parameters = new LinkedHashMap<>();
 		for (Entry<String, RoutingParameter> entry : router.getParameters().entrySet()) {
 			String[] profiles = entry.getValue().getProfiles();
 			if (profiles == null || Arrays.asList(profiles).contains(derivedProfile)) {

@@ -268,26 +268,6 @@ public class PointNavigationLayer extends OsmandMapLayer implements
 	}
 
 	@Override
-	public boolean disableSingleTap() {
-		return false;
-	}
-
-	@Override
-	public boolean disableLongPressOnMap(PointF point, RotatedTileBox tileBox) {
-		return false;
-	}
-
-	@Override
-	public boolean runExclusiveAction(Object o, boolean unknownLocation) {
-		return false;
-	}
-
-	@Override
-	public boolean showMenuAction(@Nullable Object o) {
-		return false;
-	}
-
-	@Override
 	public void collectObjectsFromPoint(PointF point, RotatedTileBox tileBox, List<Object> o,
 	                                    boolean unknownLocation, boolean excludeUntouchableObjects) {
 		if (tileBox.getZoom() >= 3 && !excludeUntouchableObjects) {
@@ -300,7 +280,7 @@ public class PointNavigationLayer extends OsmandMapLayer implements
 				if (latLon != null) {
 					int ex = (int) point.x;
 					int ey = (int) point.y;
-					PointF pixel = NativeUtilities.getPixelFromLatLon(getMapRenderer(), tileBox, latLon.getLatitude(), latLon.getLongitude());
+					PointF pixel = NativeUtilities.getElevatedPixelFromLatLon(getMapRenderer(), tileBox, latLon);
 					if (calculateBelongs(ex, ey, (int) pixel.x, (int) pixel.y, r)) {
 						o.add(tp);
 					}

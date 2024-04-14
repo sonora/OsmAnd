@@ -1,6 +1,7 @@
 package net.osmand.plus.views.mapwidgets.configure.reorder;
 
 import static net.osmand.plus.utils.UiUtilities.getColoredSelectableDrawable;
+import static net.osmand.plus.views.mapwidgets.WidgetType.isComplexWidget;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -24,6 +25,7 @@ import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.controls.ReorderItemTouchHelperCallback.OnItemMoveCallback;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
+import net.osmand.plus.views.mapwidgets.SimpleWidgetInfo;
 import net.osmand.plus.views.mapwidgets.WidgetGroup;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
@@ -44,13 +46,17 @@ import net.osmand.plus.views.mapwidgets.configure.reorder.viewholder.SpaceViewHo
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItemMoveCallback, ItemMovableCallback {
 
 	private final OsmandApplication app;
 	private final ReorderWidgetsAdapterHelper reorderHelper;
 	private final List<ListItem> items = new ArrayList<>();
+	private List<ListItem> itemsBeforeMove = new ArrayList<>();
 	private final WidgetsPanel panel;
 
 	private WidgetAdapterDragListener dragListener;
@@ -110,8 +116,23 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		this.actionsListener = actionsListener;
 	}
 
-	public void restorePage(int page, int position) {
-		reorderHelper.restorePage(page, position);
+	public void savePagedOrderInDataHolder(){
+		reorderHelper.savePagedOrderInDataHolder();
+	}
+
+	public TreeMap<Integer, List<String>> getPagedOrderFromAdapterItems() {
+		return reorderHelper.getPagedOrderFromAdapterItems();
+	}
+
+	public List<String> getFlatWidgetsList(Map<Integer, List<String>> pagedOrder) {
+		List<String> flatWidgetsList = new ArrayList<>();
+		for (Integer pageIndex : pagedOrder.keySet()) {
+			List<String> widgetsInPage = pagedOrder.get(pageIndex);
+			if (!Algorithms.isEmpty(widgetsInPage)) {
+				flatWidgetsList.addAll(widgetsInPage);
+			}
+		}
+		return flatWidgetsList;
 	}
 
 	@NonNull
@@ -183,7 +204,9 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 			SpaceViewHolder holder = (SpaceViewHolder) viewHolder;
 			holder.setHeight((int) item.value);
 		} else if (viewHolder instanceof AddPageButtonViewHolder) {
-			((AddPageButtonViewHolder) viewHolder).buttonContainer.setOnClickListener(v -> reorderHelper.addPage());
+			AddPageButtonViewHolder holder = (AddPageButtonViewHolder) viewHolder;
+			holder.textView.setText(panel.isPanelVertical() ? R.string.add_row : R.string.add_page);
+			holder.buttonContainer.setOnClickListener(v -> reorderHelper.addPage());
 		}
 	}
 
@@ -194,9 +217,25 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		OnClickListener deletePageListener;
 		Drawable deleteIcon;
 		boolean firstPage = pageIndex == 0;
+
 		if (firstPage) {
 			deletePageListener = null;
 			deleteIcon = getDeleteIcon(true);
+		} else if (panel.isPanelVertical()) {
+			boolean rowHasComplexWidget = rowHasComplexWidget(position);
+			boolean previousRowHasComplexWidget = rowHasComplexWidget(getPreviousRowPosition(position));
+			boolean isRowEmpty = getRowWidgetIds(position).isEmpty();
+
+			if (rowHasComplexWidget && !isRowEmpty) {
+				deletePageListener = v -> app.showToastMessage(app.getString(R.string.remove_widget_first));
+				deleteIcon = getDeleteIcon(true);
+			} else if (previousRowHasComplexWidget && !isRowEmpty) {
+				deletePageListener = v -> app.showToastMessage(app.getString(R.string.previous_row_has_complex_widget));
+				deleteIcon = getDeleteIcon(true);
+			} else{
+				deletePageListener = v -> deletePage(viewHolder.getAdapterPosition(), pageIndex);
+				deleteIcon = getDeleteIcon(false);
+			}
 		} else {
 			deletePageListener = v -> deletePage(viewHolder.getAdapterPosition(), pageIndex);
 			deleteIcon = getDeleteIcon(false);
@@ -205,19 +244,70 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		viewHolder.deletePageButton.setImageDrawable(deleteIcon);
 
 		AndroidUiHelper.updateVisibility(viewHolder.topDivider, !firstPage);
-		viewHolder.pageText.setText(app.getString(R.string.page_number, String.valueOf(pageIndex + 1)));
+		viewHolder.pageText.setText(app.getString(panel.isPanelVertical() ? R.string.row_number : R.string.page_number, String.valueOf(pageIndex + 1)));
 
-		AndroidUiHelper.updateVisibility(viewHolder.moveIcon, !firstPage);
+		boolean hideMoveIcon = firstPage || (panel.isPanelVertical() && rowHasComplexWidget(position));
+		AndroidUiHelper.updateVisibility(viewHolder.moveIcon, !hideMoveIcon);
 		viewHolder.moveIcon.setOnTouchListener((v, event) -> {
 			if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+				if (panel.isPanelVertical()) {
+					itemsBeforeMove.clear();
+					itemsBeforeMove.addAll(items);
+				}
 				dragListener.onDragStarted(viewHolder);
 			}
 			return false;
 		});
 	}
 
+	private ArrayList<AddedWidgetUiInfo> getRowWidgetIds(int rowPosition) {
+		ArrayList<AddedWidgetUiInfo> rowWidgetIds = new ArrayList<>();
+		ListItem item = items.get(++rowPosition);
+
+		while (rowPosition < items.size() && item.type == ItemType.ADDED_WIDGET) {
+			item = items.get(rowPosition);
+			if (item.type == ItemType.ADDED_WIDGET) {
+				rowWidgetIds.add((AddedWidgetUiInfo) item.value);
+			}
+			rowPosition++;
+		}
+		return rowWidgetIds;
+	}
+
+	private int getPreviousRowPosition(int currentRowPosition) {
+		currentRowPosition--;
+		while (currentRowPosition >= 0) {
+			if (items.get(currentRowPosition).type == ItemType.PAGE) {
+				return currentRowPosition;
+			}
+			currentRowPosition--;
+		}
+		return -1;
+	}
+
+	private boolean rowHasComplexWidget(int rowPosition) {
+		ArrayList<AddedWidgetUiInfo> rowWidgetIds = getRowWidgetIds(rowPosition);
+		for (AddedWidgetUiInfo widgetUiInfo : rowWidgetIds) {
+			if (isComplexWidget(widgetUiInfo.key)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Nullable
+	private String getComplexWidgetName(int rowPosition){
+		ArrayList<AddedWidgetUiInfo> rowWidgetIds = getRowWidgetIds(rowPosition);
+		for (AddedWidgetUiInfo widgetUiInfo : rowWidgetIds) {
+			if (isComplexWidget(widgetUiInfo.key)) {
+				return widgetUiInfo.title;
+			}
+		}
+		return null;
+	}
+
 	private void deletePage(int position, int pageToDelete) {
-		reorderHelper.deletePage(position, pageToDelete);
+		reorderHelper.deletePage(position);
 		if (actionsListener != null) {
 			actionsListener.onPageDeleted(pageToDelete, position);
 		}
@@ -230,12 +320,16 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		viewHolder.deleteWidgetButton.setImageDrawable(getDeleteIcon(false));
 		viewHolder.deleteWidgetButton.setOnClickListener(v -> {
 			int pos = viewHolder.getAdapterPosition();
-			reorderHelper.deleteWidget(widgetInfo, pos);
+			reorderHelper.deleteWidget(pos);
 		});
 
 		viewHolder.title.setText(widgetInfo.title);
 		viewHolder.moveIcon.setOnTouchListener((view, event) -> {
 			if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+				if (panel.isPanelVertical()) {
+					itemsBeforeMove.clear();
+					itemsBeforeMove.addAll(items);
+				}
 				dragListener.onDragStarted(viewHolder);
 			}
 			return false;
@@ -248,7 +342,7 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		WidgetGroup widgetGroup = ((WidgetGroup) items.get(position).value);
 		OnClickListener showInfoListener = v -> {
 			if (actionsListener != null) {
-				actionsListener.showWidgetGroupInfo(widgetGroup, listAddedGroupWidgets(widgetGroup));
+				actionsListener.showWidgetGroupInfo(widgetGroup, Collections.emptyList());
 			}
 		};
 
@@ -263,23 +357,6 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		AndroidUtils.setBackground(viewHolder.container, getColoredSelectableDrawable(app, profileColor, 0.3f));
 
 		updateAvailableItemDivider(viewHolder, position);
-	}
-
-	@NonNull
-	private List<String> listAddedGroupWidgets(@NonNull WidgetGroup widgetGroup) {
-		List<String> addedGroupWidgets = new ArrayList<>();
-		if (!panel.isDuplicatesAllowed()) {
-			for (ListItem listItem : items) {
-				if (listItem.value instanceof AddedWidgetUiInfo) {
-					AddedWidgetUiInfo addedWidgetUiInfo = (AddedWidgetUiInfo) listItem.value;
-					WidgetType widgetType = WidgetType.getById(addedWidgetUiInfo.key);
-					if (widgetType != null && widgetGroup == widgetType.getGroup()) {
-						addedGroupWidgets.add(widgetType.id);
-					}
-				}
-			}
-		}
-		return addedGroupWidgets;
 	}
 
 	private void bindAvailableWidgetViewHolder(@NonNull AvailableItemViewHolder viewHolder, int position) {
@@ -339,7 +416,18 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 	}
 
 	@Override
-	public void onItemDismiss(ViewHolder holder) {
+	public void onItemDismiss(@NonNull ViewHolder holder) {
+		if (panel.isPanelVertical()) {
+			for (int index = 0; index < items.size(); index++) {
+				ListItem item = items.get(index);
+				if (item.type == ItemType.PAGE && rowHasComplexWidget(index) && getRowWidgetIds(index).size() > 1) {
+					app.showToastMessage(app.getString(R.string.complex_widget_alert, getComplexWidgetName(index)));
+					items.clear();
+					items.addAll(itemsBeforeMove);
+					break;
+				}
+			}
+		}
 		dragListener.onDragOrSwipeEnded(holder);
 	}
 
@@ -348,11 +436,11 @@ public class ReorderWidgetsAdapter extends Adapter<ViewHolder> implements OnItem
 		ListItem item = items.get(position);
 		if (item.value instanceof PageUiInfo) {
 			int page = ((PageUiInfo) item.value).index;
-			return app.getString(R.string.page_number, String.valueOf(page)).hashCode();
+			return app.getString(panel.isPanelVertical() ? R.string.row_number : R.string.page_number, String.valueOf(page)).hashCode();
 		} else if (item.value instanceof AddedWidgetUiInfo) {
 			return ((AddedWidgetUiInfo) item.value).key.hashCode();
 		} else if (item.type == ItemType.ADD_PAGE_BUTTON) {
-			return R.string.add_page;
+			return panel.isPanelVertical() ? R.string.add_row : R.string.add_page;
 		} else if (item.value instanceof ActionButtonInfo) {
 			return ((ActionButtonInfo) item.value).title.hashCode();
 		} else if (item.value instanceof WidgetGroup) {

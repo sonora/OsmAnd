@@ -57,6 +57,7 @@ public class PointsGroupsCard extends MapBaseCard {
 		ArrayList<ChipItem> items = new ArrayList<>();
 		ChipItem categoryAll = new ChipItem(app.getString(R.string.shared_string_all));
 		categoryAll.title = categoryAll.id;
+		categoryAll.contentDescription = categoryAll.id;
 		items.add(categoryAll);
 
 		int iconSizePx = getDimen(R.dimen.poi_icon_size);
@@ -69,9 +70,11 @@ public class PointsGroupsCard extends MapBaseCard {
 					: group.getName();
 			ChipItem item = new ChipItem(categoryDisplayName);
 			item.title = categoryDisplayName;
+			item.contentDescription = categoryDisplayName;
 			item.tag = group;
 			item.onAfterViewBoundCallback = (chip, holder) -> {
-				if (selectedGpxFile.isGroupHidden(chip.id)) {
+				GpxDisplayGroup displayGroup = (GpxDisplayGroup) chip.tag;
+				if (selectedGpxFile.isGroupHidden(displayGroup.getName())) {
 					Drawable image = getColoredIcon(R.drawable.ic_action_hide_16, iconColorId);
 					holder.image.setImageDrawable(image);
 					holder.image.setVisibility(View.VISIBLE);

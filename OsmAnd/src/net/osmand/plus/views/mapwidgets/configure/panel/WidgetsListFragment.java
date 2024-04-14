@@ -1,7 +1,13 @@
 package net.osmand.plus.views.mapwidgets.configure.panel;
 
-import android.content.Context;
-import android.graphics.drawable.Drawable;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.AVAILABLE_MODE;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.DEFAULT_MODE;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.ENABLED_MODE;
+import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.MATCHING_PANELS_MODE;
+import static net.osmand.plus.views.mapwidgets.configure.reorder.ReorderWidgetsAdapter.*;
+import static net.osmand.plus.views.mapwidgets.configure.settings.WidgetSettingsBaseFragment.KEY_APP_MODE;
+import static net.osmand.plus.views.mapwidgets.configure.settings.WidgetSettingsBaseFragment.KEY_WIDGET_ID;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +16,13 @@ import android.view.ViewTreeObserver.OnScrollChangedListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.widget.NestedScrollView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
@@ -17,6 +30,7 @@ import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.profiles.SelectCopyAppModeBottomSheet.CopyAppModePrefsListener;
 import net.osmand.plus.settings.backend.ApplicationMode;
 import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.bottomsheets.ConfirmationBottomSheet.ConfirmationDialogListener;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.layers.MapInfoLayer;
@@ -25,14 +39,14 @@ import net.osmand.plus.views.mapwidgets.MapWidgetRegistry;
 import net.osmand.plus.views.mapwidgets.WidgetGroup;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
-import net.osmand.plus.views.mapwidgets.configure.ConfigureScreenActionsCard;
-import net.osmand.plus.views.mapwidgets.configure.ConfirmResetToDefaultBottomSheetDialog.ResetToDefaultListener;
-import net.osmand.plus.views.mapwidgets.configure.WidgetsSettingsHelper;
 import net.osmand.plus.views.mapwidgets.configure.WidgetIconsHelper;
+import net.osmand.plus.views.mapwidgets.configure.WidgetsSettingsHelper;
 import net.osmand.plus.views.mapwidgets.configure.dialogs.AddWidgetFragment;
 import net.osmand.plus.views.mapwidgets.configure.dialogs.WidgetInfoFragment;
+import net.osmand.plus.views.mapwidgets.configure.dialogs.cards.ConfigureActionsCard;
 import net.osmand.plus.views.mapwidgets.configure.reorder.ReorderWidgetsFragment;
 import net.osmand.plus.views.mapwidgets.configure.reorder.viewholder.AvailableItemViewHolder;
+import net.osmand.plus.views.mapwidgets.configure.reorder.viewholder.AvailableItemViewHolder.AvailableWidgetUiInfo;
 import net.osmand.plus.views.mapwidgets.configure.settings.WidgetSettingsBaseFragment;
 import net.osmand.util.Algorithms;
 
@@ -43,23 +57,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import androidx.annotation.ColorInt;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.widget.NestedScrollView;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-
-import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.AVAILABLE_MODE;
-import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.DEFAULT_MODE;
-import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.DISABLED_MODE;
-import static net.osmand.plus.views.mapwidgets.MapWidgetRegistry.ENABLED_MODE;
-import static net.osmand.plus.views.mapwidgets.configure.settings.WidgetSettingsBaseFragment.KEY_APP_MODE;
-import static net.osmand.plus.views.mapwidgets.configure.settings.WidgetSettingsBaseFragment.KEY_WIDGET_ID;
-
 public class WidgetsListFragment extends Fragment implements OnScrollChangedListener,
-		ResetToDefaultListener, CopyAppModePrefsListener {
+		ConfirmationDialogListener, CopyAppModePrefsListener {
 
 	private static final String SELECTED_GROUP_ATTR = "selected_group_key";
 
@@ -80,7 +79,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 	private ViewGroup availableWidgetsContainer;
 	private ViewGroup actionsCardContainer;
 
-	private final int enabledWidgetsFilter = AVAILABLE_MODE | ENABLED_MODE;
+	private final int enabledWidgetsFilter = AVAILABLE_MODE | ENABLED_MODE | MATCHING_PANELS_MODE;
 
 	private boolean nightMode;
 
@@ -121,8 +120,9 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 
 		updateContent();
 
-		TextView panelTitle = view.findViewById(R.id.panel_title);
-		panelTitle.setText(getString(selectedPanel.getTitleId(AndroidUtils.isLayoutRtl(app))));
+		boolean isRtl = AndroidUtils.isLayoutRtl(view.getContext());
+		TextView title = view.findViewById(R.id.panel_title);
+		title.setText(getString(isVerticalPanel() ? R.string.shared_string_rows : selectedPanel.getTitleId(isRtl)));
 
 		setupReorderButton(changeOrderListButton);
 		setupReorderButton(changeOrderFooterButton);
@@ -155,8 +155,8 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 		view.setOnClickListener(v -> {
 			FragmentActivity activity = getActivity();
 			if (activity != null) {
-				ReorderWidgetsFragment.showInstance(activity.getSupportFragmentManager(), selectedPanel,
-						selectedAppMode, getParentFragment());
+				FragmentManager manager = activity.getSupportFragmentManager();
+				ReorderWidgetsFragment.showInstance(manager, selectedPanel, selectedAppMode, getParentFragment());
 			}
 		});
 		setupListItemBackground(view);
@@ -168,18 +168,17 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 
 	private void setupActionsCard() {
 		int panelTitleId = selectedPanel.getTitleId(AndroidUtils.isLayoutRtl(app));
-		View cardView = new ConfigureScreenActionsCard(requireMapActivity(), this, selectedAppMode, panelTitleId)
+		View cardView = new ConfigureActionsCard(requireMapActivity(), this, panelTitleId)
 				.build(view.getContext());
 		actionsCardContainer.addView(cardView);
 	}
 
 	@Override
-	public void onResetToDefaultConfirmed() {
+	public void onActionConfirmed(int actionId) {
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity == null) {
 			return;
 		}
-
 		widgetsSettingsHelper.resetWidgetsForPanel(selectedPanel);
 
 		MapInfoLayer mapInfoLayer = app.getOsmandMap().getMapLayers().getMapInfoLayer();
@@ -232,15 +231,13 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 	private void inflateEnabledWidgets() {
 		MapActivity mapActivity = requireMapActivity();
 		LayoutInflater inflater = UiUtilities.getInflater(mapActivity, nightMode);
-		if (selectedPanel.isPagingAllowed()) {
-			List<Set<MapWidgetInfo>> pagedWidgets = widgetRegistry.getPagedWidgetsForPanel(mapActivity, selectedAppMode, selectedPanel, enabledWidgetsFilter);
-			for (int i = 0; i < pagedWidgets.size(); i++) {
+
+		List<Set<MapWidgetInfo>> pagedWidgets = widgetRegistry.getPagedWidgetsForPanel(mapActivity, selectedAppMode, selectedPanel, enabledWidgetsFilter);
+		for (int i = 0; i < pagedWidgets.size(); i++) {
+			if (!isVerticalPanel()) {
 				inflatePageItemView(i, inflater);
-				inflateWidgetItemsViews(pagedWidgets.get(i), inflater);
 			}
-		} else {
-			Set<MapWidgetInfo> widgets = widgetRegistry.getWidgetsForPanel(mapActivity, selectedAppMode, enabledWidgetsFilter, Collections.singletonList(selectedPanel));
-			inflateWidgetItemsViews(widgets, inflater);
+			inflateWidgetItemsViews(pagedWidgets.get(i), inflater, i + 1, i == pagedWidgets.size() - 1);
 		}
 	}
 
@@ -253,7 +250,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 		enabledWidgetsContainer.addView(view);
 	}
 
-	private void inflateWidgetItemsViews(@NonNull Set<MapWidgetInfo> widgetsInfo, @NonNull LayoutInflater inflater) {
+	private void inflateWidgetItemsViews(@NonNull Set<MapWidgetInfo> widgetsInfo, @NonNull LayoutInflater inflater, int row, boolean lastRow) {
 		List<MapWidgetInfo> widgets = new ArrayList<>(widgetsInfo);
 
 		for (int i = 0; i < widgets.size(); i++) {
@@ -276,7 +273,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 			iconsHelper.updateWidgetIcon(imageView, widgetInfo);
 
 			View settingsButton = view.findViewById(R.id.settings_button);
-			WidgetSettingsBaseFragment fragment = widgetType != null ? widgetType.getSettingsFragment(app) : null;
+			WidgetSettingsBaseFragment fragment = widgetType != null ? widgetType.getSettingsFragment(app, widgetInfo) : null;
 			if (fragment != null) {
 				settingsButton.setOnClickListener(v -> {
 					FragmentActivity activity = getActivity();
@@ -290,7 +287,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 						WidgetSettingsBaseFragment.showFragment(manager, args, target, fragment);
 					}
 				});
-				setupListItemBackground(app, settingsButton, selectedAppMode.getProfileColor(nightMode));
+				UiUtilities.setupListItemBackground(app, settingsButton, selectedAppMode.getProfileColor(nightMode));
 			}
 
 			View infoButton = view.findViewById(R.id.info_button);
@@ -311,9 +308,20 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 			setupListItemBackground(view);
 
 			View bottomDivider = view.findViewById(R.id.bottom_divider);
-			boolean last = i + 1 == widgets.size();
-			AndroidUiHelper.updateVisibility(bottomDivider, !last);
+			boolean lastWidget = i + 1 == widgets.size();
+			AndroidUiHelper.updateVisibility(bottomDivider, !lastWidget);
 
+			if (isVerticalPanel()) {
+				TextView rowId = view.findViewById(R.id.row_id);
+				rowId.setText(String.valueOf(row));
+				AndroidUiHelper.setVisibility(i == 0 ? View.VISIBLE : View.INVISIBLE, rowId);
+
+				if (lastWidget && !lastRow) {
+					ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) bottomDivider.getLayoutParams();
+					params.setMarginStart(0);
+					AndroidUiHelper.updateVisibility(bottomDivider, true);
+				}
+			}
 			enabledWidgetsContainer.addView(view);
 		}
 	}
@@ -322,21 +330,53 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 		availableWidgetsContainer.removeAllViews();
 
 		int filter = AVAILABLE_MODE | DEFAULT_MODE;
-		if (!selectedPanel.isDuplicatesAllowed()) {
-			filter |= DISABLED_MODE;
-		}
 
 		MapActivity mapActivity = requireMapActivity();
-		Set<MapWidgetInfo> availableWidgets = widgetRegistry.getWidgetsForPanel(mapActivity, selectedAppMode, filter, selectedPanel.getMergedPanels());
+		Set<MapWidgetInfo> availableWidgets = widgetRegistry.getWidgetsForPanel(mapActivity, selectedAppMode, filter, Collections.singletonList(selectedPanel));
 		boolean hasAvailableWidgets = !Algorithms.isEmpty(availableWidgets);
 		if (hasAvailableWidgets) {
-			List<WidgetType> disabledDefaultWidgets = listDefaultWidgets(availableWidgets);
-			List<MapWidgetInfo> externalWidgets = listExternalWidgets(availableWidgets);
+			List<WidgetType> defaultWidgets = excludeGroupsDuplicated(listDefaultWidgets(availableWidgets));
+			sortWidgetsItems(defaultWidgets, app, nightMode);
 
-			inflateAvailableDefaultWidgets(excludeGroupsDuplicated(disabledDefaultWidgets), !Algorithms.isEmpty(externalWidgets));
+			List<MapWidgetInfo> externalWidgets = listExternalWidgets(availableWidgets);
+			sortWidgetsItems(externalWidgets, app, nightMode);
+
+			inflateAvailableDefaultWidgets(defaultWidgets, !Algorithms.isEmpty(externalWidgets));
 			inflateAvailableExternalWidgets(externalWidgets);
 		}
 		AndroidUiHelper.updateVisibility(view.findViewById(R.id.available_widgets_container), hasAvailableWidgets);
+	}
+
+	public static void sortWidgetsItems(List<?> widgets, @NonNull OsmandApplication app, boolean nightMode) {
+		Collections.sort(widgets, (o1, o2) -> {
+			String firstName = getListItemName(o1, app, nightMode);
+			String secondName = getListItemName(o2, app, nightMode);
+			if (firstName != null && secondName != null) {
+				return firstName.compareTo(secondName);
+			}
+			return 0;
+		});
+	}
+
+	@Nullable
+	public static String getListItemName(Object item, @NonNull OsmandApplication app, boolean nightMode) {
+		if (item instanceof WidgetType) {
+			WidgetType widgetType = (WidgetType) item;
+			WidgetGroup widgetGroup = widgetType.getGroup();
+			return widgetGroup != null
+					? String.valueOf(AvailableItemViewHolder.getGroupTitle(widgetGroup, app, nightMode))
+					: app.getString(widgetType.titleId);
+		} else if (item instanceof MapWidgetInfo) {
+			return ((MapWidgetInfo) item).getTitle(app);
+		} else if (item instanceof ListItem) {
+			Object value = ((ListItem) item).value;
+			if (value instanceof AvailableWidgetUiInfo) {
+				return ((AvailableWidgetUiInfo) value).title;
+			} else if (value instanceof WidgetGroup) {
+				return ((WidgetGroup) value).name();
+			}
+		}
+		return null;
 	}
 
 	@NonNull
@@ -377,8 +417,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 					: getString(widgetType.titleId);
 			((TextView) view.findViewById(R.id.title)).setText(title);
 
-			View infoButton = view.findViewById(R.id.info_button);
-			infoButton.setOnClickListener(v -> {
+			view.setOnClickListener(v -> {
 				FragmentActivity activity = getActivity();
 				if (activity != null) {
 					FragmentManager fragmentManager = activity.getSupportFragmentManager();
@@ -392,8 +431,9 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 					}
 				}
 			});
-			view.setOnClickListener(v -> infoButton.callOnClick());
 
+			View infoButton = view.findViewById(R.id.info_button);
+			infoButton.setClickable(false);
 			AndroidUiHelper.updateVisibility(infoButton, true);
 			AndroidUiHelper.updateVisibility(view.findViewById(R.id.settings_button), false);
 			AndroidUiHelper.updateVisibility(view.findViewById(R.id.buttons_divider), false);
@@ -420,8 +460,7 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 			TextView title = view.findViewById(R.id.title);
 			title.setText(widgetInfo.getTitle(app));
 
-			View infoButton = view.findViewById(R.id.info_button);
-			infoButton.setOnClickListener(v -> {
+			view.setOnClickListener(v -> {
 				FragmentActivity activity = getActivity();
 				String externalProviderPackage = widgetInfo.getExternalProviderPackage();
 				if (activity != null && !Algorithms.isEmpty(externalProviderPackage)) {
@@ -430,12 +469,15 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 							selectedAppMode, selectedPanel, widgetInfo.key, externalProviderPackage, null);
 				}
 			});
+			View infoButton = view.findViewById(R.id.info_button);
+			infoButton.setClickable(false);
 			AndroidUiHelper.updateVisibility(infoButton, true);
 			AndroidUiHelper.updateVisibility(view.findViewById(R.id.settings_button), false);
 			AndroidUiHelper.updateVisibility(view.findViewById(R.id.buttons_divider), false);
 
 			boolean last = i + 1 == externalWidgets.size();
 			AndroidUiHelper.updateVisibility(view.findViewById(R.id.bottom_divider), !last);
+			setupListItemBackground(view);
 
 			availableWidgetsContainer.addView(view);
 		}
@@ -466,12 +508,11 @@ public class WidgetsListFragment extends Fragment implements OnScrollChangedList
 
 	private void setupListItemBackground(@NonNull View view) {
 		View container = view.findViewById(R.id.container);
-		setupListItemBackground(app, container, selectedAppMode.getProfileColor(nightMode));
+		UiUtilities.setupListItemBackground(app, container, selectedAppMode.getProfileColor(nightMode));
 	}
 
-	public static void setupListItemBackground(@NonNull Context context, @NonNull View view, @ColorInt int color) {
-		Drawable background = UiUtilities.getColoredSelectableDrawable(context, color, 0.3f);
-		AndroidUtils.setBackground(view, background);
+	private boolean isVerticalPanel() {
+		return selectedPanel.isPanelVertical();
 	}
 
 	@Override

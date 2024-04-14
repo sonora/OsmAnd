@@ -25,6 +25,7 @@ agconnect-services.json
 OsmAndHms.jks
 
 # Android Studio
+.attach_pid*
 /.idea
 *.iml
 
@@ -40,3 +41,6 @@ Thumbs.db
 
 # Output files
 build
+
+#Rendering test files
+OsmAnd-java/src/test/resources/rendering/*

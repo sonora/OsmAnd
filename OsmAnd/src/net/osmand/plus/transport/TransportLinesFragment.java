@@ -33,7 +33,6 @@ public class TransportLinesFragment extends BaseOsmAndFragment {
 
 	public static final String TAG = TransportLinesFragment.class.getSimpleName();
 
-	private OsmandApplication app;
 	private MapActivity mapActivity;
 	private TransportLinesMenu menu;
 
@@ -44,7 +43,6 @@ public class TransportLinesFragment extends BaseOsmAndFragment {
 	@Override
 	public void onCreate(@Nullable Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		mapActivity = (MapActivity) requireMyActivity();
 		menu = new TransportLinesMenu(app);
 	}
@@ -54,7 +52,7 @@ public class TransportLinesFragment extends BaseOsmAndFragment {
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 		isShowAnyTransport = menu.isShowAnyTransport();
 
-		boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
+		updateNightMode();
 		themedInflater = UiUtilities.getInflater(getContext(), nightMode);
 		view = themedInflater.inflate(R.layout.fragment_transport_lines, container, false);
 
@@ -130,18 +128,19 @@ public class TransportLinesFragment extends BaseOsmAndFragment {
 		AndroidUiHelper.updateVisibility(view.findViewById(R.id.normal_screen), enabled);
 	}
 
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
+	}
+
 	public static void setupButton(@NonNull View view, int iconId, @NonNull String title, boolean enabled,
 	                               boolean showDivider, @Nullable OnClickListener listener) {
 		OsmandApplication app = (OsmandApplication) view.getContext().getApplicationContext();
 		boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
 		int activeColor = app.getSettings().getApplicationMode().getProfileColor(nightMode);
 		int defColor = ColorUtilities.getDefaultIconColor(app, nightMode);
-		int iconColor = enabled ? activeColor : defColor;
-
-		UiUtilities cache = app.getUIUtilities();
-		Drawable icon = cache.getPaintedIcon(iconId, iconColor);
 		ImageView ivIcon = view.findViewById(R.id.icon);
-		ivIcon.setImageDrawable(icon);
+		ivIcon.setImageResource(iconId);
 		ivIcon.setColorFilter(enabled ? activeColor : defColor);
 
 		TextView tvTitle = view.findViewById(R.id.title);

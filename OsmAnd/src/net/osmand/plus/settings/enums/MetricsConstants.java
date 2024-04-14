@@ -2,6 +2,8 @@ package net.osmand.plus.settings.enums;
 
 import android.content.Context;
 
+import androidx.annotation.StringRes;
+
 import net.osmand.plus.R;
 
 public enum MetricsConstants {
@@ -27,4 +29,9 @@ public enum MetricsConstants {
 	public String toTTSString() {
 		return ttsString;
 	}
+
+	public boolean shouldUseFeet() {
+		return this == MILES_AND_FEET || this == MILES_AND_YARDS || this == NAUTICAL_MILES_AND_FEET;
+	}
+
 }

@@ -17,8 +17,8 @@ public abstract class BaseMenuController {
 	@Nullable
 	private MapActivity mapActivity;
 	private boolean portraitMode;
-	private boolean nightMode;
 	private int landscapeWidthPx;
+	protected boolean nightMode;
 
 	public BaseMenuController(@NonNull MapActivity mapActivity) {
 		this.mapActivity = mapActivity;
@@ -49,7 +49,7 @@ public abstract class BaseMenuController {
 		return !nightMode;
 	}
 
-	protected void updateNightMode() {
+	public void updateNightMode() {
 		if (mapActivity != null) {
 			nightMode = mapActivity.getMyApplication().getDaynightHelper().isNightModeForMapControls();
 		}

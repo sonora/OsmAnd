@@ -17,10 +17,22 @@ import static net.osmand.aidlapi.OsmAndCustomizationConstants.MAP_STYLE_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.POI_OVERLAY_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.POI_OVERLAY_LABELS_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROAD_STYLE_ID;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROUTES_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROUTES_CATEGORY_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.ROUTES_ITEMS_ID_SCHEME;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.SHOW_CATEGORY_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.TEXT_SIZE_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.TRANSPORT_ID;
+import static net.osmand.osm.OsmRouteType.ALPINE;
+import static net.osmand.osm.OsmRouteType.BICYCLE;
+import static net.osmand.osm.OsmRouteType.FITNESS;
+import static net.osmand.osm.OsmRouteType.HIKING;
+import static net.osmand.osm.OsmRouteType.HORSE;
+import static net.osmand.osm.OsmRouteType.MTB;
+import static net.osmand.osm.OsmRouteType.RUNNING;
+import static net.osmand.osm.OsmRouteType.SKI;
+import static net.osmand.osm.OsmRouteType.WATER;
+import static net.osmand.plus.configmap.DifficultyClassificationFragment.getDifficultyClassificationDescription;
+import static net.osmand.plus.dashboard.DashboardOnMap.DashboardType.DIFFICULTY_CLASSIFICATION;
 import static net.osmand.plus.plugins.openseamaps.NauticalDepthContourFragment.DEPTH_CONTOUR_COLOR_SCHEME;
 import static net.osmand.plus.plugins.openseamaps.NauticalDepthContourFragment.DEPTH_CONTOUR_WIDTH;
 import static net.osmand.plus.plugins.osmedit.OsmEditingPlugin.RENDERING_CATEGORY_OSM_ASSISTANT;
@@ -40,17 +52,14 @@ import static net.osmand.render.RenderingRuleStorageProperties.UI_CATEGORY_ROUTE
 
 import android.view.View;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import androidx.annotation.StyleRes;
 
 import com.google.android.material.snackbar.Snackbar;
 
 import net.osmand.CallbackWithObject;
-import net.osmand.IndexConstants;
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
@@ -66,6 +75,7 @@ import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.settings.enums.DayNightMode;
+import net.osmand.plus.track.helpers.GpxSelectionHelper;
 import net.osmand.plus.transport.TransportLinesMenu;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.UiUtilities;
@@ -97,17 +107,8 @@ public class ConfigureMapMenu {
 
 	private static final Log LOG = PlatformUtil.getLog(ConfigureMapMenu.class);
 
-	public static final String HORSE_ROUTES_ATTR = "horseRoutes";
-	public static final String PISTE_ROUTES_ATTR = "pisteRoutes";
-	public static final String ALPINE_HIKING_ATTR = "alpineHiking";
-	public static final String SHOW_MTB_ROUTES_ATTR = "showMtbRoutes";
-	public static final String SHOW_CYCLE_ROUTES_ATTR = "showCycleRoutes";
-	public static final String WHITE_WATER_SPORTS_ATTR = "whiteWaterSports";
-	public static final String HIKING_ROUTES_OSMC_ATTR = "hikingRoutesOSMC";
+	public static final String ALPINE_HIKING_SCALE_SCHEME_ATTR = "alpineHikingScaleScheme";
 	public static final String CYCLE_NODE_NETWORK_ROUTES_ATTR = "showCycleNodeNetworkRoutes";
-	public static final String SHOW_FITNESS_TRAILS_ATTR = "showFitnessTrails";
-	public static final String SHOW_RUNNING_ROUTES_ATTR = "showRunningRoutes";
-	public static final String SHOW_MTB_ROUTES = "showMtbRoutes";
 	public static final String SHOW_MTB_SCALE_IMBA_TRAILS = "showMtbScaleIMBATrails";
 	public static final String SHOW_MTB_SCALE = "showMtbScale";
 	public static final String SHOW_MTB_SCALE_UPHILL = "showMtbScaleUphill";
@@ -120,13 +121,16 @@ public class ConfigureMapMenu {
 
 	public static final String OTHER_MAP_ATTRIBUTES_CATEGORY = "otherMapAttributesCategory";
 
-	public interface OnClickListener {
-		void onClick();
+	private final OsmandApplication app;
+	private final OsmandSettings settings;
+
+	public ConfigureMapMenu(@NonNull OsmandApplication app) {
+		this.app = app;
+		this.settings = app.getSettings();
 	}
 
 	@NonNull
 	public ContextMenuAdapter createListAdapter(@NonNull MapActivity mapActivity) {
-		OsmandApplication app = mapActivity.getMyApplication();
 		boolean nightMode = app.getDaynightHelper().isNightModeForMapControls();
 
 		ContextMenuAdapter adapter = new ContextMenuAdapter(app);
@@ -144,17 +148,10 @@ public class ConfigureMapMenu {
 		return adapter;
 	}
 
-	@StyleRes
-	protected static int getThemeRes(boolean nightMode) {
-		return nightMode ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme;
-	}
-
 	private void createLayersItems(@NonNull List<RenderingRuleProperty> customRules,
 	                               @NonNull ContextMenuAdapter adapter,
 	                               @NonNull MapActivity activity,
 	                               boolean nightMode) {
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
 		int selectedProfileColor = settings.getApplicationMode().getProfileColor(nightMode);
 		MapLayerMenuListener listener = new MapLayerMenuListener(activity);
 
@@ -206,14 +203,17 @@ public class ConfigureMapMenu {
 				.setColor(selected ? selectedProfileColor : null)
 				.setListener(listener));
 
-		selected = app.getSelectedGpxHelper().isAnyGpxFileSelected();
 		adapter.addItem(new ContextMenuItem(GPX_FILES_ID)
 				.setTitleId(R.string.layer_gpx_layer, activity)
-				.setSelected(app.getSelectedGpxHelper().isAnyGpxFileSelected())
-				.setDescription(app.getSelectedGpxHelper().getGpxDescription())
-				.setColor(app, selected ? R.color.osmand_orange : INVALID_ID)
 				.setIcon(R.drawable.ic_action_polygom_dark)
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
+				.setRefreshCallback(item -> {
+					GpxSelectionHelper gpxHelper = app.getSelectedGpxHelper();
+					boolean hasSelectedGpx = gpxHelper.isAnyGpxFileSelected();
+					item.setSelected(hasSelectedGpx);
+					item.setDescription(gpxHelper.getGpxDescription());
+					item.setColor(app, hasSelectedGpx ? R.color.osmand_orange : INVALID_ID);
+				})
 				.setListener(listener));
 
 		selected = settings.SHOW_MAP_MARKERS.get();
@@ -225,10 +225,11 @@ public class ConfigureMapMenu {
 				.setItemDeleteAction(settings.SHOW_MAP_MARKERS)
 				.setListener(listener));
 
+		String mapSourceTitle = settings.getSelectedMapSourceTitle();
 		adapter.addItem(new ContextMenuItem(MAP_SOURCE_ID)
 				.setTitleId(R.string.layer_map, activity)
 				.setIcon(R.drawable.ic_world_globe_dark)
-				.setDescription(settings.MAP_ONLINE_DATA.get() ? settings.MAP_TILE_SOURCES.get().replace(IndexConstants.SQLITE_EXT, "") : null)
+				.setDescription(mapSourceTitle)
 				.setItemDeleteAction(settings.MAP_ONLINE_DATA, settings.MAP_TILE_SOURCES)
 				.setListener(listener));
 
@@ -249,24 +250,23 @@ public class ConfigureMapMenu {
 	                                       @NonNull ContextMenuAdapter adapter,
 	                                       @NonNull MapActivity activity,
 	                                       boolean nightMode) {
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
-
-		adapter.addItem(new ContextMenuItem(ROUTES_ID)
+		adapter.addItem(new ContextMenuItem(ROUTES_CATEGORY_ID)
 				.setCategory(true)
 				.setTitleId(R.string.rendering_category_routes, activity)
 				.setLayout(R.layout.list_group_title_with_switch));
 
 		for (String attrName : getRoutesAttrsNames(customRules)) {
 			RenderingRuleProperty property = getPropertyForAttr(customRules, attrName);
-			if (SHOW_CYCLE_ROUTES_ATTR.equals(attrName)) {
+			if (BICYCLE.getRenderingPropertyAttr().equals(attrName)) {
 				adapter.addItem(createCycleRoutesItem(activity, attrName, property, nightMode));
-			} else if (HIKING_ROUTES_OSMC_ATTR.equals(attrName)) {
+			} else if (HIKING.getRenderingPropertyAttr().equals(attrName)) {
 				adapter.addItem(createHikingRoutesItem(activity, attrName, property, nightMode));
-			} else if (SHOW_MTB_ROUTES.equals(attrName)) {
+			} else if (MTB.getRenderingPropertyAttr().equals(attrName)) {
 				adapter.addItem(createMtbRoutesItem(activity, attrName, property, nightMode));
+			} else if (ALPINE.getRenderingPropertyAttr().equals(attrName)) {
+				adapter.addItem(createAlpineHikingItem(activity, attrName, nightMode));
 			} else {
-				String id = ROUTES_ID + attrName;
+				String id = ROUTES_ITEMS_ID_SCHEME + attrName;
 				int drawableId = getIconIdForAttr(attrName);
 				String name = AndroidUtils.getRenderingStringPropertyName(activity, attrName, property != null ? property.getName() : attrName);
 				CommonPreference<Boolean> pref = settings.getCustomRenderBooleanProperty(attrName);
@@ -287,21 +287,56 @@ public class ConfigureMapMenu {
 		}
 	}
 
+	@NonNull
+	private ContextMenuItem createAlpineHikingItem(@NonNull MapActivity activity, @NonNull String attrName, boolean nightMode) {
+		CommonPreference<Boolean> pref = settings.getCustomRenderBooleanProperty(attrName);
+		RenderingRuleProperty property = app.getRendererRegistry().getCustomRenderingRuleProperty(ALPINE_HIKING_SCALE_SCHEME_ATTR);
+		String defaultName = property != null ? property.getName() : attrName;
+
+		return new ContextMenuItem(ROUTES_ITEMS_ID_SCHEME + attrName)
+				.setTitle(AndroidUtils.getRenderingStringPropertyName(app, attrName, defaultName))
+				.setIcon(getIconIdForAttr(attrName))
+				.setSecondaryIcon(R.drawable.ic_action_additional_option)
+				.setSelected(pref.get())
+				.setDescription(getDifficultyClassificationDescription(app))
+				.setColor(pref.get() ? settings.getApplicationMode().getProfileColor(nightMode) : null)
+				.setListener(new OnRowItemClick() {
+					@Override
+					public boolean onRowItemClick(@NonNull OnDataChangeUiAdapter uiAdapter,
+					                              @NonNull View view, @NonNull ContextMenuItem item) {
+						activity.getDashboard().setDashboardVisibility(true, DIFFICULTY_CLASSIFICATION, AndroidUtils.getCenterViewCoordinates(view));
+						return false;
+					}
+
+					@Override
+					public boolean onContextMenuClick(@Nullable OnDataChangeUiAdapter uiAdapter,
+					                                  @Nullable View view, @NonNull ContextMenuItem item,
+					                                  boolean isChecked) {
+						pref.set(isChecked);
+						item.setColor(activity, isChecked ? R.color.osmand_orange : INVALID_ID);
+						item.setDescription(getDifficultyClassificationDescription(app));
+						if (uiAdapter != null) {
+							uiAdapter.onDataSetChanged();
+						}
+						activity.refreshMapComplete();
+						activity.updateLayers();
+						return false;
+					}
+				});
+	}
+
 	private ContextMenuItem createMtbRoutesItem(@NonNull MapActivity activity, @NonNull String attrName,
 	                                            @Nullable RenderingRuleProperty property, boolean nightMode) {
-
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
 		CommonPreference<Boolean> pref = settings.getCustomRenderBooleanProperty(attrName);
 
-		return new ContextMenuItem(ROUTES_ID + attrName)
+		return new ContextMenuItem(ROUTES_ITEMS_ID_SCHEME + attrName)
 				.setTitle(AndroidUtils.getRenderingStringPropertyName(app, attrName, property != null ? property.getName() : attrName))
 				.setIcon(getIconIdForAttr(attrName))
 				.setSelected(pref.get())
 				.setColor(pref.get() ? settings.getApplicationMode().getProfileColor(nightMode) : null)
-				.setLayout(R.layout.configure_map_item_with_additional_right_desc)
-				.setDescription(pref.get() ? app.getString(MtbRoutesFragment.getSelectedClassification(settings).nameId) : null)
-				.setSecondaryDescription(pref.get() ? null : app.getString(R.string.shared_string_off))
+				//.setLayout(R.layout.configure_map_item_with_additional_right_desc)
+//				.setSecondaryDescription(pref.get() ? null : app.getString(R.string.shared_string_off))
+				.setDescription(pref.get() ? app.getString(MtbRoutesFragment.getSelectedClassification(settings).nameId) : app.getString(R.string.shared_string_disabled))
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					activity.getDashboard().setDashboardVisibility(true, DashboardType.MTB_ROUTES, AndroidUtils.getCenterViewCoordinates(view));
 					return false;
@@ -310,11 +345,9 @@ public class ConfigureMapMenu {
 
 	private ContextMenuItem createCycleRoutesItem(@NonNull MapActivity activity, @NonNull String attrName,
 	                                              @Nullable RenderingRuleProperty property, boolean nightMode) {
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
 		CommonPreference<Boolean> pref = settings.getCustomRenderBooleanProperty(attrName);
 
-		return new ContextMenuItem(ROUTES_ID + attrName)
+		return new ContextMenuItem(ROUTES_ITEMS_ID_SCHEME + attrName)
 				.setTitle(AndroidUtils.getRenderingStringPropertyName(app, attrName, property != null ? property.getName() : attrName))
 				.setIcon(getIconIdForAttr(attrName))
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
@@ -356,20 +389,19 @@ public class ConfigureMapMenu {
 	}
 
 	private ContextMenuItem createHikingRoutesItem(@NonNull MapActivity activity, @NonNull String attrName, @Nullable RenderingRuleProperty property, boolean nightMode) {
-		OsmandApplication app = activity.getMyApplication();
-		CommonPreference<String> pref = app.getSettings().getCustomRenderProperty(attrName);
+		CommonPreference<String> pref = settings.getCustomRenderProperty(attrName);
 
 		boolean enabled = property != null && Arrays.asList(property.getPossibleValues()).contains(pref.get());
 		String previousValue = enabled || property == null ? pref.get() : property.getPossibleValues()[0];
 		String propertyName = AndroidUtils.getRenderingStringPropertyName(activity, attrName, property != null ? property.getName() : attrName);
 
-		return new ContextMenuItem(ROUTES_ID + attrName)
+		return new ContextMenuItem(ROUTES_ITEMS_ID_SCHEME + attrName)
 				.setTitle(propertyName)
 				.setIcon(getIconIdForAttr(attrName))
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
 				.setSelected(enabled)
 				.setDescription(app.getString(enabled ? R.string.shared_string_enabled : R.string.shared_string_disabled))
-				.setColor(enabled ? app.getSettings().getApplicationMode().getProfileColor(nightMode) : null)
+				.setColor(enabled ? settings.getApplicationMode().getProfileColor(nightMode) : null)
 				.setListener(new OnRowItemClick() {
 
 					@Override
@@ -397,9 +429,8 @@ public class ConfigureMapMenu {
 	}
 
 	private ContextMenuItem createTravelRoutesItem(@NonNull MapActivity activity, boolean nightMode) {
-		OsmandSettings settings = activity.getMyApplication().getSettings();
 		boolean selected = settings.SHOW_TRAVEL.get();
-		return new ContextMenuItem(ROUTES_ID + TRAVEL_ROUTES)
+		return new ContextMenuItem(ROUTES_ITEMS_ID_SCHEME + TRAVEL_ROUTES)
 				.setTitle(activity.getString(R.string.travel_routes))
 				.setIcon(getIconIdForAttr(TRAVEL_ROUTES))
 				.setSecondaryIcon(R.drawable.ic_action_additional_option)
@@ -448,13 +479,13 @@ public class ConfigureMapMenu {
 
 	private static Map<String, String> getRoutesDefaultAttrs() {
 		Map<String, String> attrs = new LinkedHashMap<>();
-		attrs.put(SHOW_CYCLE_ROUTES_ATTR, RendererRegistry.DEFAULT_RENDER);
-		attrs.put(SHOW_MTB_ROUTES_ATTR, RendererRegistry.DEFAULT_RENDER);
-		attrs.put(HIKING_ROUTES_OSMC_ATTR, RendererRegistry.DEFAULT_RENDER);
-		attrs.put(ALPINE_HIKING_ATTR, RendererRegistry.DEFAULT_RENDER);
-		attrs.put(PISTE_ROUTES_ATTR, RendererRegistry.WINTER_SKI_RENDER);
-		attrs.put(HORSE_ROUTES_ATTR, RendererRegistry.DEFAULT_RENDER);
-		attrs.put(WHITE_WATER_SPORTS_ATTR, RendererRegistry.DEFAULT_RENDER);
+		attrs.put(BICYCLE.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
+		attrs.put(MTB.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
+		attrs.put(HIKING.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
+		attrs.put(ALPINE.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
+		attrs.put(SKI.getRenderingPropertyAttr(), RendererRegistry.WINTER_SKI_RENDER);
+		attrs.put(HORSE.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
+		attrs.put(WATER.getRenderingPropertyAttr(), RendererRegistry.DEFAULT_RENDER);
 		return attrs;
 	}
 
@@ -475,26 +506,25 @@ public class ConfigureMapMenu {
 
 	@DrawableRes
 	private int getIconIdForAttr(@NonNull String attrName) {
-		switch (attrName) {
-			case SHOW_CYCLE_ROUTES_ATTR:
-				return R.drawable.ic_action_bicycle_dark;
-			case SHOW_MTB_ROUTES_ATTR:
-				return R.drawable.ic_action_mountain_bike;
-			case WHITE_WATER_SPORTS_ATTR:
-				return R.drawable.ic_action_kayak;
-			case HORSE_ROUTES_ATTR:
-				return R.drawable.ic_action_horse;
-			case HIKING_ROUTES_OSMC_ATTR:
-			case ALPINE_HIKING_ATTR:
-				return R.drawable.ic_action_trekking_dark;
-			case PISTE_ROUTES_ATTR:
-				return R.drawable.ic_action_skiing;
-			case TRAVEL_ROUTES:
-				return R.drawable.mm_routes;
-			case SHOW_FITNESS_TRAILS_ATTR:
-				return R.drawable.mx_sport_athletics;
-			case SHOW_RUNNING_ROUTES_ATTR:
-				return R.drawable.mx_running;
+		if (BICYCLE.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_bicycle_dark;
+		} else if (MTB.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_mountain_bike;
+		} else if (WATER.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_kayak;
+		} else if (HORSE.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_horse;
+		} else if (HIKING.getRenderingPropertyAttr().equals(attrName)
+				|| ALPINE.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_trekking_dark;
+		} else if (SKI.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.ic_action_skiing;
+		} else if (FITNESS.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.mx_sport_athletics;
+		} else if (RUNNING.getRenderingPropertyAttr().equals(attrName)) {
+			return R.drawable.mx_running;
+		} else if (TRAVEL_ROUTES.equals(attrName)) {
+			return R.drawable.mm_routes;
 		}
 		return INVALID_ID;
 	}
@@ -502,11 +532,6 @@ public class ConfigureMapMenu {
 	private void createRenderingAttributeItems(List<RenderingRuleProperty> customRules,
 	                                           ContextMenuAdapter adapter, MapActivity activity,
 	                                           boolean nightMode) {
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
-		int selectedProfileColor = settings.APPLICATION_MODE.get().getProfileColor(nightMode);
-		int themeRes = getThemeRes(nightMode);
-
 		adapter.addItem(new ContextMenuItem(MAP_RENDERING_CATEGORY_ID)
 				.setCategory(true)
 				.setLayout(R.layout.list_group_title_with_switch)
@@ -527,12 +552,12 @@ public class ConfigureMapMenu {
 				}));
 
 		String description = "";
-		SunriseSunset sunriseSunset = activity.getMyApplication().getDaynightHelper().getSunriseSunset();
+		SunriseSunset sunriseSunset = app.getDaynightHelper().getSunriseSunset();
 		if (sunriseSunset != null && sunriseSunset.getSunrise() != null && sunriseSunset.getSunset() != null) {
 			DateFormat dateFormat = DateFormat.getTimeInstance(DateFormat.SHORT);
 			String sunriseTime = dateFormat.format(sunriseSunset.getSunrise());
 			String sunsetTime = dateFormat.format(sunriseSunset.getSunset());
-			DayNightMode dayNightMode = activity.getMyApplication().getSettings().DAYNIGHT_MODE.get();
+			DayNightMode dayNightMode = settings.DAYNIGHT_MODE.get();
 			if (dayNightMode.isDay() || dayNightMode.isNight()) {
 				if (sunriseSunset.isDaytime()) {
 					description = String.format(app.getString(R.string.sunset_at), sunsetTime);
@@ -552,7 +577,7 @@ public class ConfigureMapMenu {
 				.setIcon(ConfigureMapUtils.getDayNightIcon(activity))
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					if (AndroidUtils.isActivityNotDestroyed(activity)) {
-						ConfigureMapDialogs.showMapModeDialog(activity, themeRes, nightMode);
+						ConfigureMapDialogs.showMapModeDialog(activity, nightMode);
 					}
 					return false;
 				})
@@ -566,7 +591,7 @@ public class ConfigureMapMenu {
 				.setIcon(R.drawable.ic_action_map_magnifier)
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					if (AndroidUtils.isActivityNotDestroyed(activity)) {
-						ConfigureMapDialogs.showMapMagnifierDialog(activity, themeRes, nightMode, item, uiAdapter);
+						ConfigureMapDialogs.showMapMagnifierDialog(activity, nightMode, item, uiAdapter);
 					}
 					return false;
 				})
@@ -585,13 +610,13 @@ public class ConfigureMapMenu {
 				.setIcon(R.drawable.ic_action_map_text_size)
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					if (AndroidUtils.isActivityNotDestroyed(activity)) {
-						ConfigureMapDialogs.showTextSizeDialog(activity, themeRes, nightMode, item, uiAdapter);
+						ConfigureMapDialogs.showTextSizeDialog(activity, nightMode, item, uiAdapter);
 					}
 					return false;
 				})
 				.setItemDeleteAction(settings.TEXT_SCALE));
 
-		String localeDescr = activity.getMyApplication().getSettings().MAP_PREFERRED_LOCALE.get();
+		String localeDescr = settings.MAP_PREFERRED_LOCALE.get();
 		localeDescr = localeDescr == null || localeDescr.isEmpty() ? activity.getString(R.string.local_map_names)
 				: localeDescr;
 		adapter.addItem(new ContextMenuItem(MAP_LANGUAGE_ID)
@@ -600,19 +625,19 @@ public class ConfigureMapMenu {
 				.setIcon(R.drawable.ic_action_map_language)
 				.setListener((uiAdapter, view, item, isChecked) -> {
 					if (AndroidUtils.isActivityNotDestroyed(activity)) {
-						ConfigureMapDialogs.showMapLanguageDialog(activity, themeRes, nightMode, item, uiAdapter);
+						ConfigureMapDialogs.showMapLanguageDialog(activity, nightMode, item, uiAdapter);
 					}
 					return false;
 				})
 				.setItemDeleteAction(settings.MAP_PREFERRED_LOCALE));
 
 		props = createProperties(customRules, R.string.rendering_category_details, R.drawable.ic_action_layers,
-				UI_CATEGORY_DETAILS, activity, DETAILS_ID, nightMode, selectedProfileColor);
+				UI_CATEGORY_DETAILS, activity, DETAILS_ID, nightMode);
 		if (props != null) {
 			adapter.addItem(props);
 		}
 		props = createProperties(customRules, R.string.rendering_category_hide, R.drawable.ic_action_hide,
-				UI_CATEGORY_HIDE, activity, HIDE_ID, nightMode, selectedProfileColor);
+				UI_CATEGORY_HIDE, activity, HIDE_ID, nightMode);
 		if (props != null) {
 			adapter.addItem(props);
 		}
@@ -632,30 +657,26 @@ public class ConfigureMapMenu {
 	                                         String category,
 	                                         MapActivity activity,
 	                                         String id,
-	                                         boolean nightMode,
-	                                         @ColorInt int selectedProfileColor) {
-		OsmandApplication app = activity.getMyApplication();
-		OsmandSettings settings = app.getSettings();
-
-		List<RenderingRuleProperty> ps = new ArrayList<>();
-		List<CommonPreference<Boolean>> prefs = new ArrayList<>();
+	                                         boolean nightMode) {
+		List<RenderingRuleProperty> properties = new ArrayList<>();
+		List<CommonPreference<Boolean>> preferences = new ArrayList<>();
 		Iterator<RenderingRuleProperty> it = customRules.iterator();
 
 		while (it.hasNext()) {
 			RenderingRuleProperty p = it.next();
 			if (category.equals(p.getCategory()) && p.isBoolean()) {
-				ps.add(p);
-				prefs.add(settings.getCustomRenderBooleanProperty(p.getAttrName()));
+				properties.add(p);
+				preferences.add(settings.getCustomRenderBooleanProperty(p.getAttrName()));
 				it.remove();
 			}
 		}
-		if (prefs.size() > 0) {
+		if (preferences.size() > 0) {
 			ItemClickListener clickListener = (uiAdapter, view, item, isChecked) -> {
 				if (UI_CATEGORY_DETAILS.equals(category)) {
-					DetailsBottomSheet.showInstance(activity.getSupportFragmentManager(), ps, prefs, uiAdapter, item);
+					DetailsBottomSheet.showInstance(activity.getSupportFragmentManager(), properties, preferences, uiAdapter, item);
 				} else {
 					ConfigureMapDialogs.showPreferencesDialog(uiAdapter, item, activity,
-							activity.getString(strId), ps, prefs, nightMode, selectedProfileColor);
+							activity.getString(strId), properties, preferences, nightMode);
 				}
 				return false;
 			};
@@ -664,18 +685,18 @@ public class ConfigureMapMenu {
 					.setIcon(icon).setListener(clickListener);
 			item.setRefreshCallback(refreshableItem -> {
 				boolean selected = false;
-				for (CommonPreference<Boolean> p : prefs) {
+				for (CommonPreference<Boolean> p : preferences) {
 					if (p.get()) {
 						selected = true;
 						break;
 					}
 				}
 				refreshableItem.setColor(activity, selected ? R.color.osmand_orange : INVALID_ID);
-				refreshableItem.setDescription(ConfigureMapUtils.getDescription(settings, prefs));
+				refreshableItem.setDescription(ConfigureMapUtils.getDescription(settings, preferences));
 			});
 			item.setLayout(R.layout.list_item_single_line_descrition_narrow);
-			OsmandPreference<?>[] prefArray = new OsmandPreference[prefs.size()];
-			item.setItemDeleteAction(prefs.toArray(prefArray));
+			OsmandPreference<?>[] prefArray = new OsmandPreference[preferences.size()];
+			item.setItemDeleteAction(preferences.toArray(prefArray));
 			return item;
 		}
 		return null;
@@ -687,7 +708,7 @@ public class ConfigureMapMenu {
 		return !(A_APP_MODE.equals(attrName)
 				|| A_BASE_APP_MODE.equals(attrName)
 				|| A_ENGINE_V1.equals(attrName)
-				|| HIKING_ROUTES_OSMC_ATTR.equals(attrName)
+				|| HIKING.getRenderingPropertyAttr().equals(attrName)
 				|| ROAD_STYLE_ATTR.equals(attrName)
 				|| CONTOUR_WIDTH_ATTR.equals(attrName)
 				|| CONTOUR_DENSITY_ATTR.equals(attrName)
@@ -702,6 +723,8 @@ public class ConfigureMapMenu {
 				|| RENDERING_CATEGORY_OSM_ASSISTANT.equals(category)
 				|| DEPTH_CONTOUR_WIDTH.equals(attrName)
 				|| DEPTH_CONTOUR_COLOR_SCHEME.equals(attrName)
+				|| ALPINE.getRenderingPropertyAttr().equals(attrName)
+				|| ALPINE_HIKING_SCALE_SCHEME_ATTR.equals(attrName)
 		);
 	}
 
@@ -813,25 +836,21 @@ public class ConfigureMapMenu {
 	                                         @Nullable CommonPreference<Boolean> pref) {
 		String renderer = getRendererForAttr(attrName);
 		if (renderer != null) {
-			OsmandApplication app = activity.getMyApplication();
 			String rendererName = RendererRegistry.getRendererName(app, renderer);
 			String text = app.getString(R.string.setting_supported_by_style, rendererName);
 			Snackbar snackbar = Snackbar.make(activity.getLayout(), text, Snackbar.LENGTH_LONG)
-					.setAction(R.string.shared_string_change, new View.OnClickListener() {
-						@Override
-						public void onClick(View view) {
-							RenderingRulesStorage loaded = app.getRendererRegistry().getRenderer(renderer);
-							if (loaded != null) {
-								app.getSettings().RENDERER.set(renderer);
-								if (pref != null) {
-									pref.set(!pref.get());
-								}
-								app.getRendererRegistry().setCurrentSelectedRender(loaded);
-								activity.refreshMapComplete();
-								activity.getDashboard().refreshContent(false);
-							} else {
-								app.showShortToastMessage(R.string.renderer_load_exception);
+					.setAction(R.string.shared_string_change, view -> {
+						RenderingRulesStorage loaded = app.getRendererRegistry().getRenderer(renderer);
+						if (loaded != null) {
+							app.getSettings().RENDERER.set(renderer);
+							if (pref != null) {
+								pref.set(!pref.get());
 							}
+							app.getRendererRegistry().setCurrentSelectedRender(loaded);
+							activity.refreshMapComplete();
+							activity.getDashboard().refreshContent(false);
+						} else {
+							app.showShortToastMessage(R.string.renderer_load_exception);
 						}
 					});
 			UiUtilities.setupSnackbar(snackbar, nightMode);

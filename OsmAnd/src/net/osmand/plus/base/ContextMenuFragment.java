@@ -40,7 +40,6 @@ import net.osmand.data.LatLon;
 import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
 import net.osmand.plus.LockableScrollView;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.AndroidUiHelper;
@@ -48,11 +47,12 @@ import net.osmand.plus.mapcontextmenu.InterceptorLinearLayout;
 import net.osmand.plus.mapcontextmenu.other.ShareMenu;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.views.MapLayers;
 import net.osmand.plus.views.controls.HorizontalSwipeConfirm;
 import net.osmand.plus.views.controls.SingleTapConfirm;
-import net.osmand.plus.views.layers.MapControlsLayer.MapControlsThemeInfoProvider;
+import net.osmand.plus.views.layers.MapControlsLayer.MapControlsThemeProvider;
 
-public abstract class ContextMenuFragment extends BaseOsmAndFragment implements MapControlsThemeInfoProvider {
+public abstract class ContextMenuFragment extends BaseOsmAndFragment implements MapControlsThemeProvider {
 
 	public static class MenuState {
 		public static final int HEADER_ONLY = 1;
@@ -75,7 +75,6 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 	private FrameLayout bottomContainer;
 
 	private boolean portrait;
-	private boolean nightMode;
 	private boolean moving;
 	private boolean forceUpdateLayout;
 	private boolean initLayout = true;
@@ -183,19 +182,13 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 		return nightMode;
 	}
 
-	public boolean isNightMode() {
-		return nightMode;
-	}
-
 	protected String getThemeInfoProviderTag() {
 		return null;
 	}
 
-	public void updateNightMode() {
-		OsmandApplication app = getMyApplication();
-		if (app != null) {
-			nightMode = app.getDaynightHelper().isNightModeForMapControls();
-		}
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
 	}
 
 	public String getPreferredMapLang() {
@@ -269,10 +262,9 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
 	                         Bundle savedInstanceState) {
-		MapActivity mapActivity = requireMapActivity();
-		OsmandApplication app = mapActivity.getMyApplication();
-
 		updateNightMode();
+		MapActivity mapActivity = requireMapActivity();
+
 		preferredMapLang = app.getSettings().MAP_PREFERRED_LOCALE.get();
 		transliterateNames = app.getSettings().MAP_TRANSLITERATE_NAMES.get();
 
@@ -349,7 +341,6 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 			private boolean hasMoved;
 
 			{
-				OsmandApplication app = requireMyApplication();
 				scroller = new OverScroller(app);
 				ViewConfiguration configuration = ViewConfiguration.get(requireContext());
 				minimumVelocity = configuration.getScaledMinimumFlingVelocity();
@@ -597,7 +588,10 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 		updateContainerLayoutListener(view, true);
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
-			mapActivity.getMapLayers().getMapControlsLayer().showMapControlsIfHidden();
+			MapLayers mapLayers = mapActivity.getMapLayers();
+			if (mapLayers.hasMapActivity()) {
+				mapLayers.getMapControlsLayer().showMapControlsIfHidden();
+			}
 			wasDrawerDisabled = mapActivity.isDrawerDisabled();
 			if (!wasDrawerDisabled) {
 				mapActivity.disableDrawer();
@@ -1036,8 +1030,7 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 	}
 
 	public void showLocationOnMap(LatLon latLon) {
-		OsmandApplication app = getMyApplication();
-		if (latLon == null && app != null) {
+		if (latLon == null) {
 			Location lastLocation = app.getLocationProvider().getLastKnownLocation();
 			if (lastLocation != null) {
 				latLon = new LatLon(lastLocation.getLatitude(), lastLocation.getLongitude());
@@ -1053,7 +1046,7 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 		MapActivity mapActivity = getMapActivity();
 		if (mapActivity != null) {
 			int currentZoom = mapActivity.getMapView().getZoom();
-			mapActivity.getMapView().getAnimatedDraggingThread().startMoving(latLon.getLatitude(), latLon.getLongitude(), Math.max(15, currentZoom), true);
+			mapActivity.getMapView().getAnimatedDraggingThread().startMoving(latLon.getLatitude(), latLon.getLongitude(), Math.max(15, currentZoom));
 		}
 	}
 
@@ -1087,7 +1080,7 @@ public abstract class ContextMenuFragment extends BaseOsmAndFragment implements 
 	}
 
 	public int dpToPx(float dp) {
-		return AndroidUtils.dpToPx(requireMyApplication(), dp);
+		return AndroidUtils.dpToPx(app, dp);
 	}
 
 	protected void copyToClipboard(@NonNull String text, @NonNull Context ctx) {

@@ -190,7 +190,7 @@ public class RoutingHelper {
 
 	public synchronized void setFinalAndCurrentLocation(LatLon finalLocation, List<LatLon> intermediatePoints, Location currentLocation) {
 		app.logRoutingEvent("setFinalAndCurrentLocation finalLocation " + finalLocation + " intermediatePoints " + intermediatePoints + " currentLocation " + currentLocation);
-		RoutingHelperUtils.checkAndUpdateStartLocation(app, currentLocation, false);
+		RoutingHelperUtils.updateDrivingRegionIfNeeded(app, currentLocation, false);
 		RouteCalculationResult previousRoute = route;
 		clearCurrentRoute(finalLocation, intermediatePoints);
 		// to update route
@@ -226,14 +226,6 @@ public class RoutingHelper {
 			setFollowingMode(false);
 		}
 		transportRoutingHelper.clearCurrentRoute(newFinalLocation);
-	}
-
-	public synchronized boolean isMissingMapsOnlineSearching() {
-		return routeRecalculationHelper.isMissingMapsSearching();
-	}
-
-	public synchronized boolean startMissingMapsOnlineSearch() {
-		return routeRecalculationHelper.startMissingMapsOnlineSearch();
 	}
 
 	private synchronized void finishCurrentRoute() {
@@ -450,8 +442,8 @@ public class RoutingHelper {
 				}
 				// 5. Update Voice router
 				// Do not update in route planning mode
+				boolean inRecalc = (calculateRoute || isRouteBeingCalculated());
 				if (isFollowingMode) {
-					boolean inRecalc = (calculateRoute || isRouteBeingCalculated());
 					if (!inRecalc && !wrongMovementDirection) {
 						voiceRouter.updateStatus(currentLocation, false);
 						voiceRouterStopped = false;
@@ -463,12 +455,16 @@ public class RoutingHelper {
 				}
 
 				// calculate projection of current location
-				if (currentRoute > 0) {
-					locationProjection = RoutingHelperUtils.getProject(currentLocation, routeNodes.get(currentRoute - 1),
-							routeNodes.get(currentRoute));
-					if (settings.APPROXIMATE_BEARING.get()) {
-						RoutingHelperUtils.approximateBearingIfNeeded(this, locationProjection,
-								currentLocation, routeNodes.get(currentRoute - 1), routeNodes.get(currentRoute));
+				if (currentRoute > 0 && !inRecalc) {
+					Location previousRouteLocation = routeNodes.get(currentRoute - 1);
+					Location currentRouteLocation = routeNodes.get(currentRoute);
+					locationProjection = RoutingHelperUtils.getProject(currentLocation, previousRouteLocation,
+							currentRouteLocation);
+					if (settings.SNAP_TO_ROAD.get() && currentRoute + 1 < routeNodes.size()) {
+						Location nextRouteLocation = routeNodes.get(currentRoute + 1);
+						RoutingHelperUtils.approximateBearingIfNeeded(this,
+								locationProjection, currentLocation,
+								previousRouteLocation, currentRouteLocation, nextRouteLocation);
 					}
 				}
 			}
@@ -769,7 +765,7 @@ public class RoutingHelper {
 	}
 
 	public synchronized float getCurrentMaxSpeed() {
-		return route.getCurrentMaxSpeed();
+		return route.getCurrentMaxSpeed(getAppMode().getRouteTypeProfile());
 	}
 
 	@NonNull

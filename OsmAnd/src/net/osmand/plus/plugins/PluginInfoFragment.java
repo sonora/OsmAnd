@@ -3,35 +3,29 @@ package net.osmand.plus.plugins;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_LINKS_ID;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.method.LinkMovementMethod;
-import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import net.osmand.PlatformUtil;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.base.BaseOsmAndFragment;
-import net.osmand.plus.chooseplan.ChoosePlanFragment;
-import net.osmand.plus.chooseplan.OsmAndFeature;
+import net.osmand.plus.chooseplan.ChoosePlanUtils;
 import net.osmand.plus.inapp.InAppPurchaseHelper.InAppPurchaseListener;
 import net.osmand.plus.plugins.PluginInstalledBottomSheetDialog.PluginStateListener;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
@@ -54,10 +48,8 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 	public static final String PLUGIN_INFO = "plugin_info";
 
 	private OsmandPlugin plugin;
-	private OsmandApplication app;
 
 	private View mainView;
-	private boolean nightMode;
 
 	@Override
 	public int getStatusBarColorId() {
@@ -77,15 +69,12 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		app = requireMyApplication();
 		plugin = getPluginFromArgs();
 		if (plugin == null) {
 			return null;
 		}
 
-		Context context = requireContext();
-		nightMode = !app.getSettings().isLightContent();
-		LayoutInflater themedInflater = UiUtilities.getInflater(context, nightMode);
+		updateNightMode();
 		mainView = themedInflater.inflate(R.layout.plugin, container, false);
 		AndroidUtils.addStatusBarPadding21v(requireMyActivity(), mainView);
 
@@ -109,16 +98,17 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 			mainView.findViewById(R.id.plugin_image_placeholder).setVisibility(View.VISIBLE);
 		}
 
-		TextView descriptionView = mainView.findViewById(R.id.plugin_description);
-		descriptionView.setText(plugin.getDescription());
-
 		OsmAndAppCustomization customization = app.getAppCustomization();
-		if (customization.isFeatureEnabled(CONTEXT_MENU_LINKS_ID) && Linkify.addLinks(descriptionView, Linkify.ALL)) {
-			int linkTextColorId = nightMode ? R.color.ctx_menu_bottom_view_url_color_dark : R.color.ctx_menu_bottom_view_url_color_light;
-			descriptionView.setLinkTextColor(ContextCompat.getColor(context, linkTextColorId));
-			descriptionView.setMovementMethod(LinkMovementMethod.getInstance());
-			AndroidUtils.removeLinkUnderline(descriptionView);
+		boolean linksEnabled = customization.isFeatureEnabled(CONTEXT_MENU_LINKS_ID);
+
+		TextView tvDescription = mainView.findViewById(R.id.plugin_description);
+		tvDescription.setText(plugin.getDescription(linksEnabled));
+
+		if (linksEnabled) {
+			tvDescription.setLinkTextColor(ColorUtilities.getLinksColor(app, nightMode));
+			tvDescription.setMovementMethod(LinkMovementMethod.getInstance());
 		}
+
 		Button settingsButton = mainView.findViewById(R.id.plugin_settings);
 		settingsButton.setOnClickListener(view -> {
 			FragmentActivity activity = getActivity();
@@ -137,7 +127,6 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 			if (plugin.isEnabled() != isChecked) {
 				if (PluginsHelper.enablePlugin(getActivity(), app, plugin, isChecked)) {
 					updateState();
-
 					Fragment target = getTargetFragment();
 					if (target instanceof PluginStateListener) {
 						((PluginStateListener) target).onPluginStateChanged(plugin);
@@ -146,19 +135,21 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 			}
 		});
 		Button getButton = mainView.findViewById(R.id.plugin_get);
-		getButton.setText(plugin.isPaid() ? R.string.shared_string_get : R.string.shared_string_install);
-		getButton.setOnClickListener(v -> {
-			FragmentActivity activity = getActivity();
-			if (activity != null) {
-				OsmAndFeature feature = plugin.getOsmAndFeature();
-				if (feature != null) {
-					ChoosePlanFragment.showInstance(activity, feature);
-				} else {
-					Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(plugin.getInstallURL()));
-					AndroidUtils.startActivityIfSafe(activity, intent);
-				}
-			}
-		});
+		if (plugin.isOnline()) {
+			getButton.setText(R.string.shared_string_install);
+			getButton.setOnClickListener(v -> {
+				PluginsHelper.installPlugin(getActivity(), plugin, () -> {
+					dismiss();
+					Fragment target = getTargetFragment();
+					if (target instanceof PluginStateListener) {
+						((PluginStateListener) target).onPluginInstalled(plugin);
+					}
+				});
+			});
+		} else {
+			getButton.setText(plugin.isPaid() && !plugin.isOnline() ? R.string.shared_string_get : R.string.shared_string_install);
+			getButton.setOnClickListener(v -> ChoosePlanUtils.onGetPlugin(getActivity(), plugin));
+		}
 
 		updateState();
 		return mainView;
@@ -177,6 +168,9 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 			return null;
 		}
 		OsmandPlugin plugin = PluginsHelper.getPlugin(pluginId);
+		if (plugin == null) {
+			plugin = PluginsHelper.getOnlinePlugin(pluginId);
+		}
 		if (plugin == null) {
 			log.error("Plugin '" + EXTRA_PLUGIN_ID + "' not found");
 			return null;
@@ -200,10 +194,16 @@ public class PluginInfoFragment extends BaseOsmAndFragment implements PluginStat
 		Button getButton = mainView.findViewById(R.id.plugin_get);
 		Button settingsButton = mainView.findViewById(R.id.plugin_settings);
 		settingsButton.setCompoundDrawablesWithIntrinsicBounds(app.getUIUtilities().getThemedIcon(R.drawable.ic_action_settings), null, null, null);
+		View pluginHeader = mainView.findViewById(R.id.plugin_header);
 		View installHeader = mainView.findViewById(R.id.plugin_install_header);
+		FrameLayout imageLayout = mainView.findViewById(R.id.plugin_image_layout);
 
-		if (plugin.isLocked()) {
+		if (plugin.isLocked() || plugin.isOnline()) {
 			getButton.setVisibility(View.VISIBLE);
+			if (plugin.isOnline()) {
+				pluginHeader.setVisibility(View.GONE);
+				imageLayout.setPadding(0, 0, 0, AndroidUtils.dpToPx(app, 16f));
+			}
 			settingsButton.setVisibility(View.GONE);
 			installHeader.setVisibility(View.VISIBLE);
 			View worldGlobeIcon = installHeader.findViewById(R.id.ic_world_globe);

@@ -1,5 +1,7 @@
 package net.osmand.plus.wikivoyage.explore;
 
+import static net.osmand.plus.utils.ColorUtilities.getStatusBarSecondaryColorId;
+
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
@@ -24,8 +26,7 @@ import androidx.fragment.app.FragmentManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import net.osmand.plus.AppInitializer;
-import net.osmand.plus.AppInitializer.AppInitializeListener;
-import net.osmand.plus.AppInitializer.InitEvents;
+import net.osmand.plus.AppInitializeListener;
 import net.osmand.plus.LockableViewPager;
 import net.osmand.plus.OnDialogFragmentResultListener;
 import net.osmand.plus.OsmandApplication;
@@ -269,7 +270,7 @@ public class WikivoyageExploreActivity extends TabActivity implements DownloadEv
 	}
 
 	protected Drawable getActiveIcon(@DrawableRes int iconId) {
-		return getIcon(iconId, nightMode ? R.color.wikivoyage_active_dark : R.color.wikivoyage_active_light);
+		return getIcon(iconId, nightMode ? R.color.active_color_primary_dark : R.color.active_color_primary_light);
 	}
 
 	protected Drawable getIcon(@DrawableRes int id, @ColorRes int colorId) {
@@ -278,7 +279,7 @@ public class WikivoyageExploreActivity extends TabActivity implements DownloadEv
 
 	@ColorRes
 	protected int getStatusBarColor() {
-		return nightMode ? R.color.status_bar_wikivoyage_dark : R.color.status_bar_wikivoyage_light;
+		return getStatusBarSecondaryColorId(nightMode);
 	}
 
 	@ColorInt
@@ -339,6 +340,39 @@ public class WikivoyageExploreActivity extends TabActivity implements DownloadEv
 		if (savedArticlesTabFragment != null) {
 			savedArticlesTabFragment.invalidateAdapter();
 		}
+	}
+
+	@Override
+	public List<Fragment> getActiveTalkbackFragments() {
+		OsmandFragmentPagerAdapter pagerAdapter = (OsmandFragmentPagerAdapter) viewPager.getAdapter();
+		List<Fragment> tabFragments = new ArrayList<>();
+		if (pagerAdapter != null) {
+			for (int i = 0; i < pagerAdapter.getCount(); i++) {
+				tabFragments.add(pagerAdapter.getItem(i));
+			}
+		}
+
+		List<Fragment> fragmentsWithoutTabs = new ArrayList<>();
+		for (Fragment fragment : getSupportFragmentManager().getFragments()) {
+			boolean isTabFragment = false;
+			for (Fragment tabFragment : tabFragments) {
+				if (fragment.getClass() == tabFragment.getClass()) {
+					isTabFragment = true;
+					break;
+				}
+			}
+			if (!isTabFragment) {
+				fragmentsWithoutTabs.add(fragment);
+			}
+		}
+		return fragmentsWithoutTabs;
+	}
+
+	@Override
+	public void setActivityAccessibility(boolean hideActivity) {
+		View pagerContent = findViewById(R.id.view_pager);
+		int accessibility = getActiveTalkbackFragments().isEmpty() ? View.IMPORTANT_FOR_ACCESSIBILITY_YES : View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS;
+		pagerContent.setImportantForAccessibility(accessibility);
 	}
 
 	@Override

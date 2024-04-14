@@ -1,5 +1,7 @@
 package net.osmand.plus.settings.backend;
 
+import static net.osmand.binary.BinaryMapRouteReaderAdapter.RouteTypeRule;
+
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -18,7 +20,6 @@ import net.osmand.plus.profiles.NavigationIcon;
 import net.osmand.plus.profiles.ProfileIconColors;
 import net.osmand.plus.routing.RouteService;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization.OsmAndAppCustomizationListener;
-import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -31,7 +32,10 @@ import java.util.Set;
 
 public class ApplicationMode {
 
+	public static final String CUSTOM_MODE_KEY_SEPARATOR = "_";
 	public static final float FAST_SPEED_THRESHOLD = 10;
+	private static final float MIN_VALUE_KM_H = -10;
+	private static final float MAX_VALUE_KM_H = 20;
 
 	private static final List<ApplicationMode> defaultValues = new ArrayList<>();
 	private static final List<ApplicationMode> values = new ArrayList<>();
@@ -77,10 +81,17 @@ public class ApplicationMode {
 	public static final ApplicationMode MOTORCYCLE = create(CAR, R.string.app_mode_motorcycle, "motorcycle")
 			.icon(R.drawable.ic_action_motorcycle_dark)
 			.description(R.string.app_mode_motorcycle).reg();
+	public static final ApplicationMode MOPED = create(BICYCLE, R.string.app_mode_moped, "moped")
+			.icon(R.drawable.ic_action_motor_scooter)
+			.description(R.string.app_mode_moped).reg();
 
 	public static final ApplicationMode PUBLIC_TRANSPORT = createBase(R.string.app_mode_public_transport, "public_transport")
 			.icon(R.drawable.ic_action_bus_dark)
 			.description(R.string.base_profile_descr_public_transport).reg();
+
+	public static final ApplicationMode TRAIN = createBase(R.string.app_mode_train, "train")
+			.icon(R.drawable.ic_action_train)
+			.description(R.string.app_mode_train).reg();
 
 	public static final ApplicationMode BOAT = createBase(R.string.app_mode_boat, "boat")
 			.icon(R.drawable.ic_action_sail_boat_dark)
@@ -164,15 +175,28 @@ public class ApplicationMode {
 	}
 
 	public boolean isCustomProfile() {
+		return isCustomProfile(getStringKey());
+	}
+
+	public static boolean isCustomProfile(@NonNull String key) {
 		for (ApplicationMode mode : defaultValues) {
-			if (Algorithms.stringsEqual(mode.getStringKey(), getStringKey())) {
+			if (Algorithms.stringsEqual(mode.getStringKey(), key)) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	public boolean isDerivedRoutingFrom(ApplicationMode mode) {
+	public int getRouteTypeProfile() {
+		if (isDerivedRoutingFrom(TRUCK)) {
+			return RouteTypeRule.PROFILE_TRUCK;
+		} else if (isDerivedRoutingFrom(CAR)) {
+			return RouteTypeRule.PROFILE_CAR;
+		}
+		return RouteTypeRule.PROFILE_NONE;
+	}
+
+	public boolean isDerivedRoutingFrom(@NonNull ApplicationMode mode) {
 		return this == mode || getParent() == mode;
 	}
 
@@ -280,6 +304,18 @@ public class ApplicationMode {
 		app.getSettings().MAX_SPEED.setModeValue(this, defaultSpeed);
 	}
 
+	public float getMaxSpeedToleranceLimit() {
+		return Math.min(getDefaultSpeed(), MAX_VALUE_KM_H / 3.6f);
+	}
+
+	public float getMinSpeedToleranceLimit() {
+		return Math.max(-getDefaultSpeed() / 2, MIN_VALUE_KM_H / 3.6f);
+	}
+
+	public boolean isSpeedToleranceBigRange() {
+		return (getMaxSpeedToleranceLimit() - getMinSpeedToleranceLimit()) * 3.6 > 6;
+	}
+
 	public float getStrAngle() {
 		return app.getSettings().ROUTE_STRAIGHT_ANGLE.getModeValue(this);
 	}
@@ -376,14 +412,6 @@ public class ApplicationMode {
 		}
 	}
 
-	public List<String> getCustomIconColors() {
-		return app.getSettings().CUSTOM_ICON_COLORS.getStringsListForProfile(this);
-	}
-
-	public void setCustomIconColors(List<String> customColors) {
-		app.getSettings().CUSTOM_ICON_COLORS.setModeValues(this, customColors);
-	}
-
 	public Integer getCustomIconColor() {
 		try {
 			String customColor = app.getSettings().CUSTOM_ICON_COLOR.getModeValue(this);
@@ -431,18 +459,13 @@ public class ApplicationMode {
 		reorderAppModes();
 	}
 
-	private static void initModesParams(OsmandApplication app) {
+	private static void initModesParams(@NonNull OsmandApplication app) {
 		OsmandSettings settings = app.getSettings();
 		if (iconNameListener == null) {
-			iconNameListener = new StateChangedListener<String>() {
-				@Override
-				public void stateChanged(String change) {
-					app.runInUIThread(() -> {
-						List<ApplicationMode> modes = new ArrayList<>(allPossibleValues());
-						for (ApplicationMode mode : modes) {
-							mode.updateAppModeIcon();
-						}
-					});
+			iconNameListener = change -> {
+				List<ApplicationMode> modes = new ArrayList<>(allPossibleValues());
+				for (ApplicationMode mode : modes) {
+					mode.updateAppModeIcon();
 				}
 			};
 			settings.ICON_RES_NAME.addListener(iconNameListener);
@@ -451,12 +474,19 @@ public class ApplicationMode {
 			mode.app = app;
 			mode.updateAppModeIcon();
 		}
+
+		if (settings.APP_MODE_ORDER.isSetForMode(PUBLIC_TRANSPORT) && !settings.APP_MODE_ORDER.isSetForMode(TRAIN)) {
+			TRAIN.setOrder(PUBLIC_TRANSPORT.getOrder() + 1);
+		}
 		if (settings.APP_MODE_ORDER.isSetForMode(PEDESTRIAN)) {
 			if (!settings.APP_MODE_ORDER.isSetForMode(TRUCK)) {
 				TRUCK.setOrder(PEDESTRIAN.getOrder() + 1);
 			}
 			if (!settings.APP_MODE_ORDER.isSetForMode(MOTORCYCLE)) {
 				MOTORCYCLE.setOrder(PEDESTRIAN.getOrder() + 1);
+			}
+			if (!settings.APP_MODE_ORDER.isSetForMode(MOPED)) {
+				MOPED.setOrder(PEDESTRIAN.getOrder() + 1);
 			}
 		}
 		if (settings.APP_MODE_ORDER.isSetForMode(SKI) && !settings.APP_MODE_ORDER.isSetForMode(HORSE)) {
@@ -478,12 +508,7 @@ public class ApplicationMode {
 	}
 
 	public static void reorderAppModes() {
-		Comparator<ApplicationMode> comparator = new Comparator<ApplicationMode>() {
-			@Override
-			public int compare(ApplicationMode mode1, ApplicationMode mode2) {
-				return (mode1.getOrder() < mode2.getOrder()) ? -1 : ((mode1.getOrder() == mode2.getOrder()) ? 0 : 1);
-			}
-		};
+		Comparator<ApplicationMode> comparator = (mode1, mode2) -> Integer.compare(mode1.getOrder(), mode2.getOrder());
 		Collections.sort(values, comparator);
 		Collections.sort(defaultValues, comparator);
 		Collections.sort(cachedFilteredValues, comparator);
@@ -492,7 +517,10 @@ public class ApplicationMode {
 
 	private static void updateAppModesOrder() {
 		for (int i = 0; i < values.size(); i++) {
-			values.get(i).setOrder(i);
+			ApplicationMode mode = values.get(i);
+			if (mode.getOrder() != i) {
+				mode.setOrder(i);
+			}
 		}
 	}
 
@@ -534,14 +562,16 @@ public class ApplicationMode {
 		return mode;
 	}
 
-	public static ApplicationModeBean fromJson(OsmandApplication app, String json) {
+	@NonNull
+	public static ApplicationModeBean fromJson(@NonNull OsmandApplication app, @NonNull String json) {
 		Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 		ApplicationModeBean modeBean = gson.fromJson(json, ApplicationModeBean.class);
-		checkAndReplaceInvalidIconName(app, modeBean);
+		ApplicationModeBean.checkAndReplaceInvalidValues(app, modeBean);
 		return modeBean;
 	}
 
-	public static ApplicationModeBuilder fromModeBean(OsmandApplication app, ApplicationModeBean modeBean) {
+	@NonNull
+	public static ApplicationModeBuilder fromModeBean(@NonNull OsmandApplication app, @NonNull ApplicationModeBean modeBean) {
 		ApplicationModeBuilder builder = createCustomMode(valueOfStringKey(modeBean.parent, null), modeBean.stringKey, app);
 		builder.setUserProfileName(modeBean.userProfileName);
 		builder.setIconResName(modeBean.iconName);
@@ -634,18 +664,6 @@ public class ApplicationMode {
 		ApplicationModeBuilder builder = create(parent, -1, stringKey);
 		builder.getApplicationMode().app = app;
 		return builder;
-	}
-
-	private static void checkAndReplaceInvalidIconName(OsmandApplication app, ApplicationModeBean modeBean) {
-		if (AndroidUtils.getDrawableId(app, modeBean.iconName) == 0) {
-			ApplicationMode appMode = valueOfStringKey(modeBean.stringKey, null);
-			if (appMode == null) {
-				appMode = valueOfStringKey(modeBean.parent, null);
-			}
-			if (appMode != null) {
-				modeBean.iconName = appMode.getIconName();
-			}
-		}
 	}
 
 	public static class ApplicationModeBuilder {
@@ -756,5 +774,11 @@ public class ApplicationMode {
 			this.navigationIcon = navIcon;
 			return this;
 		}
+	}
+
+	@NonNull
+	@Override
+	public String toString() {
+		return getStringKey();
 	}
 }

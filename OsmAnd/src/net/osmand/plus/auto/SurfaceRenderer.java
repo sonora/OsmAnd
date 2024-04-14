@@ -2,6 +2,8 @@ package net.osmand.plus.auto;
 
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Surface;
 
@@ -16,33 +18,58 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import net.osmand.Location;
+import net.osmand.core.android.AtlasMapRendererView;
+import net.osmand.core.android.MapRendererContext;
+import net.osmand.core.android.MapRendererView;
+import net.osmand.core.android.MapRendererView.MapRendererViewListener;
+import net.osmand.core.jni.ZoomLevel;
 import net.osmand.data.RotatedTileBox;
+import net.osmand.plus.AppInitializeListener;
+import net.osmand.plus.AppInitializer;
+import net.osmand.plus.OsmAndConstants;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.auto.views.CarSurfaceView;
+import net.osmand.plus.helpers.MapDisplayPositionManager;
+import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.views.OsmandMapTileView;
+import net.osmand.plus.views.corenative.NativeCoreContext;
 import net.osmand.plus.views.layers.base.OsmandMapLayer.DrawSettings;
 
 /**
  * A very simple implementation of a renderer for the app's background surface.
  */
-public final class SurfaceRenderer implements DefaultLifecycleObserver {
+public final class SurfaceRenderer implements DefaultLifecycleObserver, MapRendererViewListener {
 	private static final String TAG = "SurfaceRenderer";
 
+	private static final double VISIBLE_AREA_MIN_DETECTION_SIZE = 1.025;
+	private static final int MAP_RENDER_MESSAGE = OsmAndConstants.UI_HANDLER_MAP_VIEW + 7;
+
+	private final CarContext carContext;
 	private final CarSurfaceView surfaceView;
 	private OsmandMapTileView mapView;
+	private final Handler handler;
 
 	@Nullable
-	Surface mSurface;
+	private AtlasMapRendererView offscreenMapRendererView;
 	@Nullable
-	Rect mVisibleArea;
+	private Surface surface;
 	@Nullable
-	Rect mStableArea;
+	private SurfaceContainer surfaceContainer;
+
+	@Nullable
+	private Rect visibleArea;
+	@Nullable
+	private Rect stableArea;
 
 	private boolean darkMode;
-	private final CarContext mCarContext;
 
-	SurfaceRendererCallback callback;
+	private SurfaceRendererCallback callback;
 
-	interface SurfaceRendererCallback {
+	public void setCallback(@Nullable SurfaceRendererCallback callback) {
+		this.callback = callback;
+	}
+
+	public interface SurfaceRendererCallback {
 		void onFrameRendered(@NonNull Canvas canvas, @NonNull Rect visibleArea, @NonNull Rect stableArea);
 	}
 
@@ -51,12 +78,13 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		public void onSurfaceAvailable(@NonNull SurfaceContainer surfaceContainer) {
 			synchronized (SurfaceRenderer.this) {
 				Log.i(TAG, "Surface available " + surfaceContainer);
-				if (mSurface != null) {
-					mSurface.release();
+				if (surface != null) {
+					surface.release();
 				}
-				mSurface = surfaceContainer.getSurface();
+				SurfaceRenderer.this.surfaceContainer = surfaceContainer;
+				surface = surfaceContainer.getSurface();
 				surfaceView.setSurfaceParams(surfaceContainer.getWidth(), surfaceContainer.getHeight(), surfaceContainer.getDpi());
-				darkMode = getApp().getDaynightHelper().isNightMode();
+				darkMode = carContext.isDarkMode();
 				OsmandMapTileView mapView = SurfaceRenderer.this.mapView;
 				if (mapView != null) {
 					mapView.setupRenderingView();
@@ -68,9 +96,31 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		@Override
 		public void onVisibleAreaChanged(@NonNull Rect visibleArea) {
 			synchronized (SurfaceRenderer.this) {
-				Log.i(TAG, "Visible area changed " + mSurface + ". stableArea: "
-						+ mStableArea + " visibleArea:" + visibleArea);
-				mVisibleArea = visibleArea;
+				Log.i(TAG, "Visible area changed " + surface + ". stableArea: "
+						+ stableArea + " visibleArea:" + visibleArea);
+				SurfaceRenderer.this.visibleArea = visibleArea;
+				OsmandMapTileView mapView = SurfaceRenderer.this.mapView;
+				if (!visibleArea.isEmpty() && mapView != null) {
+					MapDisplayPositionManager displayPositionManager = getDisplayPositionManager();
+
+					int visibleAreaWidth = visibleArea.width();
+					int visibleAreaHeight = visibleArea.height();
+					int containerWidth = surfaceContainer.getWidth();
+					int containerHeight = surfaceContainer.getHeight();
+
+					float ratioX = 0;
+					if ((float) containerWidth / visibleAreaWidth > VISIBLE_AREA_MIN_DETECTION_SIZE) {
+						int centerX = visibleArea.centerX();
+						ratioX = (float) centerX / containerWidth;
+					}
+					float ratioY = 0;
+					if ((float) containerHeight / visibleAreaHeight > VISIBLE_AREA_MIN_DETECTION_SIZE) {
+						float defaultRatioY = displayPositionManager.getNavigationMapPosition().getRatioY();
+						float centerY = (visibleAreaHeight * defaultRatioY) + visibleArea.top;
+						ratioY = centerY / containerHeight;
+					}
+					displayPositionManager.setCustomMapRatio(ratioX, ratioY);
+				}
 				renderFrame();
 			}
 		}
@@ -78,9 +128,9 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		@Override
 		public void onStableAreaChanged(@NonNull Rect stableArea) {
 			synchronized (SurfaceRenderer.this) {
-				Log.i(TAG, "Stable area changed " + mSurface + ". stableArea: "
-						+ mStableArea + " visibleArea:" + mVisibleArea);
-				mStableArea = stableArea;
+				Log.i(TAG, "Stable area changed " + surface + ". stableArea: "
+						+ stableArea + " visibleArea:" + visibleArea);
+				SurfaceRenderer.this.stableArea = stableArea;
 				renderFrame();
 			}
 		}
@@ -89,12 +139,13 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		public void onSurfaceDestroyed(@NonNull SurfaceContainer surfaceContainer) {
 			synchronized (SurfaceRenderer.this) {
 				Log.i(TAG, "Surface destroyed");
-				if (mSurface != null) {
-					mSurface.release();
-					mSurface = null;
+				if (surface != null) {
+					surface.release();
+					surface = null;
 				}
 				OsmandMapTileView mapView = SurfaceRenderer.this.mapView;
 				if (mapView != null) {
+					getDisplayPositionManager().restoreMapRatio();
 					mapView.setupRenderingView();
 				}
 			}
@@ -125,15 +176,27 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	};
 
 	public SurfaceRenderer(@NonNull CarContext carContext, @NonNull Lifecycle lifecycle) {
-		mCarContext = carContext;
-		surfaceView = new CarSurfaceView(mCarContext, this);
+		this.handler = new Handler();
+		this.carContext = carContext;
+		this.surfaceView = new CarSurfaceView(carContext, this);
 		lifecycle.addObserver(this);
+	}
+
+	private void sendRenderFrameMsg() {
+		if (!handler.hasMessages(MAP_RENDER_MESSAGE)) {
+			Message msg = Message.obtain(handler, () -> {
+				handler.removeMessages(MAP_RENDER_MESSAGE);
+				renderFrame();
+			});
+			msg.what = MAP_RENDER_MESSAGE;
+			handler.sendMessage(msg);
+		}
 	}
 
 	@Override
 	public void onCreate(@NonNull LifecycleOwner owner) {
 		Log.i(TAG, "SurfaceRenderer created");
-		mCarContext.getCarService(AppManager.class).setSurfaceCallback(mSurfaceCallback);
+		carContext.getCarService(AppManager.class).setSurfaceCallback(mSurfaceCallback);
 	}
 
 	/**
@@ -143,6 +206,19 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		renderFrame();
 	}
 
+	@Override
+	public void onUpdateFrame(MapRendererView mapRendererView) {
+	}
+
+	/**
+	 * Callback called when OpenGL rendering result is ready and needs to be drawn on output canvas.
+	 */
+	@Override
+	public void onFrameReady(MapRendererView mapRendererView) {
+		//renderFrame();
+		sendRenderFrameMsg();
+	}
+
 	/**
 	 * Handles the map zoom-in and zoom-out events.
 	 */
@@ -150,7 +226,7 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 		synchronized (this) {
 			float x = focusX;
 			float y = focusY;
-			Rect visibleArea = mVisibleArea;
+			Rect visibleArea = this.visibleArea;
 			if (visibleArea != null) {
 				// If a focal point value is negative, use the center point of the visible area.
 				if (x < 0) {
@@ -172,6 +248,16 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	}
 
 	/**
+	 * Handles the map 2D/3D button press events.
+	 */
+	public void handleTilt() {
+		synchronized (this) {
+			if (mapView != null && mapView.getAnimatedDraggingThread() != null && offscreenMapRendererView != null)
+				mapView.getAnimatedDraggingThread().startTilting(offscreenMapRendererView.getElevationAngle() < 90.0f ? 90.0f : 30.0f);
+		}
+	}
+
+	/**
 	 * Handles the map re-centering events.
 	 */
 	public void handleRecenter() {
@@ -189,8 +275,13 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	}
 
 	@NonNull
+	private MapDisplayPositionManager getDisplayPositionManager() {
+		return getApp().getMapViewTrackingUtilities().getMapDisplayPositionManager();
+	}
+
+	@NonNull
 	private OsmandApplication getApp() {
-		return (OsmandApplication) mCarContext.getApplicationContext();
+		return (OsmandApplication) carContext.getApplicationContext();
 	}
 
 	public OsmandMapTileView getMapView() {
@@ -198,9 +289,78 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	}
 
 	public void setMapView(OsmandMapTileView mapView) {
+		if (mapView == null) {
+			stopOffscreenRenderer();
+			return;
+		}
 		this.mapView = mapView;
-		if (mSurface != null) {
+		if (surface != null) {
 			mapView.setView(surfaceView);
+		}
+		if (getApp().isApplicationInitializing()) {
+			getApp().getAppInitializer().addListener(new AppInitializeListener() {
+				@Override
+				public void onFinish(@NonNull AppInitializer init) {
+					setupOffscreenRenderer();
+				}
+			});
+		} else
+			setupOffscreenRenderer();
+	}
+
+	public void setupOffscreenRenderer() {
+		Log.i(TAG, "setupOffscreenRenderer");
+		if (getApp().useOpenGlRenderer()) {
+			if (surface != null && surface.isValid()) {
+				if (offscreenMapRendererView != null) {
+					MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+					if (mapRendererContext != null) {
+						if (mapRendererContext.getMapRendererView() == offscreenMapRendererView)
+							return;
+						offscreenMapRendererView = null;
+					}
+				}
+				if (offscreenMapRendererView == null) {
+					MapRendererView mapRendererView = null;
+					MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+					if (mapRendererContext != null) {
+						if (mapView != null && mapView.getMapRenderer() != null)
+							mapView.setMapRenderer(null);
+						if (mapRendererContext.getMapRendererView() != null) {
+							mapRendererView = mapRendererContext.getMapRendererView();
+							mapRendererContext.setMapRendererView(null);
+						}
+						offscreenMapRendererView = new AtlasMapRendererView(carContext);
+						offscreenMapRendererView.setupRenderer(carContext, getWidth(), getHeight(), mapRendererView);
+						offscreenMapRendererView.setMinZoomLevel(ZoomLevel.swigToEnum(mapView.getMinZoom()));
+						offscreenMapRendererView.setMaxZoomLevel(ZoomLevel.swigToEnum(mapView.getMaxZoom()));
+						offscreenMapRendererView.setAzimuth(0);
+						float elevationAngle = mapView.normalizeElevationAngle(getApp().getSettings().getLastKnownMapElevation());
+						offscreenMapRendererView.setElevationAngle(elevationAngle);
+						NativeCoreContext.setMapRendererContext(getApp(), surfaceView.getDensity());
+						mapRendererContext = NativeCoreContext.getMapRendererContext();
+						if (mapRendererContext != null) {
+							mapRendererContext.setMapRendererView(offscreenMapRendererView);
+							mapView.setMapRenderer(offscreenMapRendererView);
+							getApp().getOsmandMap().getMapLayers().updateMapSource(mapView, null);
+							PluginsHelper.refreshLayers(getApp(), null);
+							offscreenMapRendererView.addListener(this);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public void stopOffscreenRenderer() {
+		Log.i(TAG, "stopOffscreenRenderer");
+		if (offscreenMapRendererView != null) {
+			if (mapView != null && mapView.getMapRenderer() == offscreenMapRendererView)
+				mapView.setMapRenderer(null);
+			MapRendererContext mapRendererContext = NativeCoreContext.getMapRendererContext();
+			if (mapRendererContext != null && mapRendererContext.getMapRendererView() == offscreenMapRendererView)
+				offscreenMapRendererView.stopRenderer();
+			offscreenMapRendererView = null;
 		}
 	}
 
@@ -221,16 +381,19 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	}
 
 	public boolean hasSurface() {
-		return mSurface != null && mSurface.isValid();
+		return surface != null && surface.isValid();
+	}
+
+	public boolean hasOffscreenRenderer() {
+		return offscreenMapRendererView != null;
 	}
 
 	public void renderFrame() {
-		if (mapView == null || mSurface == null || !mSurface.isValid()) {
+		if (mapView == null || surface == null || !surface.isValid()) {
 			// Surface is not available, or has been destroyed, skip this frame.
 			return;
 		}
-		boolean nightMode = getApp().getDaynightHelper().isNightMode();
-		DrawSettings drawSettings = new DrawSettings(nightMode, false);
+		DrawSettings drawSettings = new DrawSettings(carContext.isDarkMode(), false);
 		RotatedTileBox tileBox = mapView.getCurrentRotatedTileBox().copy();
 		try {
 			renderFrame(tileBox, drawSettings);
@@ -240,27 +403,33 @@ public final class SurfaceRenderer implements DefaultLifecycleObserver {
 	}
 
 	public void renderFrame(RotatedTileBox tileBox, DrawSettings drawSettings) {
-		if (mapView == null || mSurface == null || !mSurface.isValid()) {
+		if (mapView == null || surface == null || !surface.isValid()) {
 			// Surface is not available, or has been destroyed, skip this frame.
 			return;
 		}
-		Canvas canvas = mSurface.lockCanvas(null);
+		Canvas canvas = surface.lockCanvas(null);
 		try {
-			boolean newDarkMode = getApp().getDaynightHelper().isNightMode();
+			boolean newDarkMode = carContext.isDarkMode();
 			boolean updateVectorRendering = drawSettings.isUpdateVectorRendering() || darkMode != newDarkMode;
 			darkMode = newDarkMode;
 			drawSettings = new DrawSettings(newDarkMode, updateVectorRendering);
+			if (offscreenMapRendererView != null)
+				canvas.drawBitmap(offscreenMapRendererView.getBitmap(), 0, 0, null);
 			mapView.drawOverMap(canvas, tileBox, drawSettings);
 			SurfaceRendererCallback callback = this.callback;
 			if (callback != null) {
-				Rect visibleArea = this.mVisibleArea;
-				Rect stableArea = this.mStableArea;
+				Rect visibleArea = this.visibleArea;
+				Rect stableArea = this.stableArea;
 				if (visibleArea != null && stableArea != null) {
 					callback.onFrameRendered(canvas, visibleArea, stableArea);
 				}
 			}
 		} finally {
-			mSurface.unlockCanvasAndPost(canvas);
+			surface.unlockCanvasAndPost(canvas);
 		}
+	}
+
+	public double getVisibleAreaWidth() {
+		return visibleArea != null ? visibleArea.width() : 0f;
 	}
 }

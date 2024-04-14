@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:osmand="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	android:background="?attr/activity_background_color"
-	android:orientation="vertical">
+	android:orientation="vertical"
+	android:clickable="true"
+	android:focusable="true">
 
 	<com.google.android.material.appbar.AppBarLayout
 		android:id="@+id/appbar"
 		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:background="?attr/card_and_list_background_basic">
+		android:layout_height="wrap_content">
 
 		<androidx.appcompat.widget.Toolbar
 			android:id="@+id/toolbar"
@@ -30,6 +32,7 @@
 					android:layout_width="@dimen/toolbar_height"
 					android:layout_height="@dimen/toolbar_height"
 					android:layout_gravity="center"
+					android:contentDescription="@string/shared_string_back"
 					android:tint="?attr/primary_icon_color"
 					osmand:srcCompat="@drawable/ic_action_close" />
 
@@ -45,13 +48,25 @@
 					android:textSize="@dimen/dialog_header_text_size" />
 
 				<ImageButton
+					android:id="@+id/search"
+					style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
+					android:layout_width="@dimen/toolbar_height"
+					android:layout_height="@dimen/toolbar_height"
+					android:layout_gravity="center"
+					android:contentDescription="@string/search_button"
+					osmand:srcCompat="@drawable/ic_action_search_dark"
+					android:tint="?attr/default_icon_color"
+					tools:tint="?attr/default_icon_color" />
+
+				<ImageButton
 					android:id="@+id/switch_group"
 					style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
 					android:layout_width="@dimen/toolbar_height"
 					android:layout_height="@dimen/toolbar_height"
 					android:layout_gravity="center"
-					android:tint="?attr/default_icon_color"
-					osmand:srcCompat="@drawable/ic_action_list_folders" />
+					android:contentDescription="@string/switch_folder"
+					osmand:srcCompat="@drawable/ic_action_list_folders"
+					tools:tint="?attr/default_icon_color" />
 
 				<ImageButton
 					android:id="@+id/actions_button"
@@ -59,26 +74,31 @@
 					android:layout_width="@dimen/toolbar_height"
 					android:layout_height="@dimen/toolbar_height"
 					android:layout_gravity="center"
-					android:tint="?attr/default_icon_color"
-					osmand:srcCompat="@drawable/ic_overflow_menu_white" />
+					android:contentDescription="@string/shared_string_more_actions"
+					osmand:srcCompat="@drawable/ic_overflow_menu_white"
+					tools:tint="?attr/default_icon_color" />
 
 			</LinearLayout>
 
 		</androidx.appcompat.widget.Toolbar>
 
-		<com.google.android.material.tabs.TabLayout
-			android:id="@+id/tab_layout"
+		<net.osmand.plus.views.controls.PagerSlidingTabStrip
+			android:id="@+id/sliding_tabs"
 			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:background="?attr/list_background_color"
-			osmand:tabMode="scrollable" />
+			android:layout_height="@dimen/list_item_height"
+			osmand:pstsTabBackground="@color/color_transparent" />
 
 	</com.google.android.material.appbar.AppBarLayout>
 
 	<FrameLayout
 		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		osmand:layout_behavior="@string/appbar_scrolling_view_behavior">
+		android:layout_height="match_parent">
+
+		<androidx.viewpager.widget.ViewPager
+			android:id="@+id/view_pager"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:paddingBottom="@dimen/bottom_sheet_title_height" />
 
 		<me.zhanghai.android.materialprogressbar.MaterialProgressBar
 			android:id="@+id/progress_bar"
@@ -90,12 +110,6 @@
 			osmand:mpb_progressStyle="horizontal"
 			osmand:mpb_setBothDrawables="true"
 			osmand:mpb_useIntrinsicPadding="false" />
-
-		<androidx.viewpager2.widget.ViewPager2
-			android:id="@+id/view_pager"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:paddingBottom="@dimen/dialog_button_ex_height" />
 
 		<LinearLayout
 			android:layout_width="match_parent"
@@ -116,22 +130,26 @@
 				android:orientation="horizontal"
 				android:padding="@dimen/content_padding_half">
 
-				<include
+				<net.osmand.plus.widgets.dialogbutton.DialogButton
 					android:id="@+id/selection_button"
-					layout="@layout/bottom_sheet_dialog_button"
 					android:layout_width="wrap_content"
-					android:layout_height="@dimen/dialog_button_height" />
+					android:layout_height="wrap_content"
+					osmand:dialogButtonUseUppercaseTitle="true"
+					osmand:dialogButtonType="tertiary"
+					tools:dialogButtonTitle="@string/shared_string_select_recent" />
 
 				<View
 					android:layout_width="0dp"
 					android:layout_height="match_parent"
 					android:layout_weight="1" />
 
-				<include
+				<net.osmand.plus.widgets.dialogbutton.DialogButton
 					android:id="@+id/apply_button"
-					layout="@layout/bottom_sheet_dialog_button"
 					android:layout_width="wrap_content"
-					android:layout_height="@dimen/dialog_button_height" />
+					android:layout_height="wrap_content"
+					osmand:dialogButtonUseUppercaseTitle="true"
+					osmand:dialogButtonTitle="@string/shared_string_apply"
+					osmand:dialogButtonType="tertiary"/>
 
 
 			</LinearLayout>

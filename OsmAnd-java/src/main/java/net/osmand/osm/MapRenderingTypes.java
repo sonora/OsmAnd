@@ -27,7 +27,7 @@ public abstract class MapRenderingTypes {
 
 	private static final Log log = PlatformUtil.getLog(MapRenderingTypes.class);
 	public static final String[] langs = new String[] { "af", "als", "ar", "az", "be", "bg", "bn", "bpy", "br", "bs", "ca", "ceb", "ckb", "cs", "cy", "da", "de", "el", "eo", "es", "et", "eu", "fa", "fi", "fr", "fy", "ga", "gl", "he", "hi", "hsb",
-		"hr", "ht", "hu", "hy", "id", "is", "it", "ja", "ka", "kk", "kn", "ko", "ku", "la", "lb", "lo", "lt", "lv", "mk", "ml", "mr", "ms", "nds", "new", "nl", "nn", "no", "nv", "oc", "os", "pl", "pms", "pt", "ro", "ru", "sat", "sc", "sh", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "vi", "vo", "zh", "zh-hans", "zh-hant",  };
+		"hr", "ht", "hu", "hy", "id", "is", "it", "ja", "ka", "kk", "kn", "ko", "ku", "la", "lb", "lo", "lt", "lv", "mk", "ml", "mr", "ms", "nds", "new", "nl", "nn", "no", "nv", "oc", "os", "pl", "pms", "pt", "ro", "ru", "sat", "sc", "sh", "sk", "sl", "sq", "sr", "sr-latn", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "vi", "vo", "zh", "zh-hans", "zh-hant",  };
 	
 	
 	public final static byte RESTRICTION_NO_RIGHT_TURN = 1;
@@ -284,6 +284,25 @@ public abstract class MapRenderingTypes {
 				"yes".equals(parser.getAttributeValue("", "map")) || parser.getAttributeValue("", "map") == null;
 		rtype.poi = "true".equals(parser.getAttributeValue("", "poi")) || 
 				"yes".equals(parser.getAttributeValue("", "poi")) || parser.getAttributeValue("", "poi") == null;
+		String propagateToNodes = parser.getAttributeValue("", "propagateToNodes");
+		if (propagateToNodes != null) {
+			if ("true".equals(propagateToNodes) || "yes".equals(propagateToNodes) || "all".equals(propagateToNodes)) {
+				rtype.propagateToNodes = MapRulType.PropagateToNodesType.ALL;
+			} else if ("start".equals(propagateToNodes)) {
+				rtype.propagateToNodes = MapRulType.PropagateToNodesType.START;
+			} else if ("end".equals(propagateToNodes)) {
+				rtype.propagateToNodes = MapRulType.PropagateToNodesType.END;
+			} else if ("center".equals(propagateToNodes)) {
+				rtype.propagateToNodes = MapRulType.PropagateToNodesType.CENTER;
+			} else if ("border".equals(propagateToNodes)) {
+				rtype.propagateToNodes = MapRulType.PropagateToNodesType.BORDER;
+			}
+		}
+		String propagateToNodesPrefix = parser.getAttributeValue("", "propagateToNodesPrefix");
+		if (propagateToNodesPrefix != null) {
+			rtype.propagateToNodesPrefix = propagateToNodesPrefix;
+		}
+		rtype.propagateIf = parseMultiTagValue(parser, "propagateIf");
 		
 		String order = parser.getAttributeValue("", "order");
 		if(!Algorithms.isEmpty(order)) {
@@ -534,6 +553,9 @@ public abstract class MapRenderingTypes {
 		protected String relationGroupPrefix;
 		protected Map<String, String> relationGroupNameTags;
 		protected Map<String, String> relationGroupAdditionalTags;
+		protected PropagateToNodesType propagateToNodes = PropagateToNodesType.NONE;
+		protected String propagateToNodesPrefix;
+		protected Map<String, String> propagateIf;
 		
 		protected TagValuePattern tagValuePattern;
 		protected boolean additional;
@@ -719,7 +741,31 @@ public abstract class MapRenderingTypes {
 			return true;
 		}
 		
-		
+		public boolean isPropagateToNodes() {
+			return propagateToNodes != PropagateToNodesType.NONE;
+		}
+
+		public PropagateToNodesType getPropagateToNodesType() {
+			return propagateToNodes;
+		}
+
+		public String getPropagateToNodesPrefix() {
+			return propagateToNodesPrefix;
+		}
+
+		public Map<String, String> getPropagateIf() {
+			return propagateIf;
+		}
+
+		public enum PropagateToNodesType {
+			NONE,
+			ALL,
+			START,
+			END,
+			CENTER,
+			BORDER
+		}
+
 	}
 
 	public static String getRestrictionValue(int i) {
@@ -741,6 +787,36 @@ public abstract class MapRenderingTypes {
 		}
 		return "unkonwn";
 
+	}
+
+	private Map<String, String> parseMultiTagValue(XmlPullParser parser, String attrPrefix) {
+		int cnt = parser.getAttributeCount();
+		Map<Integer, String> tags = new HashMap<>();
+		Map<Integer, String> values = new HashMap<>();
+		attrPrefix = attrPrefix.toLowerCase();
+		for (int i = 0; i < cnt; i++) {
+			String name = parser.getAttributeName(i).toLowerCase();
+			String value = parser.getAttributeValue(i).toLowerCase();
+			if (name.startsWith(attrPrefix + "tag")) {
+				String numStr = name.replace(attrPrefix + "tag", "");
+				int num = numStr.isEmpty() ? 0 : Integer.parseInt(numStr);
+				tags.put(num, value);
+			}
+			if (name.startsWith(attrPrefix + "value")) {
+				String numStr = name.replace(attrPrefix + "value", "");
+				int num = numStr.isEmpty() ? 0 : Integer.parseInt(numStr);
+				values.put(num, value);
+			}
+		}
+		if (tags.size() == 0) {
+			return null;
+		}
+		Map<String, String> result = new HashMap<>();
+		for (Map.Entry<Integer, String> entry : tags.entrySet()) {
+			int index = entry.getKey();
+			result.put(entry.getValue(), values.get(index));
+		}
+		return result;
 	}
 	
 }

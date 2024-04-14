@@ -111,7 +111,7 @@
 		android:layout="@layout/preference_switch"
 		android:title="@string/announce_when_exceeded" />
 
-	<net.osmand.plus.settings.preferences.ListPreferenceEx
+	<Preference
 		android:key="speed_limit_exceed"
 		android:layout="@layout/preference_with_descr"
 		android:title="@string/speed_limit_exceed" />
@@ -135,6 +135,11 @@
 		android:key="speak_route_recalculation"
 		android:layout="@layout/preference_switch"
 		android:title="@string/speak_route_recalculation" />
+
+	<SwitchPreferenceCompat
+		android:key="speak_route_deviation"
+		android:layout="@layout/preference_switch"
+		android:title="@string/speak_route_deviation" />
 
 	<Preference
 		android:key="speed_limit_divider"

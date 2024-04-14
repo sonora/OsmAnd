@@ -1,13 +1,5 @@
 package net.osmand.plus.routepreparationmenu;
 
-import static net.osmand.IndexConstants.GPX_FILE_EXT;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.BACK_TO_LOC_HUD_ID;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.NAVIGATION_ROUTE_DETAILS_OPTIONS_ID;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.ZOOM_IN_HUD_ID;
-import static net.osmand.aidlapi.OsmAndCustomizationConstants.ZOOM_OUT_HUD_ID;
-import static net.osmand.plus.activities.MapActivityActions.SaveDirectionsAsyncTask;
-import static net.osmand.plus.measurementtool.SaveAsNewTrackBottomSheetDialogFragment.SaveAsNewTrackFragmentListener;
-
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
@@ -24,24 +16,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-
-import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.view.ContextThemeWrapper;
-import androidx.appcompat.widget.AppCompatImageButton;
-import androidx.appcompat.widget.AppCompatImageView;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager.SimpleOnPageChangeListener;
 
 import net.osmand.IndexConstants;
 import net.osmand.data.LatLon;
@@ -67,10 +47,8 @@ import net.osmand.plus.routing.RouteDirectionInfo;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.routing.TransportRoutingHelper;
 import net.osmand.plus.settings.backend.OsmAndAppCustomization;
-import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.track.SaveGpxAsyncTask;
-import net.osmand.plus.track.SaveGpxAsyncTask.SaveGpxListener;
 import net.osmand.plus.track.helpers.GpxDisplayItem;
+import net.osmand.plus.track.helpers.save.SaveGpxHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.utils.FileUtils;
@@ -79,7 +57,8 @@ import net.osmand.plus.views.controls.maphudbuttons.MyLocationButton;
 import net.osmand.plus.views.controls.maphudbuttons.ZoomInButton;
 import net.osmand.plus.views.controls.maphudbuttons.ZoomOutButton;
 import net.osmand.plus.views.layers.MapControlsLayer;
-import net.osmand.plus.widgets.popup.PopUpMenuHelper;
+import net.osmand.plus.widgets.popup.PopUpMenu;
+import net.osmand.plus.widgets.popup.PopUpMenuDisplayData;
 import net.osmand.plus.widgets.popup.PopUpMenuItem;
 import net.osmand.router.TransportRouteResult;
 import net.osmand.util.Algorithms;
@@ -94,6 +73,27 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.appcompat.widget.AppCompatImageView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.viewpager.widget.ViewPager.SimpleOnPageChangeListener;
+
+import static net.osmand.IndexConstants.GPX_FILE_EXT;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.BACK_TO_LOC_HUD_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.NAVIGATION_ROUTE_DETAILS_OPTIONS_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.ZOOM_IN_HUD_ID;
+import static net.osmand.aidlapi.OsmAndCustomizationConstants.ZOOM_OUT_HUD_ID;
+import static net.osmand.plus.activities.MapActivityActions.SaveDirectionsAsyncTask;
+import static net.osmand.plus.measurementtool.SaveAsNewTrackBottomSheetDialogFragment.SaveAsNewTrackFragmentListener;
 
 public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMenuFragmentListener,
 		RouteDetailsFragmentListener, SaveAsNewTrackFragmentListener {
@@ -120,7 +120,6 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 	private ViewGroup pagesView;
 
 	private boolean portrait;
-	private boolean nightMode;
 	private boolean wasDrawerDisabled;
 	private int currentMenuState;
 	private int routesCount;
@@ -142,8 +141,8 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+		updateNightMode();
 		MapActivity mapActivity = (MapActivity) requireActivity();
-		nightMode = mapActivity.getMyApplication().getDaynightHelper().isNightModeForMapControls();
 		portrait = AndroidUiHelper.isOrientationPortrait(mapActivity);
 		OsmandApplication app = mapActivity.getMyApplication();
 		TransportRoutingHelper transportRoutingHelper = app.getTransportRoutingHelper();
@@ -207,8 +206,7 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 								card.updateButtons();
 							}
 							if (fragment == current) {
-								updateZoomButtonsPos(fragment, fragment.getViewY(), true);
-								updatePagesViewPos(fragment, fragment.getViewY(), true);
+								updateElementsPosition(fragment);
 							}
 							Bundle args = fragment.getArguments();
 							if (args != null) {
@@ -224,6 +222,21 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 		buildZoomButtons(view);
 		buildMenuButtons(view);
 		return view;
+	}
+
+	private void updateElementsPosition(@NonNull RouteDetailsFragment fragment) {
+		View fragmentView = fragment.getView();
+		if (fragmentView != null) {
+			fragmentView.getViewTreeObserver().addOnGlobalLayoutListener(
+					new ViewTreeObserver.OnGlobalLayoutListener() {
+						@Override
+						public void onGlobalLayout() {
+							fragmentView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+							updatePagesViewPos(fragment, fragment.getViewY(), true);
+							updateZoomButtonsPos(fragment, fragment.getViewY(), true);
+						}
+					});
+		}
 	}
 
 	@Override
@@ -308,8 +321,6 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 	}
 
 	public void analyseOnMap(LatLon location, GpxDisplayItem gpxItem) {
-		OsmandApplication app = requireMyApplication();
-		OsmandSettings settings = app.getSettings();
 		settings.setMapLocationToShow(location.getLatitude(), location.getLongitude(),
 				settings.getLastKnownMapZoom(),
 				new PointDescription(PointDescription.POINT_TYPE_WPT, gpxItem.name),
@@ -446,12 +457,9 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 	}
 
 	private void buildMenuButtons(@NonNull View view) {
-		OsmandApplication app = requireMyApplication();
 		AppCompatImageView backButton = view.findViewById(R.id.back_button);
 		AppCompatImageButton backButtonFlow = view.findViewById(R.id.back_button_flow);
-		OnClickListener backOnClick = v -> {
-			dismiss(true);
-		};
+		OnClickListener backOnClick = v -> dismiss(true);
 		backButton.setOnClickListener(backOnClick);
 		backButtonFlow.setOnClickListener(backOnClick);
 		int navigationIconResId = AndroidUtils.getNavigationIconResId(getContext());
@@ -486,8 +494,8 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 					String suggestedName = new SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(new Date());
 					fileName = FileUtils.createUniqueFileName(app, suggestedName, IndexConstants.GPX_INDEX_DIR, GPX_FILE_EXT);
 				}
-				SaveAsNewTrackBottomSheetDialogFragment.showInstance(mapActivity.getSupportFragmentManager(),
-						this, null, fileName, null, false, true);
+				FragmentManager manager = mapActivity.getSupportFragmentManager();
+				SaveAsNewTrackBottomSheetDialogFragment.showInstance(manager, fileName, this, false, true);
 			}
 		};
 		saveRoute.setOnClickListener(saveOnClick);
@@ -503,17 +511,21 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 			List<PopUpMenuItem> items = new ArrayList<>();
 			items.add(new PopUpMenuItem.Builder(app)
 					.setTitle(getString(R.string.share_as_file))
-					.setIcon(app.getUIUtilities().getIcon(R.drawable.ic_action_file_routing, ColorUtilities.getDefaultIconColorId(nightMode)))
-					.setOnClickListener(_view -> shareFile(app))
+					.setIcon(getContentIcon(R.drawable.ic_action_file_routing))
+					.setOnClickListener(menuItem -> shareFile(app))
 					.create());
 
 			items.add(new PopUpMenuItem.Builder(app)
 					.setTitle(getString(R.string.share_link))
-					.setIcon(app.getUIUtilities().getIcon(R.drawable.ic_action_link, ColorUtilities.getDefaultIconColorId(nightMode)))
-					.setOnClickListener(_view -> shareLink(app))
+					.setIcon(getContentIcon(R.drawable.ic_action_link))
+					.setOnClickListener(menuItem -> shareLink(app))
 					.create());
 
-			new PopUpMenuHelper.Builder(v, items, nightMode).show();
+			PopUpMenuDisplayData displayData = new PopUpMenuDisplayData();
+			displayData.anchorView = v;
+			displayData.menuItems = items;
+			displayData.nightMode = nightMode;
+			PopUpMenu.show(displayData);
 		};
 		shareRoute.setOnClickListener(shareOnClick);
 		shareRouteFlow.setOnClickListener(shareOnClick);
@@ -555,29 +567,22 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 			}
 			File dst = new File(dir, "route.gpx");
 
-			new SaveGpxAsyncTask(dst, gpx, new SaveGpxListener() {
-				@Override
-				public void gpxSavingStarted() {
-				}
+			SaveGpxHelper.saveGpx(dst, gpx, errorMessage -> {
+				if (errorMessage == null) {
+					Intent sendIntent = new Intent();
+					sendIntent.setAction(Intent.ACTION_SEND);
+					sendIntent.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(generateHtml(routingHelper.getRouteDirections(),
+							routingHelper.getGeneralRouteInformation(), IntentHelper.generateRouteUrl(app)).toString()));
+					sendIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_route_subject));
+					sendIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+					sendIntent.putExtra(Intent.EXTRA_STREAM, AndroidUtils.getUriForFile(app, dst));
+					sendIntent.setType("text/plain");
+					sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+					Intent chooserIntent = Intent.createChooser(sendIntent, app.getString(R.string.shared_string_share));
 
-				@Override
-				public void gpxSavingFinished(Exception errorMessage) {
-					if (errorMessage == null) {
-						Intent sendIntent = new Intent();
-						sendIntent.setAction(Intent.ACTION_SEND);
-						sendIntent.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(generateHtml(routingHelper.getRouteDirections(),
-								routingHelper.getGeneralRouteInformation(), IntentHelper.generateRouteUrl(app)).toString()));
-						sendIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_route_subject));
-						sendIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
-						sendIntent.putExtra(Intent.EXTRA_STREAM, AndroidUtils.getUriForFile(app, dst));
-						sendIntent.setType("text/plain");
-						sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-						Intent chooserIntent = Intent.createChooser(sendIntent, app.getString(R.string.shared_string_share));
-
-						AndroidUtils.startActivityIfSafe(activity, chooserIntent);
-					}
+					AndroidUtils.startActivityIfSafe(activity, chooserIntent);
 				}
-			}).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+			});
 		}
 	}
 
@@ -598,8 +603,7 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 	}
 
 	private File generateRouteInfoHtml(List<RouteDirectionInfo> directionsInfo, String title) {
-		OsmandApplication app = getMyApplication();
-		if (app == null || directionsInfo == null) {
+		if (directionsInfo == null) {
 			return null;
 		}
 		final String fileName = "route_info.html";
@@ -628,10 +632,6 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 
 	private StringBuilder generateHtml(List<RouteDirectionInfo> directionInfos, String title, String url) {
 		StringBuilder html = new StringBuilder();
-		OsmandApplication app = getMyApplication();
-		if (app == null) {
-			return html;
-		}
 		if (!TextUtils.isEmpty(title)) {
 			html.append("<h1>");
 			html.append(url);
@@ -660,10 +660,6 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 
 	private StringBuilder generateHtmlPrint(List<RouteDirectionInfo> directionsInfo, String title) {
 		StringBuilder html = new StringBuilder();
-		OsmandApplication app = getMyApplication();
-		if (app == null) {
-			return html;
-		}
 		boolean accessibilityEnabled = app.accessibilityEnabled();
 		html.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">");
 		html.append("<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\">");
@@ -820,7 +816,7 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 			if (!visible) {
 				mapActivity.findViewById(R.id.map_right_widgets_panel).setVisibility(visibility);
 				if (!portrait) {
-					mapActivity.getMapView().setMapPositionX(1);
+					mapActivity.getMapPositionManager().setMapPositionShiftedX(true);
 				}
 			}
 			mapActivity.updateStatusBarColor();
@@ -906,22 +902,21 @@ public class ChooseRouteFragment extends BaseOsmAndFragment implements ContextMe
 		if (mapActivity != null) {
 			dismiss(false);
 			if (!mapActivity.getMyApplication().getRoutingHelper().isPublicTransportMode()) {
-				mapActivity.getMapLayers().getMapControlsLayer().startNavigation();
+				mapActivity.getMapLayers().getMapActionsHelper().startNavigation();
 			}
 		}
 	}
 
 	@Override
-	public void onSaveAsNewTrack(String folderName, String fileName, boolean showOnMap, boolean simplifiedTrack) {
-		OsmandApplication app = getMyApplication();
-		if (app != null) {
-			File fileDir = app.getAppPath(IndexConstants.GPX_INDEX_DIR);
-			if (folderName != null && !fileDir.getName().equals(folderName)) {
-				fileDir = new File(fileDir, folderName);
-			}
-			File toSave = new File(fileDir, fileName + GPX_FILE_EXT);
-			new SaveDirectionsAsyncTask(app, showOnMap).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, toSave);
-		}
+	public void onSaveAsNewTrack(@NonNull String folderPath, @NonNull String fileName, boolean showOnMap, boolean simplifiedTrack) {
+		File fileDir = new File(folderPath);
+		File toSave = new File(fileDir, fileName + GPX_FILE_EXT);
+		new SaveDirectionsAsyncTask(app, showOnMap).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, toSave);
+	}
+
+	@Override
+	protected boolean isUsedOnMap() {
+		return true;
 	}
 
 	public class RoutesPagerAdapter extends FragmentPagerAdapter {

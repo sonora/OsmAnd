@@ -1,5 +1,7 @@
 package net.osmand.plus.quickaction.actions;
 
+import static net.osmand.plus.quickaction.QuickActionIds.NAV_REPLACE_DESTINATION_ACTION_ID;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +17,7 @@ import net.osmand.plus.quickaction.QuickActionType;
 
 public class NavReplaceDestinationAction extends QuickAction {
 
-	public static final QuickActionType TYPE = new QuickActionType(21,
+	public static final QuickActionType TYPE = new QuickActionType(NAV_REPLACE_DESTINATION_ACTION_ID,
 			"nav.destination.replace", NavReplaceDestinationAction.class).
 			nameRes(R.string.quick_action_replace_destination).iconRes(R.drawable.ic_action_point_add_destination).nonEditable().
 			category(QuickActionType.NAVIGATION);
@@ -31,7 +33,7 @@ public class NavReplaceDestinationAction extends QuickAction {
 	@Override
 	public void execute(@NonNull MapActivity mapActivity) {
 		LatLon latLon = getMapLocation(mapActivity);
-		mapActivity.getMapLayers().getMapControlsLayer().replaceDestination(latLon);
+		mapActivity.getMapLayers().getMapActionsHelper().replaceDestination(latLon);
 	}
 
 	@Override

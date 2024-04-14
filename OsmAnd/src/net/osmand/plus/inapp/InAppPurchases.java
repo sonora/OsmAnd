@@ -258,6 +258,28 @@ public abstract class InAppPurchases {
 			NOT_PURCHASED
 		}
 
+		public enum PurchaseOrigin {
+
+			UNDEFINED(R.string.shared_string_undefined),
+			GOOGLE(R.string.google_play),
+			AMAZON(R.string.amazon_market),
+			HUAWEI(R.string.huawei_market),
+			IOS(R.string.apple_app_store),
+			PROMO(R.string.promo),
+			TRIPLTEK_PROMO(R.string.tripltek);
+
+			private final int storeNameId;
+
+			PurchaseOrigin(@StringRes int storeNameId) {
+				this.storeNameId = storeNameId;
+			}
+
+			@StringRes
+			public int getStoreNameId() {
+				return storeNameId;
+			}
+		}
+
 		private final int featureId;
 		private final String sku;
 		private String price;
@@ -610,10 +632,10 @@ public abstract class InAppPurchases {
 			return "";
 		}
 
-		private String getDisountPeriodString(String unitStr, long totalPeriods) {
+		private String getDisountPeriodString(@NonNull Context ctx, String unitStr, long totalPeriods) {
 			if (totalPeriods == 1)
 				return unitStr;
-			if (AndroidUtils.isRTL()) {
+			if (AndroidUtils.isLayoutRtl(ctx)) {
 				return unitStr + " " + totalPeriods;
 			} else {
 				return totalPeriods + " " + unitStr;
@@ -634,7 +656,7 @@ public abstract class InAppPurchases {
 			String pricePeriod;
 			String originalPricePeriod;
 
-			if (AndroidUtils.isRTL()) {
+			if (AndroidUtils.isLayoutRtl(ctx)) {
 				pricePeriod = singleUnitStr + " / " + priceStr;
 				originalPricePeriod = originalUnitsStr + " / " + originalPriceStr;
 				if (numberOfUnits > 1) {
@@ -660,7 +682,7 @@ public abstract class InAppPurchases {
 			String periodPriceStr = introductoryCycles == 1 ? priceStr : pricePeriod;
 
 			int firstPartRes = totalPeriods == 1 ? R.string.get_discount_first_part : R.string.get_discount_first_few_part;
-			Spannable mainPart = new SpannableStringBuilder(ctx.getString(firstPartRes, periodPriceStr, getDisountPeriodString(unitStr, totalPeriods)));
+			Spannable mainPart = new SpannableStringBuilder(ctx.getString(firstPartRes, periodPriceStr, getDisountPeriodString(ctx, unitStr, totalPeriods)));
 			Spannable thenPart = new SpannableStringBuilder(ctx.getString(R.string.get_discount_second_part, originalPricePeriod));
 			Typeface typefaceRegular = FontCache.getRobotoRegular(ctx);
 			Typeface typefaceBold = FontCache.getRobotoMedium(ctx);
@@ -689,25 +711,6 @@ public abstract class InAppPurchases {
 		private long expireTime;
 
 		private InAppSubscriptionIntroductoryInfo introductoryInfo;
-
-		public enum SubscriptionOrigin {
-			UNDEFINED(R.string.shared_string_undefined),
-			GOOGLE(R.string.google_play),
-			AMAZON(R.string.amazon_market),
-			HUAWEI(R.string.huawei_market),
-			IOS(R.string.apple_app_store),
-			PROMO(R.string.promo);
-
-			final int storeNameId;
-
-			SubscriptionOrigin(int storeNameId) {
-				this.storeNameId = storeNameId;
-			}
-
-			public int getStoreNameId() {
-				return storeNameId;
-			}
-		}
 
 		public enum SubscriptionState {
 			UNDEFINED("undefined", R.string.shared_string_undefined),

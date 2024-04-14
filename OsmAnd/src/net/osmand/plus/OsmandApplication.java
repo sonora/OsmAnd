@@ -1,21 +1,13 @@
 package net.osmand.plus;
 
-import static net.osmand.IndexConstants.GEOTIFF_DIR;
-import static net.osmand.IndexConstants.HEIGHTMAP_INDEX_DIR;
-import static net.osmand.IndexConstants.LIVE_INDEX_DIR;
-import static net.osmand.IndexConstants.MAPS_PATH;
-import static net.osmand.IndexConstants.NAUTICAL_INDEX_DIR;
-import static net.osmand.IndexConstants.ROADS_INDEX_DIR;
 import static net.osmand.IndexConstants.ROUTING_FILE_EXT;
-import static net.osmand.IndexConstants.SRTM_INDEX_DIR;
-import static net.osmand.IndexConstants.WIKIVOYAGE_INDEX_DIR;
-import static net.osmand.IndexConstants.WIKI_INDEX_DIR;
 import static net.osmand.plus.settings.backend.ApplicationMode.valueOfStringKey;
+import static net.osmand.plus.settings.enums.MetricsConstants.KILOMETERS_AND_METERS;
+import static net.osmand.plus.settings.enums.MetricsConstants.MILES_AND_FEET;
+import static net.osmand.plus.settings.enums.MetricsConstants.MILES_AND_METERS;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -33,47 +25,51 @@ import androidx.car.app.CarToast;
 import androidx.multidex.MultiDex;
 import androidx.multidex.MultiDexApplication;
 
-import net.osmand.IndexConstants;
 import net.osmand.PlatformUtil;
 import net.osmand.aidl.OsmandAidlApi;
 import net.osmand.data.LatLon;
 import net.osmand.map.OsmandRegions;
 import net.osmand.map.WorldRegion;
+import net.osmand.map.WorldRegion.RegionParams;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.io.NetworkUtils;
-import net.osmand.plus.AppInitializer.AppInitializeListener;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.activities.RestartActivity;
-import net.osmand.plus.activities.actions.OsmAndDialogs;
 import net.osmand.plus.api.SQLiteAPI;
 import net.osmand.plus.api.SQLiteAPIImpl;
 import net.osmand.plus.auto.NavigationCarAppService;
-import net.osmand.plus.auto.NavigationScreen;
 import net.osmand.plus.auto.NavigationSession;
+import net.osmand.plus.auto.screens.NavigationScreen;
+import net.osmand.plus.avoidroads.AvoidRoadsHelper;
 import net.osmand.plus.backup.BackupHelper;
 import net.osmand.plus.backup.NetworkSettingsHelper;
 import net.osmand.plus.base.MapViewTrackingUtilities;
+import net.osmand.plus.base.dialog.DialogManager;
 import net.osmand.plus.download.DownloadIndexesThread;
 import net.osmand.plus.download.DownloadService;
 import net.osmand.plus.download.IndexItem;
-import net.osmand.plus.helpers.AnalyticsHelper;
+import net.osmand.plus.feedback.AnalyticsHelper;
+import net.osmand.plus.feedback.FeedbackHelper;
+import net.osmand.plus.feedback.RateUsHelper;
+import net.osmand.plus.feedback.RateUsState;
 import net.osmand.plus.helpers.AndroidApiLocationServiceHelper;
-import net.osmand.plus.helpers.AvoidSpecificRoads;
 import net.osmand.plus.helpers.DayNightHelper;
-import net.osmand.plus.helpers.FeedbackHelper;
 import net.osmand.plus.helpers.GmsLocationServiceHelper;
 import net.osmand.plus.helpers.LauncherShortcutsHelper;
 import net.osmand.plus.helpers.LocaleHelper;
 import net.osmand.plus.helpers.LocationServiceHelper;
 import net.osmand.plus.helpers.LockHelper;
-import net.osmand.plus.helpers.RateUsHelper;
 import net.osmand.plus.helpers.TargetPointsHelper;
 import net.osmand.plus.helpers.WaypointHelper;
+import net.osmand.plus.importfiles.ImportHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
+import net.osmand.plus.keyevent.InputDevicesHelper;
+import net.osmand.plus.keyevent.KeyEventHelper;
 import net.osmand.plus.mapmarkers.MapMarkersDbHelper;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
 import net.osmand.plus.measurementtool.MeasurementEditingContext;
-import net.osmand.plus.myplaces.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.FavouritesHelper;
+import net.osmand.plus.myplaces.tracks.filters.SmartFolderHelper;
 import net.osmand.plus.notifications.NotificationHelper;
 import net.osmand.plus.onlinerouting.OnlineRoutingHelper;
 import net.osmand.plus.plugins.PluginsHelper;
@@ -81,17 +77,16 @@ import net.osmand.plus.plugins.accessibility.AccessibilityMode;
 import net.osmand.plus.plugins.accessibility.AccessibilityPlugin;
 import net.osmand.plus.plugins.monitoring.LiveMonitoringHelper;
 import net.osmand.plus.plugins.monitoring.SavingTrackHelper;
-import net.osmand.plus.plugins.openplacereviews.OprAuthHelper;
 import net.osmand.plus.plugins.osmedit.oauth.OsmOAuthHelper;
 import net.osmand.plus.plugins.rastermaps.DownloadTilesHelper;
+import net.osmand.plus.plugins.weather.OfflineForecastHelper;
 import net.osmand.plus.plugins.weather.WeatherHelper;
 import net.osmand.plus.poi.PoiFiltersHelper;
-import net.osmand.plus.quickaction.QuickActionRegistry;
+import net.osmand.plus.quickaction.MapButtonsHelper;
 import net.osmand.plus.render.RendererRegistry;
 import net.osmand.plus.render.TravelRendererHelper;
 import net.osmand.plus.resources.ResourceManager;
 import net.osmand.plus.routepreparationmenu.RoutingOptionsHelper;
-import net.osmand.plus.routing.AvoidRoadsHelper;
 import net.osmand.plus.routing.RoutingHelper;
 import net.osmand.plus.routing.TransportRoutingHelper;
 import net.osmand.plus.search.QuickSearchHelper;
@@ -102,6 +97,7 @@ import net.osmand.plus.settings.backend.backup.FileSettingsHelper;
 import net.osmand.plus.settings.enums.DrivingRegion;
 import net.osmand.plus.settings.enums.LocationSource;
 import net.osmand.plus.settings.enums.MetricsConstants;
+import net.osmand.plus.simulation.OsmAndLocationSimulation;
 import net.osmand.plus.track.helpers.GpsFilterHelper;
 import net.osmand.plus.track.helpers.GpxDbHelper;
 import net.osmand.plus.track.helpers.GpxDisplayHelper;
@@ -110,8 +106,10 @@ import net.osmand.plus.utils.FileUtils;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMap;
 import net.osmand.plus.views.corenative.NativeCoreContext;
-import net.osmand.plus.views.mapwidgets.AverageSpeedComputer;
+import net.osmand.plus.views.mapwidgets.utils.AverageGlideComputer;
+import net.osmand.plus.views.mapwidgets.utils.AverageSpeedComputer;
 import net.osmand.plus.voice.CommandPlayer;
+import net.osmand.plus.voice.VoiceProviderDialog;
 import net.osmand.plus.wikivoyage.data.TravelHelper;
 import net.osmand.router.GeneralRouter;
 import net.osmand.router.RoutingConfiguration;
@@ -125,6 +123,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -137,7 +136,7 @@ public class OsmandApplication extends MultiDexApplication {
 
 	final AppInitializer appInitializer = new AppInitializer(this);
 	Handler uiHandler;
-	OsmandSettings osmandSettings;
+	OsmandSettings settings;
 	OsmAndAppCustomization appCustomization;
 	NavigationService navigationService;
 	DownloadService downloadService;
@@ -175,7 +174,6 @@ public class OsmandApplication extends MultiDexApplication {
 	WaypointHelper waypointHelper;
 	RoutingOptionsHelper routingOptionsHelper;
 	DownloadIndexesThread downloadIndexesThread;
-	AvoidSpecificRoads avoidSpecificRoads;
 	AvoidRoadsHelper avoidRoadsHelper;
 	BRouterServiceConnection bRouterServiceConnection;
 	OsmandRegions regions;
@@ -186,21 +184,26 @@ public class OsmandApplication extends MultiDexApplication {
 	MapViewTrackingUtilities mapViewTrackingUtilities;
 	OsmandMap osmandMap;
 	LockHelper lockHelper;
+	KeyEventHelper keyEventHelper;
+	InputDevicesHelper inputDeviceHelper;
 	FileSettingsHelper fileSettingsHelper;
 	NetworkSettingsHelper networkSettingsHelper;
 	GpxDbHelper gpxDbHelper;
-	QuickActionRegistry quickActionRegistry;
+	MapButtonsHelper mapButtonsHelper;
 	OsmOAuthHelper osmOAuthHelper;
-	OprAuthHelper oprAuthHelper;
 	MeasurementEditingContext measurementEditingContext;
 	OnlineRoutingHelper onlineRoutingHelper;
 	BackupHelper backupHelper;
+	ImportHelper importHelper;
 	TravelRendererHelper travelRendererHelper;
 	LauncherShortcutsHelper launcherShortcutsHelper;
 	GpsFilterHelper gpsFilterHelper;
 	DownloadTilesHelper downloadTilesHelper;
 	AverageSpeedComputer averageSpeedComputer;
+	AverageGlideComputer averageGlideComputer;
 	WeatherHelper weatherHelper;
+	DialogManager dialogManager;
+	SmartFolderHelper smartFolderHelper;
 
 	private final Map<String, Builder> customRoutingConfigs = new ConcurrentHashMap<>();
 	private File externalStorageDirectory;
@@ -214,41 +217,25 @@ public class OsmandApplication extends MultiDexApplication {
 			return;
 		}
 		long timeToStart = System.currentTimeMillis();
-		if (Version.isDeveloperVersion(this)) {
-			try {
-				Class.forName("net.osmand.plus.base.EnableStrictMode").newInstance();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+		enableStrictMode();
 		super.onCreate();
 		createInUiThread();
 		uiHandler = new Handler();
 		appCustomization = new OsmAndAppCustomization();
 		appCustomization.setup(this);
-		osmandSettings = appCustomization.getOsmandSettings();
+		settings = appCustomization.getOsmandSettings();
 		appInitializer.initVariables();
 		if (appInitializer.isAppVersionChanged() && appInitializer.getPrevAppVersion() < AppVersionUpgradeOnInit.VERSION_2_3) {
-			osmandSettings.freezeExternalStorageDirectory();
+			settings.freezeExternalStorageDirectory();
 		} else if (appInitializer.isFirstTime()) {
-			osmandSettings.initExternalStorageDirectory();
+			settings.initExternalStorageDirectory();
 		}
-		externalStorageDirectory = osmandSettings.getExternalStorageDirectory();
+		externalStorageDirectory = settings.getExternalStorageDirectory();
 		if (!FileUtils.isWritable(externalStorageDirectory)) {
 			externalStorageDirectoryReadOnly = true;
-			externalStorageDirectory = osmandSettings.getInternalAppPath();
+			externalStorageDirectory = settings.getInternalAppPath();
 		}
-
-		Algorithms.removeAllFiles(getAppPath(IndexConstants.TEMP_DIR));
-		FileUtils.removeFilesWithExtensions(getAppPath(MAPS_PATH), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(ROADS_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(LIVE_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(SRTM_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(NAUTICAL_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(WIKI_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(WIKIVOYAGE_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(HEIGHTMAP_INDEX_DIR), false, IndexConstants.DOWNLOAD_EXT);
-		FileUtils.removeFilesWithExtensions(getAppPath(GEOTIFF_DIR), false, IndexConstants.DOWNLOAD_EXT);
+		FileUtils.removeUnnecessaryFiles(this);
 
 		localeHelper.checkPreferredLocale();
 		appInitializer.onCreateApplication();
@@ -263,6 +250,11 @@ public class OsmandApplication extends MultiDexApplication {
 
 		osmandMap.getMapLayers().updateLayers(null);
 
+		if (appInitializer.isFirstTime()) {
+			settings.resetLastGlobalPreferencesEditTime();
+			settings.resetLastPreferencesEditTime(settings.APPLICATION_MODE.get());
+		}
+
 		SearchUICore.setDebugMode(PluginsHelper.isDevelopment());
 		BackupHelper.DEBUG = true;//PluginsHelper.isDevelopment();
 	}
@@ -273,17 +265,6 @@ public class OsmandApplication extends MultiDexApplication {
 
 	public boolean isExternalStorageDirectoryReadOnly() {
 		return externalStorageDirectoryReadOnly;
-	}
-
-	private void removeSqliteDbTravelFiles() {
-		File[] files = getAppPath(WIKIVOYAGE_INDEX_DIR).listFiles();
-		if (files != null) {
-			for (File file : files) {
-				if (file.getName().endsWith(IndexConstants.BINARY_WIKIVOYAGE_MAP_INDEX_EXT)) {
-					file.delete();
-				}
-			}
-		}
 	}
 
 	@Override
@@ -325,7 +306,7 @@ public class OsmandApplication extends MultiDexApplication {
 			routingHelper.getVoiceRouter().onApplicationTerminate();
 		}
 		if (RateUsHelper.shouldShowRateDialog(this)) {
-			osmandSettings.RATE_US_STATE.set(RateUsHelper.RateUsState.IGNORED);
+			settings.RATE_US_STATE.set(RateUsState.IGNORED);
 		}
 		getNotificationHelper().removeNotifications(false);
 	}
@@ -338,11 +319,7 @@ public class OsmandApplication extends MultiDexApplication {
 		return taskManager;
 	}
 
-	public AvoidSpecificRoads getAvoidSpecificRoads() {
-		return avoidSpecificRoads;
-	}
-
-	public AvoidRoadsHelper getAvoidRoadsHelper() {
+	public AvoidRoadsHelper getAvoidSpecificRoads() {
 		return avoidRoadsHelper;
 	}
 
@@ -354,12 +331,12 @@ public class OsmandApplication extends MultiDexApplication {
 		return appCustomization;
 	}
 
-	public QuickActionRegistry getQuickActionRegistry() {
-		return quickActionRegistry;
+	public MapButtonsHelper getMapButtonsHelper() {
+		return mapButtonsHelper;
 	}
 
 	public LocationServiceHelper createLocationServiceHelper() {
-		LocationSource source = osmandSettings.LOCATION_SOURCE.get();
+		LocationSource source = settings.LOCATION_SOURCE.get();
 		if (source == LocationSource.GOOGLE_PLAY_SERVICES) {
 			return new GmsLocationServiceHelper(this);
 		}
@@ -377,14 +354,14 @@ public class OsmandApplication extends MultiDexApplication {
 	 * @return Reference to instance of OsmandSettings
 	 */
 	public OsmandSettings getSettings() {
-		if (osmandSettings == null) {
+		if (settings == null) {
 			LOG.error("Trying to access settings before they were created");
 		}
-		return osmandSettings;
+		return settings;
 	}
 
-	public void setOsmandSettings(OsmandSettings osmandSettings) {
-		this.osmandSettings = osmandSettings;
+	public void setSettings(OsmandSettings settings) {
+		this.settings = settings;
 		PluginsHelper.initPlugins(this);
 	}
 
@@ -444,6 +421,14 @@ public class OsmandApplication extends MultiDexApplication {
 		return lockHelper;
 	}
 
+	public KeyEventHelper getKeyEventHelper() {
+		return keyEventHelper;
+	}
+
+	public InputDevicesHelper getInputDeviceHelper() {
+		return inputDeviceHelper;
+	}
+
 	public FileSettingsHelper getFileSettingsHelper() {
 		return fileSettingsHelper;
 	}
@@ -454,10 +439,6 @@ public class OsmandApplication extends MultiDexApplication {
 
 	public OsmOAuthHelper getOsmOAuthHelper() {
 		return osmOAuthHelper;
-	}
-
-	public OprAuthHelper getOprAuthHelper() {
-		return oprAuthHelper;
 	}
 
 	public LocaleHelper getLocaleHelper() {
@@ -479,10 +460,15 @@ public class OsmandApplication extends MultiDexApplication {
 
 	@Override
 	public void onConfigurationChanged(@NonNull Configuration newConfig) {
+		Resources resources = getResources();
+		resources.updateConfiguration(newConfig, resources.getDisplayMetrics());
+
+		resources = getBaseContext().getResources();
+		resources.updateConfiguration(newConfig, resources.getDisplayMetrics());
+
 		Locale preferredLocale = localeHelper.getPreferredLocale();
-		if (preferredLocale != null && !newConfig.locale.getLanguage().equals(preferredLocale.getLanguage())) {
+		if (preferredLocale != null && !Objects.equals(newConfig.locale.getLanguage(), preferredLocale.getLanguage())) {
 			super.onConfigurationChanged(newConfig);
-			getBaseContext().getResources().updateConfiguration(newConfig, getBaseContext().getResources().getDisplayMetrics());
 			Locale.setDefault(preferredLocale);
 		} else {
 			super.onConfigurationChanged(newConfig);
@@ -523,6 +509,10 @@ public class OsmandApplication extends MultiDexApplication {
 
 	public BackupHelper getBackupHelper() {
 		return backupHelper;
+	}
+
+	public ImportHelper getImportHelper() {
+		return importHelper;
 	}
 
 	public TransportRoutingHelper getTransportRoutingHelper() {
@@ -572,32 +562,47 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	@NonNull
+	public AverageGlideComputer getAverageGlideComputer() {
+		return averageGlideComputer;
+	}
+
+	@NonNull
 	public WeatherHelper getWeatherHelper() {
 		return weatherHelper;
+	}
+
+	@NonNull
+	public DialogManager getDialogManager() {
+		return dialogManager;
+	}
+
+	@NonNull
+	public SmartFolderHelper getSmartFolderHelper() {
+		return smartFolderHelper;
+	}
+
+	@NonNull
+	public OfflineForecastHelper getOfflineForecastHelper() {
+		return weatherHelper.getOfflineForecastHelper();
 	}
 
 	public CommandPlayer getPlayer() {
 		return player;
 	}
 
-	public void initVoiceCommandPlayer(@NonNull Context context,
-	                                   @NonNull ApplicationMode appMode,
-	                                   @Nullable Runnable onCommandPlayerCreated,
-	                                   boolean warnNoProvider,
-	                                   boolean showProgress,
-	                                   boolean forceInitialization,
-	                                   boolean applyAllModes) {
-		String voiceProvider = osmandSettings.VOICE_PROVIDER.getModeValue(appMode);
+	public void initVoiceCommandPlayer(@NonNull Context context, @NonNull ApplicationMode appMode,
+	                                   @Nullable Runnable onCommandPlayerCreated, boolean warnNoProvider,
+	                                   boolean showProgress, boolean forceInitialization, boolean applyAllModes) {
+		String voiceProvider = settings.VOICE_PROVIDER.getModeValue(appMode);
 		if (OsmandSettings.VOICE_PROVIDER_NOT_USE.equals(voiceProvider)) {
-			osmandSettings.VOICE_MUTE.setModeValue(appMode, true);
+			settings.VOICE_MUTE.setModeValue(appMode, true);
 		} else if (Algorithms.isEmpty(voiceProvider)) {
 			if (warnNoProvider && context instanceof MapActivity) {
-				OsmAndDialogs.showVoiceProviderDialog((MapActivity) context, appMode, applyAllModes);
+				VoiceProviderDialog.showVoiceProviderDialog((MapActivity) context, appMode, applyAllModes);
 			}
 		} else {
 			if (player == null || !voiceProvider.equals(player.getCurrentVoice()) || forceInitialization) {
-				appInitializer.initVoiceDataInDifferentThread(context, appMode, voiceProvider,
-						onCommandPlayerCreated, showProgress);
+				appInitializer.initVoiceDataInDifferentThread(context, appMode, voiceProvider, onCommandPlayerCreated, showProgress);
 			}
 		}
 	}
@@ -608,16 +613,6 @@ public class OsmandApplication extends MultiDexApplication {
 
 	public void setNavigationService(NavigationService navigationService) {
 		this.navigationService = navigationService;
-	}
-
-	public interface NavigationSessionListener {
-		void onNavigationSessionChanged(@Nullable NavigationSession navigationSession);
-	}
-
-	private NavigationSessionListener navigationSessionListener;
-
-	public void setNavigationSessionListener(@Nullable NavigationSessionListener navigationSessionListener) {
-		this.navigationSessionListener = navigationSessionListener;
 	}
 
 	@Nullable
@@ -644,10 +639,6 @@ public class OsmandApplication extends MultiDexApplication {
 			startNavigationService(NavigationService.USED_BY_CAR_APP);
 		}
 		this.carNavigationSession = carNavigationSession;
-		NavigationSessionListener navigationSessionListener = this.navigationSessionListener;
-		if (navigationSessionListener != null) {
-			navigationSessionListener.onNavigationSessionChanged(carNavigationSession);
-		}
 	}
 
 	public void refreshCarScreen() {
@@ -660,11 +651,12 @@ public class OsmandApplication extends MultiDexApplication {
 		}
 	}
 
+	@Nullable
 	public DownloadService getDownloadService() {
 		return downloadService;
 	}
 
-	public void setDownloadService(DownloadService downloadService) {
+	public void setDownloadService(@Nullable DownloadService downloadService) {
 		this.downloadService = downloadService;
 	}
 
@@ -673,21 +665,26 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public void stopNavigation() {
-		if (locationProvider.getLocationSimulation().isRouteAnimating()) {
-			locationProvider.getLocationSimulation().stop();
+		OsmAndLocationSimulation locationSimulation = locationProvider.getLocationSimulation();
+		if (locationSimulation.isRouteAnimating() || locationSimulation.isLoadingRouteLocations()) {
+			locationSimulation.stop();
 		}
 		routingHelper.getVoiceRouter().interruptRouteCommands();
 		routingHelper.clearCurrentRoute(null, new ArrayList<LatLon>());
 		routingHelper.setRoutePlanningMode(false);
-		osmandSettings.LAST_ROUTING_APPLICATION_MODE = osmandSettings.APPLICATION_MODE.get();
-		osmandSettings.setApplicationMode(valueOfStringKey(osmandSettings.LAST_USED_APPLICATION_MODE.get(), ApplicationMode.DEFAULT));
+		settings.LAST_ROUTING_APPLICATION_MODE = settings.APPLICATION_MODE.get();
+		settings.setApplicationMode(valueOfStringKey(settings.LAST_USED_APPLICATION_MODE.get(), ApplicationMode.DEFAULT));
 		targetPointsHelper.removeAllWayPoints(false, false);
 	}
 
 	public void startApplication() {
 		feedbackHelper.setExceptionHandler();
-		if (NetworkUtils.getProxy() == null && osmandSettings.ENABLE_PROXY.get()) {
-			NetworkUtils.setProxy(osmandSettings.PROXY_HOST.get(), osmandSettings.PROXY_PORT.get());
+		if (NetworkUtils.getProxy() == null && settings.isProxyEnabled()) {
+			try {
+				NetworkUtils.setProxy(settings.PROXY_HOST.get(), settings.PROXY_PORT.get());
+			} catch (RuntimeException e) {
+				showToastMessage(e.getMessage());
+			}
 		}
 		appInitializer.startApplication();
 	}
@@ -709,8 +706,7 @@ public class OsmandApplication extends MultiDexApplication {
 			Toast.makeText(this, getString(msgId, args), Toast.LENGTH_SHORT).show();
 			NavigationSession carNavigationSession = this.carNavigationSession;
 			if (carNavigationSession != null && carNavigationSession.hasStarted()) {
-				CarToast.makeText(carNavigationSession.getCarContext(),
-						getString(msgId, args), CarToast.LENGTH_SHORT).show();
+				CarToast.makeText(carNavigationSession.getCarContext(), getString(msgId, args), CarToast.LENGTH_SHORT).show();
 			}
 		});
 	}
@@ -720,8 +716,7 @@ public class OsmandApplication extends MultiDexApplication {
 			Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 			NavigationSession carNavigationSession = this.carNavigationSession;
 			if (carNavigationSession != null && carNavigationSession.hasStarted()) {
-				CarToast.makeText(carNavigationSession.getCarContext(),
-						msg, CarToast.LENGTH_SHORT).show();
+				CarToast.makeText(carNavigationSession.getCarContext(), msg, CarToast.LENGTH_SHORT).show();
 			}
 		});
 	}
@@ -731,8 +726,7 @@ public class OsmandApplication extends MultiDexApplication {
 			Toast.makeText(this, getString(msgId, args), Toast.LENGTH_LONG).show();
 			NavigationSession carNavigationSession = this.carNavigationSession;
 			if (carNavigationSession != null && carNavigationSession.hasStarted()) {
-				CarToast.makeText(carNavigationSession.getCarContext(),
-						getString(msgId, args), CarToast.LENGTH_LONG).show();
+				CarToast.makeText(carNavigationSession.getCarContext(), getString(msgId, args), CarToast.LENGTH_LONG).show();
 			}
 		});
 	}
@@ -743,8 +737,7 @@ public class OsmandApplication extends MultiDexApplication {
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show();
 				NavigationSession carNavigationSession = this.carNavigationSession;
 				if (carNavigationSession != null && carNavigationSession.hasStarted()) {
-					CarToast.makeText(carNavigationSession.getCarContext(),
-							text, CarToast.LENGTH_LONG).show();
+					CarToast.makeText(carNavigationSession.getCarContext(), text, CarToast.LENGTH_LONG).show();
 				}
 			});
 		}
@@ -773,65 +766,85 @@ public class OsmandApplication extends MultiDexApplication {
 		uiHandler.sendMessageDelayed(msg, delay);
 	}
 
+	public void runMessageInUiThread(int messageId, long delay, @NonNull Runnable runnable) {
+		Message message = Message.obtain(uiHandler, runnable);
+		message.what = messageId;
+		uiHandler.sendMessageDelayed(message, delay);
+	}
+
+	public boolean hasMessagesInUiThread(int messageId) {
+		return uiHandler.hasMessages(messageId);
+	}
+
+	public void removeMessagesInUiThread(int messageId) {
+		uiHandler.removeMessages(messageId);
+	}
+
+	@NonNull
 	public File getAppPath(@Nullable String path) {
-		if (path == null) {
-			path = "";
-		}
-		return new File(externalStorageDirectory, path);
+		String child = path != null ? path : "";
+		return new File(externalStorageDirectory, child);
+	}
+
+	@NonNull
+	public File getAppInternalPath(@Nullable String path) {
+		String child = path != null ? path : "";
+		return new File(settings.getInternalAppPath(), child);
 	}
 
 	public void setExternalStorageDirectory(int type, String directory) {
-		osmandSettings.setExternalStorageDirectory(type, directory);
-		externalStorageDirectory = osmandSettings.getExternalStorageDirectory();
+		settings.setExternalStorageDirectory(type, directory);
+		externalStorageDirectory = settings.getExternalStorageDirectory();
 		externalStorageDirectoryReadOnly = false;
 		getResourceManager().resetStoreDirectory();
 	}
 
-	public void applyTheme(Context c) {
-		int themeResId;
-		boolean doNotUseAnimations = osmandSettings.DO_NOT_USE_ANIMATIONS.get();
-		if (!osmandSettings.isLightContent()) {
-			if (doNotUseAnimations) {
-				themeResId = R.style.OsmandDarkTheme_NoAnimation;
-			} else {
-				themeResId = R.style.OsmandDarkTheme;
-			}
+	public void applyTheme(@NonNull Context context) {
+		int themeId;
+		boolean noAnimation = settings.DO_NOT_USE_ANIMATIONS.get();
+		if (!settings.isLightContent()) {
+			themeId = noAnimation ? R.style.OsmandDarkTheme_NoAnimation : R.style.OsmandDarkTheme;
 		} else {
-			if (doNotUseAnimations) {
-				themeResId = R.style.OsmandLightTheme_NoAnimation;
-			} else {
-				themeResId = R.style.OsmandLightTheme;
-			}
+			themeId = noAnimation ? R.style.OsmandLightTheme_NoAnimation : R.style.OsmandLightTheme;
 		}
-		localeHelper.setLanguage(c);
-		c.setTheme(themeResId);
+		localeHelper.setLanguage(context);
+		context.setTheme(themeId);
 	}
 
-	IBRouterService reconnectToBRouter() {
+	@Nullable
+	public synchronized IBRouterService reconnectToBRouter() {
 		try {
 			bRouterServiceConnection = BRouterServiceConnection.connect(this);
+			// a delay is necessary as the service process needs time to start..
+			Thread.sleep(800);
 			if (bRouterServiceConnection != null) {
 				return bRouterServiceConnection.getBrouterService();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.error(e);
 		}
 		return null;
 	}
 
-	public IBRouterService getBRouterService() {
+	@Nullable
+	public synchronized IBRouterService getBRouterService() {
 		if (bRouterServiceConnection == null) {
 			return null;
 		}
-		IBRouterService s = bRouterServiceConnection.getBrouterService();
-		if (s != null && !s.asBinder().isBinderAlive()) {
-			s = reconnectToBRouter();
+		IBRouterService service = bRouterServiceConnection.getBrouterService();
+		if (service != null && !service.asBinder().isBinderAlive()) {
+			service = reconnectToBRouter();
 		}
-		return s;
+		return service;
 	}
 
 	public String getLanguage() {
-		return localeHelper.getLanguage();
+		String appLang = localeHelper.getLanguage();
+		// assume english is default though it's not correct
+		if (Algorithms.isEmpty(appLang)) {
+			appLang = "en";
+		}
+		return appLang;
 	}
 
 	@Override
@@ -917,101 +930,59 @@ public class OsmandApplication extends MultiDexApplication {
 		return ((AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE)).isEnabled();
 	}
 
-	public String getVersionName() {
-		try {
-			PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
-			return info.versionName;
-		} catch (NameNotFoundException e) {
-			return "";
+	public void startNavigationService(int usageIntent) {
+		NavigationService service = getNavigationService();
+		if (service != null) {
+			usageIntent |= service.getUsedBy();
+			service.stopSelf();
 		}
-	}
-
-	public int getVersionCode() {
-		try {
-			PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
-			return info.versionCode;
-		} catch (NameNotFoundException e) {
-			return 0;
-		}
-	}
-
-	public void startNavigationService(int intent) {
-		Intent serviceIntent = new Intent(this, NavigationService.class);
-		if (getNavigationService() != null) {
-			intent |= getNavigationService().getUsedBy();
-			getNavigationService().stopSelf();
-		}
-		serviceIntent.putExtra(NavigationService.USAGE_INTENT, intent);
+		Intent intent = new Intent(this, NavigationService.class);
+		intent.putExtra(NavigationService.USAGE_INTENT, usageIntent);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			startForegroundService(serviceIntent);
+			startForegroundService(intent);
 		} else {
-			startService(serviceIntent);
-		}
-		//getNotificationHelper().showNotifications();
-	}
-
-	public void startDownloadService() {
-		Intent serviceIntent = new Intent(this, DownloadService.class);
-
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			startForegroundService(serviceIntent);
-		} else {
-			startService(serviceIntent);
+			startService(intent);
 		}
 	}
 
-	public String getLangTranslation(String l) {
-		try {
-			java.lang.reflect.Field f = R.string.class.getField("lang_" + l);
-			if (f != null) {
-				Integer in = (Integer) f.get(null);
-				return getString(in);
-			}
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-		}
-		return l;
-	}
-
-	public void setupDrivingRegion(WorldRegion reg) {
-		DrivingRegion drg = null;
-		WorldRegion.RegionParams params = reg.getParams();
+	public void setupDrivingRegion(@NonNull WorldRegion worldRegion) {
+		DrivingRegion drivingRegion = null;
+		RegionParams params = worldRegion.getParams();
 //		boolean americanSigns = "american".equals(params.getRegionRoadSigns());
 		boolean leftHand = "yes".equals(params.getRegionLeftHandDriving());
-		MetricsConstants mc1 = "miles".equals(params.getRegionMetric()) ?
-				MetricsConstants.MILES_AND_FEET : MetricsConstants.KILOMETERS_AND_METERS;
-		MetricsConstants mc2 = "miles".equals(params.getRegionMetric()) ?
-				MetricsConstants.MILES_AND_METERS : MetricsConstants.KILOMETERS_AND_METERS;
-		for (DrivingRegion r : DrivingRegion.values()) {
-			if (r.leftHandDriving == leftHand && (r.defMetrics == mc1 || r.defMetrics == mc2)) {
-				drg = r;
+		MetricsConstants mc1 = "miles".equals(params.getRegionMetric()) ? MILES_AND_FEET : KILOMETERS_AND_METERS;
+		MetricsConstants mc2 = "miles".equals(params.getRegionMetric()) ? MILES_AND_METERS : KILOMETERS_AND_METERS;
+		for (DrivingRegion region : DrivingRegion.values()) {
+			if (region.leftHandDriving == leftHand && (region.defMetrics == mc1 || region.defMetrics == mc2)) {
+				drivingRegion = region;
 				break;
 			}
 		}
-		if (drg != null) {
-			osmandSettings.DRIVING_REGION.set(drg);
+		if (drivingRegion != null) {
+			settings.DRIVING_REGION.set(drivingRegion);
 		}
 	}
 
+	@NonNull
 	public String getUserAndroidId() {
-		String userAndroidId = osmandSettings.USER_ANDROID_ID.get();
+		String userAndroidId = settings.USER_ANDROID_ID.get();
 		if (Algorithms.isEmpty(userAndroidId) || isUserAndroidIdExpired()) {
 			userAndroidId = UUID.randomUUID().toString();
-			osmandSettings.USER_ANDROID_ID.set(userAndroidId);
+			settings.USER_ANDROID_ID.set(userAndroidId);
 			Calendar calendar = Calendar.getInstance();
 			calendar.add(Calendar.MONTH, 3);
-			osmandSettings.USER_ANDROID_ID_EXPIRED_TIME.set(calendar.getTimeInMillis());
+			settings.USER_ANDROID_ID_EXPIRED_TIME.set(calendar.getTimeInMillis());
 		}
 		return userAndroidId;
 	}
 
 	public boolean isUserAndroidIdExpired() {
-		long expiredTime = osmandSettings.USER_ANDROID_ID_EXPIRED_TIME.get();
+		long expiredTime = settings.USER_ANDROID_ID_EXPIRED_TIME.get();
 		return expiredTime <= 0 || expiredTime <= System.currentTimeMillis();
 	}
 
 	public boolean isUserAndroidIdAllowed() {
-		return osmandSettings.SEND_UNIQUE_USER_IDENTIFIER.get();
+		return settings.SEND_UNIQUE_USER_IDENTIFIER.get();
 	}
 
 	public void logEvent(@NonNull String event) {
@@ -1055,6 +1026,16 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public boolean useOpenGlRenderer() {
-		return NativeCoreContext.isInit() && osmandSettings.USE_OPENGL_RENDER.get();
+		return NativeCoreContext.isInit() && settings.USE_OPENGL_RENDER.get();
+	}
+
+	private void enableStrictMode() {
+		if (Version.isDeveloperVersion(this)) {
+			try {
+				Class.forName("net.osmand.plus.base.EnableStrictMode").newInstance();
+			} catch (Exception e) {
+				LOG.error(e);
+			}
+		}
 	}
 }

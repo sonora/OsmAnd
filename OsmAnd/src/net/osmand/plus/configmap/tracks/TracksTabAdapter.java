@@ -1,19 +1,26 @@
 package net.osmand.plus.configmap.tracks;
 
+import android.os.Parcelable;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentStatePagerAdapter;
+
+import net.osmand.plus.OsmandApplication;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class TracksTabAdapter extends FragmentStateAdapter {
+public class TracksTabAdapter extends FragmentStatePagerAdapter {
 
+	private final OsmandApplication app;
 	private final List<TrackTab> trackTabs = new ArrayList<>();
 
-	public TracksTabAdapter(@NonNull TracksFragment fragment, @NonNull List<TrackTab> tabs) {
-		super(fragment);
+	public TracksTabAdapter(@NonNull OsmandApplication app, @NonNull FragmentManager manager, @NonNull List<TrackTab> tabs) {
+		super(manager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
+		this.app = app;
 		trackTabs.addAll(tabs);
 	}
 
@@ -23,17 +30,37 @@ public class TracksTabAdapter extends FragmentStateAdapter {
 		notifyDataSetChanged();
 	}
 
+	@Override
+	public int getItemPosition(@NonNull Object object) {
+		if (object instanceof TrackItemsFragment) {
+			TrackItemsFragment fragment = (TrackItemsFragment) object;
+			int index = trackTabs.indexOf(fragment.getTrackTab());
+			return index >= 0 ? index : POSITION_NONE;
+		}
+		return POSITION_NONE;
+	}
+
+	@Override
+	public int getCount() {
+		return trackTabs.size();
+	}
+
 	@NonNull
 	@Override
-	public Fragment createFragment(int position) {
-		GpxInfoItemsFragment fragment = new GpxInfoItemsFragment();
-		fragment.trackTab = trackTabs.get(position);
+	public Fragment getItem(int position) {
+		TrackItemsFragment fragment = new TrackItemsFragment();
+		fragment.setTrackTab(trackTabs.get(position));
 		fragment.setRetainInstance(true);
 		return fragment;
 	}
 
 	@Override
-	public int getItemCount() {
-		return trackTabs.size();
+	public CharSequence getPageTitle(int position) {
+		return trackTabs.get(position).getName(app);
+	}
+
+	@Override
+	public Parcelable saveState() {
+		return null;
 	}
 }

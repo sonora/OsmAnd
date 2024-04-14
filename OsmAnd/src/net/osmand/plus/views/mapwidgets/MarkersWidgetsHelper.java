@@ -9,9 +9,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.Location;
 import net.osmand.data.LatLon;
-import net.osmand.plus.OsmAndLocationProvider;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.mapmarkers.MapMarker;
@@ -146,18 +144,9 @@ public class MarkersWidgetsHelper implements WidgetsRegistryListener {
 			LatLon pointToNavigate = marker.point;
 			if (pointToNavigate != null) {
 				int fZoom = Math.max(mapView.getZoom(), 15);
-				thread.startMoving(pointToNavigate.getLatitude(), pointToNavigate.getLongitude(), fZoom, true);
+				thread.startMoving(pointToNavigate.getLatitude(), pointToNavigate.getLongitude(), fZoom);
 			}
 		}
-	}
-
-	@NonNull
-	public static LatLon getDefaultLatLon(@NonNull MapActivity mapActivity) {
-		OsmAndLocationProvider locationProvider = mapActivity.getMyApplication().getLocationProvider();
-		Location lastStaleKnownLocation = locationProvider.getLastStaleKnownLocation();
-		return lastStaleKnownLocation != null
-				? new LatLon(lastStaleKnownLocation.getLatitude(), lastStaleKnownLocation.getLongitude())
-				: mapActivity.getMapLocation();
 	}
 
 	public interface CustomLatLonListener {

@@ -1,11 +1,10 @@
 package net.osmand.plus.backup;
 
-import android.os.AsyncTask;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.backup.PrepareBackupResult.RemoteFilesType;
 import net.osmand.plus.backup.SyncBackupTask.OnBackupSyncListener;
 import net.osmand.plus.settings.backend.backup.SettingsHelper;
 import net.osmand.plus.settings.backend.backup.items.SettingsItem;
@@ -98,8 +97,8 @@ public class NetworkSettingsHelper extends SettingsHelper {
 	public boolean cancelExport() {
 		boolean cancelled = false;
 		for (ExportBackupTask exportTask : exportAsyncTasks.values()) {
-			if (exportTask != null && (exportTask.getStatus() == AsyncTask.Status.RUNNING)) {
-				cancelled |= exportTask.cancel(true);
+			if (exportTask != null) {
+				cancelled |= exportTask.cancel(false);
 			}
 		}
 		return cancelled;
@@ -108,8 +107,8 @@ public class NetworkSettingsHelper extends SettingsHelper {
 	public boolean cancelImport() {
 		boolean cancelled = false;
 		for (ImportBackupTask importTask : importAsyncTasks.values()) {
-			if (importTask != null && (importTask.getStatus() == AsyncTask.Status.RUNNING)) {
-				cancelled |= importTask.cancel(true);
+			if (importTask != null) {
+				cancelled |= importTask.cancel(false);
 			}
 		}
 		return cancelled;
@@ -118,8 +117,8 @@ public class NetworkSettingsHelper extends SettingsHelper {
 	public boolean cancelSyncTasks() {
 		boolean cancelled = false;
 		for (SyncBackupTask syncTask : syncBackupTasks.values()) {
-			if (syncTask != null && (syncTask.getStatus() == AsyncTask.Status.RUNNING)) {
-				cancelled |= syncTask.cancel(true);
+			if (syncTask != null) {
+				cancelled |= syncTask.cancel(false);
 			}
 		}
 		return cancelled;
@@ -141,6 +140,14 @@ public class NetworkSettingsHelper extends SettingsHelper {
 
 	public boolean isBackupSyncing() {
 		return !Algorithms.isEmpty(syncBackupTasks);
+	}
+
+	public boolean isSyncing(@NonNull String key) {
+		SyncBackupTask syncTask = getSyncTask(key);
+		if (syncTask == null) {
+			syncTask = getSyncTask(SYNC_ITEMS_KEY);
+		}
+		return syncTask != null;
 	}
 
 	void finishImport(@Nullable ImportListener listener, boolean success, @NonNull List<SettingsItem> items, boolean needRestart) {
@@ -191,10 +198,22 @@ public class NetworkSettingsHelper extends SettingsHelper {
 
 	public void importSettings(@NonNull String key,
 	                           @NonNull List<SettingsItem> items,
+	                           @NonNull RemoteFilesType filesType,
 	                           boolean forceReadData,
 	                           @Nullable ImportListener listener) throws IllegalStateException {
+		importSettings(key, items, filesType, forceReadData, true, false, listener);
+	}
+
+	public void importSettings(@NonNull String key,
+	                           @NonNull List<SettingsItem> items,
+	                           @NonNull RemoteFilesType filesType,
+	                           boolean forceReadData,
+	                           boolean shouldReplace,
+	                           boolean restoreDeleted,
+	                           @Nullable ImportListener listener) throws IllegalStateException {
 		if (!importAsyncTasks.containsKey(key)) {
-			ImportBackupTask importTask = new ImportBackupTask(key, this, items, listener, forceReadData);
+			ImportBackupTask importTask = new ImportBackupTask(key, this, items, filesType,
+					listener, forceReadData, shouldReplace, restoreDeleted);
 			importAsyncTasks.put(key, importTask);
 			importTask.executeOnExecutor(getBackupHelper().getExecutor());
 		} else {
@@ -216,24 +235,34 @@ public class NetworkSettingsHelper extends SettingsHelper {
 		}
 	}
 
-	public void syncSettingsItems(@NonNull String key, @NonNull SyncOperationType operation) {
+	public void syncSettingsItems(@NonNull String key, @NonNull SyncOperationType operation) throws IllegalStateException {
 		if (!syncBackupTasks.containsKey(key)) {
 			SyncBackupTask syncTask = new SyncBackupTask(getApp(), key, operation, getOnBackupSyncListener());
-			syncBackupTasks.put(key, syncTask);
+			registerSyncBackupTask(key, syncTask);
 			syncTask.executeOnExecutor(getBackupHelper().getExecutor());
 		} else {
 			throw new IllegalStateException("Already syncing " + key);
 		}
 	}
 
+	public void syncSettingsItems(@NonNull String key,
+	                              @Nullable LocalFile localFile,
+	                              @Nullable RemoteFile remoteFile,
+	                              @NonNull RemoteFilesType filesType,
+	                              @NonNull SyncOperationType operation) {
+		syncSettingsItems(key, localFile, remoteFile, filesType, operation, true, false);
+	}
 
 	public void syncSettingsItems(@NonNull String key,
 	                              @Nullable LocalFile localFile,
 	                              @Nullable RemoteFile remoteFile,
-	                              @NonNull SyncOperationType operation) {
+	                              @NonNull RemoteFilesType filesType,
+	                              @NonNull SyncOperationType operation,
+	                              boolean shouldReplace,
+	                              boolean restoreDeleted) {
 		if (!syncBackupTasks.containsKey(key)) {
 			SyncBackupTask syncTask = new SyncBackupTask(getApp(), key, operation, getOnBackupSyncListener());
-			syncBackupTasks.put(key, syncTask);
+			registerSyncBackupTask(key, syncTask);
 			switch (operation) {
 				case SYNC_OPERATION_DELETE:
 					if (remoteFile != null) {
@@ -249,7 +278,7 @@ public class NetworkSettingsHelper extends SettingsHelper {
 					break;
 				case SYNC_OPERATION_DOWNLOAD:
 					if (remoteFile != null) {
-						syncTask.downloadRemoteVersion(remoteFile.item);
+						syncTask.downloadItem(remoteFile.item, filesType, shouldReplace, restoreDeleted);
 					}
 					break;
 			}
@@ -258,8 +287,26 @@ public class NetworkSettingsHelper extends SettingsHelper {
 		}
 	}
 
+	public void registerSyncBackupTask(@NonNull String key, @NonNull SyncBackupTask task) {
+		syncBackupTasks.put(key, task);
+		getOnBackupSyncListener().onBackupSyncTasksUpdated();
+	}
+
+	public void unregisterSyncBackupTask(@NonNull String key) {
+		syncBackupTasks.remove(key);
+		getOnBackupSyncListener().onBackupSyncTasksUpdated();
+	}
+
 	private OnBackupSyncListener getOnBackupSyncListener() {
 		return new OnBackupSyncListener() {
+
+			@Override
+			public void onBackupSyncTasksUpdated() {
+				for (OnBackupSyncListener listener : syncListeners) {
+					listener.onBackupSyncTasksUpdated();
+				}
+			}
+
 			@Override
 			public void onBackupSyncStarted() {
 				for (OnBackupSyncListener listener : syncListeners) {

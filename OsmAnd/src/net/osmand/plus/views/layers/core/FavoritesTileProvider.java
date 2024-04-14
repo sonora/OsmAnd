@@ -12,7 +12,7 @@ import net.osmand.core.jni.MapTiledCollectionProvider;
 import net.osmand.core.jni.PointI;
 import net.osmand.core.jni.QListMapTiledCollectionPoint;
 import net.osmand.core.jni.QListPointI;
-import net.osmand.core.jni.SWIGTYPE_p_sk_spT_SkImage_const_t;
+import net.osmand.core.jni.SingleSkImage;
 import net.osmand.core.jni.SwigUtilities;
 import net.osmand.core.jni.TextRasterizer;
 import net.osmand.core.jni.TileId;
@@ -23,6 +23,7 @@ import net.osmand.data.FavouritePoint;
 import net.osmand.data.PointDescription;
 import net.osmand.plus.utils.NativeUtilities;
 import net.osmand.plus.views.PointImageDrawable;
+import net.osmand.plus.views.PointImageUtils;
 import net.osmand.util.MapUtils;
 
 import java.util.ArrayList;
@@ -109,7 +110,7 @@ public class FavoritesTileProvider extends interface_MapTiledCollectionProvider 
 	}
 
 	@Override
-	public SWIGTYPE_p_sk_spT_SkImage_const_t getImageBitmap(int index, boolean isFullSize) {
+	public SingleSkImage getImageBitmap(int index, boolean isFullSize) {
 		MapLayerData data = index < mapLayerDataList.size() ? mapLayerDataList.get(index) : null;
 		if (data == null) {
 			return SwigUtilities.nullSkImage();
@@ -121,10 +122,10 @@ public class FavoritesTileProvider extends interface_MapTiledCollectionProvider 
 			if (bitmap == null) {
 				PointImageDrawable pointImageDrawable;
 				if (data.hasMarker) {
-					pointImageDrawable = PointImageDrawable.getOrCreate(ctx, data.color,
+					pointImageDrawable = PointImageUtils.getOrCreate(ctx, data.color,
 							data.withShadow, true, data.overlayIconId, data.backgroundType);
 				} else {
-					pointImageDrawable = PointImageDrawable.getOrCreate(ctx, data.color,
+					pointImageDrawable = PointImageUtils.getOrCreate(ctx, data.color,
 							data.withShadow, false, data.overlayIconId, data.backgroundType);
 				}
 				bitmap = pointImageDrawable.getBigMergedBitmap(data.textScale, false);
@@ -134,7 +135,7 @@ public class FavoritesTileProvider extends interface_MapTiledCollectionProvider 
 			int smallBitmapKey = data.getKey();
 			bitmap = smallBitmapCache.get(smallBitmapKey);
 			if (bitmap == null) {
-				PointImageDrawable pointImageDrawable = PointImageDrawable.getOrCreate(ctx,
+				PointImageDrawable pointImageDrawable = PointImageUtils.getOrCreate(ctx,
 						data.color, data.withShadow, false, data.overlayIconId, data.backgroundType);
 				bitmap = pointImageDrawable.getSmallMergedBitmap(data.textScale);
 				smallBitmapCache.put(smallBitmapKey, bitmap);
@@ -164,6 +165,10 @@ public class FavoritesTileProvider extends interface_MapTiledCollectionProvider 
 		return ZoomLevel.MaxZoomLevel;
 	}
 
+	@Override
+	public boolean supportsNaturalObtainDataAsync() {
+		return false;
+	}
 
 	@Override
 	public MapMarker.PinIconVerticalAlignment getPinIconVerticalAlignment() {

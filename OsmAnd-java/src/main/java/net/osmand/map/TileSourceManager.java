@@ -44,29 +44,28 @@ public class TileSourceManager {
 	private static final String RND_ALG_WIKIMAPIA = "wikimapia";
 
 	private static final String MAPNIK_URL = "https://tile.osmand.net/hd/{0}/{1}/{2}.png";
-	private static final String CYCLE_URL = "https://b.tile.thunderforest.com/cycle/{0}/{1}/{2}.png?apikey=a778ae1a212641d38f46dc11f20ac116";
 	private static final String MAPILLARY_VECTOR_URL = "https://tiles.mapillary.com/maps/vtp/mly1_public/2/{0}/{1}/{2}/?access_token="
 			+ MAPILLARY_ACCESS_TOKEN;
 
 	private static final TileSourceTemplate MAPNIK_SOURCE =
 			new TileSourceTemplate("OsmAnd (online tiles)", MAPNIK_URL, ".png", 19,
 					1, 512, 8, 18000);  //$NON-NLS-1$//$NON-NLS-2$
-	private static final TileSourceTemplate CYCLE_MAP_SOURCE =
-			new TileSourceTemplate("CycleMap", CYCLE_URL, ".png", 16, 1,
-					256, 32, 18000);  //$NON-NLS-1$//$NON-NLS-2$
 	private static final TileSourceTemplate MAPILLARY_VECTOR_SOURCE =
 			new TileSourceTemplate("Mapillary (vector tiles)", MAPILLARY_VECTOR_URL,
-					MAPILLARY_VECTOR_TILE_EXT, 21, 13, 256, 16, 3200);
+					MAPILLARY_VECTOR_TILE_EXT, 22, 13, 256, 16, 3200);
 	private static final TileSourceTemplate MAPILLARY_CACHE_SOURCE =
-			new TileSourceTemplate("Mapillary (raster tiles)", "", ".png", 21, 13,
-					256, 32, 18000);  //$NON-NLS-1$//$NON-NLS-2$
+			new TileSourceTemplate("Mapillary (raster tiles)", "", ".png", 22, 13,
+					256, 32, 18000);
 
 	static {
-		MAPILLARY_VECTOR_SOURCE.setExpirationTimeMinutes(60 * 24);
+		int oneDayMinutes = 60 * 24;
+		MAPILLARY_VECTOR_SOURCE.setExpirationTimeMinutes(oneDayMinutes);
 		MAPILLARY_VECTOR_SOURCE.setHidden(true);
+		MAPILLARY_CACHE_SOURCE.setExpirationTimeMinutes(oneDayMinutes);		
+		MAPILLARY_CACHE_SOURCE.setHidden(true);
 	}
 
-	private static final String PARAM_BING_QUAD_KEY = "{q}";
+	public static final String PARAM_BING_QUAD_KEY = "{q}";
 	private static final String PARAM_RND = "{rnd}";
 	private static final String PARAM_BOUNDING_BOX = "{bbox}";
 	public static final String PARAMETER_NAME = "{PARAM}";
@@ -409,7 +408,7 @@ public class TileSourceManager {
 			return buildUrlToLoad(urlToLoad, randomsArray, x, y, zoom, urlParameters);
 		}
 
-		private static String eqtBingQuadKey(int z, int x, int y) {
+		public static String eqtBingQuadKey(int z, int x, int y) {
 			char[] NUM_CHAR = {'0', '1', '2', '3'};
 			char[] tn = new char[z];
 			for (int i = z - 1; i >= 0; i--) {
@@ -545,15 +544,15 @@ public class TileSourceManager {
 			bous.close();
 			return bous.toByteArray();
 		}
-		
-		
+
+
 		@Override
 		public void deleteTiles(String path) {
 			File pf = new File(path);
 			File[] list = pf.listFiles();
-			if(list != null) {
-				for(File l : list) {
-					if(l.isDirectory()) {
+			if (list != null) {
+				for (File l : list) {
+					if (l.isDirectory()) {
 						Algorithms.removeAllFiles(l);
 					}
 				}
@@ -562,13 +561,57 @@ public class TileSourceManager {
 
 		@Override
 		public int getAvgSize() {
-			return this.avgSize;
+			return avgSize;
+		}
+
+		public Map<String, String> getProperties() {
+			Map<String, String> properties = new LinkedHashMap<>();
+
+			if (!Algorithms.isEmpty(getRule())) {
+				properties.put("rule", getRule());
+			}
+			if (getUrlTemplate() != null) {
+				properties.put("url_template", getUrlTemplate());
+			}
+			if (!Algorithms.isEmpty(getReferer())) {
+				properties.put("referer", getReferer());
+			}
+			if (!Algorithms.isEmpty(getUserAgent())) {
+				properties.put("user_agent", getUserAgent());
+			}
+
+			properties.put("ext", getTileFormat());
+			properties.put("min_zoom", getMinimumZoomSupported() + "");
+			properties.put("max_zoom", getMaximumZoomSupported() + "");
+			properties.put("tile_size", getTileSize() + "");
+			properties.put("img_density", getBitDensity() + "");
+			properties.put("avg_img_size", getAverageSize() + "");
+
+			if (isEllipticYTile()) {
+				properties.put("ellipsoid", isEllipticYTile() + "");
+			}
+			if (isInvertedYTile()) {
+				properties.put("inverted_y", isInvertedYTile() + "");
+			}
+			if (getRandoms() != null) {
+				properties.put("randoms", getRandoms());
+			}
+			if (getExpirationTimeMinutes() != -1) {
+				properties.put("expiration_time_minutes", getExpirationTimeMinutes() + "");
+			}
+			if (paramType != ParameterType.UNDEFINED) {
+				properties.put("param_type", paramType.getParamName());
+				properties.put("param_min", paramMin + "");
+				properties.put("param_step", paramStep + "");
+				properties.put("param_max", paramMax + "");
+			}
+			return properties;
 		}
 	}
-	
-	private static int parseInt(Map<String, String> attributes, String value, int def){
+
+	private static int parseInt(Map<String, String> attributes, String value, int def) {
 		String val = attributes.get(value);
-		if(val == null){
+		if (val == null) {
 			return def;
 		}
 		try {
@@ -577,49 +620,11 @@ public class TileSourceManager {
 			return def;
 		}
 	}
-	
-	public static void createMetaInfoFile(File dir, TileSourceTemplate tm, boolean override) throws IOException {
-		File metainfo = new File(dir, ".metainfo"); //$NON-NLS-1$
-		Map<String, String> properties = new LinkedHashMap<>();
 
-		if (!Algorithms.isEmpty(tm.getRule())) {
-			properties.put("rule", tm.getRule());
-		}
-		if (tm.getUrlTemplate() != null) {
-			properties.put("url_template", tm.getUrlTemplate());
-		}
-		if (!Algorithms.isEmpty(tm.getReferer())) {
-			properties.put("referer", tm.getReferer());
-		}
-		if (!Algorithms.isEmpty(tm.getUserAgent())) {
-			properties.put("user_agent", tm.getUserAgent());
-		}
+	public static void createMetaInfoFile(File dir, TileSourceTemplate template, boolean override) throws IOException {
+		File metainfo = new File(dir, ".metainfo");
+		Map<String, String> properties = template.getProperties();
 
-		properties.put("ext", tm.getTileFormat());
-		properties.put("min_zoom", tm.getMinimumZoomSupported() + "");
-		properties.put("max_zoom", tm.getMaximumZoomSupported() + "");
-		properties.put("tile_size", tm.getTileSize() + "");
-		properties.put("img_density", tm.getBitDensity() + "");
-		properties.put("avg_img_size", tm.getAverageSize() + "");
-
-		if (tm.isEllipticYTile()) {
-			properties.put("ellipsoid", tm.isEllipticYTile() + "");
-		}
-		if (tm.isInvertedYTile()) {
-			properties.put("inverted_y", tm.isInvertedYTile() + "");
-		}
-		if (tm.getRandoms() != null) {
-			properties.put("randoms", tm.getRandoms());
-		}
-		if (tm.getExpirationTimeMinutes() != -1) {
-			properties.put("expiration_time_minutes", tm.getExpirationTimeMinutes() + "");
-		}
-		if (tm.paramType != ParameterType.UNDEFINED) {
-			properties.put("param_type", tm.paramType.getParamName());
-			properties.put("param_min", tm.paramMin + "");
-			properties.put("param_step", tm.paramStep + "");
-			properties.put("param_max", tm.paramMax + "");
-		}
 		if (override || !metainfo.exists()) {
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(metainfo)));
 			for (Entry<String, String> entry : properties.entrySet()) {

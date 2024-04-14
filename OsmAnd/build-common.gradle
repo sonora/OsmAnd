@@ -3,14 +3,15 @@ task printc {
 }
 
 android {
-	compileSdkVersion 33
-	buildToolsVersion "30.0.3"
+	compileSdk 33
+	buildToolsVersion = "33.0.2"
 	// compileNdkVersion "android-ndk-r17b"
 
 	defaultConfig {
-		targetSdkVersion 31
+		targetSdkVersion 33
 		multiDexEnabled true
 		vectorDrawables.useSupportLibrary = true
+		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 	}
 
 	lintOptions {
@@ -33,10 +34,6 @@ android {
 		// additionalParameters "--no-version-vectors"
 	}
 
-	dexOptions {
-		javaMaxHeapSize "4g"
-	}
-
 	sourceSets {
 		main {
 			manifest.srcFile "AndroidManifest.xml"
@@ -49,7 +46,11 @@ android {
 			res.srcDirs = ["res"]
 			assets.srcDirs = ["assets"]
 		}
-
+		androidTest {
+			java.srcDirs = ["test/java"]
+			res.srcDirs = ["test/res"]
+			assets.srcDirs = ["test/assets"]
+		}
 		legacy {
 			jniLibs.srcDirs = ["libc++"]
 		}
@@ -110,7 +111,6 @@ clean.doFirst {
 	delete fileTree('assets') {
 		include '*.obf'
 		include 'fonts/**'
-		include 'feature_articles/**'
 		include 'voice/**'
 	}
 }
@@ -127,7 +127,7 @@ task validateTranslate {
 						line.contains("%1s") || line.contains(" 1\$s") ||
 						(line.contains("% \$") || line.contains("% 1") || line.contains("% 2") ||
 								line.contains("% 3") || line.contains("% s"))) {
-					throw new GradleException("Incorrect translation " + it.getAbsolutePath() + " " + line);
+					throw new GradleException("Incorrect translation " + it.getAbsolutePath() + " " + line)
 				}
 			}
 		}
@@ -136,26 +136,26 @@ task validateTranslate {
 
 
 task downloadDefaultWikivoyage(type: Download) {
-	src 'https://builder.osmand.net/wikivoyage-gen/sqlite/Default_wikivoyage_2.travel.obf'
+	src 'https://creator.osmand.net/basemap/Default_wikivoyage_2.travel.obf'
 	dest 'assets/Default_wikivoyage.travel.obf'
 	onlyIfModified true
 }
 
 task downloadWorldMiniBasemap(type: Download)  {
-	src 'https://builder.osmand.net/basemap/World_basemap_mini_2.obf'
+	src 'https://creator.osmand.net/basemap/World_basemap_mini_2.obf'
 	dest 'assets/World_basemap_mini.obf'
 	onlyIfModified true
 }
 
 task downloadDefaultWikivoyageAnt {
 	doLast {
-		ant.get(src: 'https://builder.osmand.net/wikivoyage-gen/sqlite/Default_wikivoyage_2.travel.obf', dest: 'assets/Default_wikivoyage.travel.obf', skipexisting: 'true')
+		ant.get(src: 'https://creator.osmand.net/basemap/Default_wikivoyage_2.travel.obf', dest: 'assets/Default_wikivoyage.travel.obf', skipexisting: 'true')
 	}
 }
 
 task downloadWorldMiniBasemapAnt {
 	doLast {
-		ant.get(src: 'https://builder.osmand.net/basemap/World_basemap_mini_2.obf', dest: 'assets/World_basemap_mini.obf', skipexisting: 'true')
+		ant.get(src: 'https://creator.osmand.net/basemap/World_basemap_mini_2.obf', dest: 'assets/World_basemap_mini.obf', skipexisting: 'true')
 	}
 }
 
@@ -185,19 +185,6 @@ task collectHelpContentsStyle(type: Copy) {
 	into "assets"
 }
 
-task collectHelpContentsAssets(type: Copy) {
-	from("../../help/website/help") {
-		include "about.html"
-		include "changes.html"
-		include "faq.html"
-		include "map-legend.html"
-	}
-	from("../../help/website/feature_articles") {
-		include "*.html"
-	}
-	into "assets/feature_articles"
-}
-
 task copyProjDb(type: Copy) {
 	from("../../resources/proj") {
 		include "proj.db"
@@ -208,6 +195,12 @@ task copyProjDb(type: Copy) {
 task copyWeatherFiles(type: Copy) {
 	from "../../resources/weather"
 	into "assets/weather"
+	include "*.*"
+}
+
+task copyHeightmapFiles(type: Copy) {
+	from "../../resources/heightmap"
+	into "assets/heightmap"
 	include "*.*"
 }
 
@@ -253,33 +246,12 @@ task copyLargePOIIcons(type: Sync) {
 	}
 }
 
-task copyWidgetIconsXhdpi(type: Sync) {
-	from "res/drawable-xxhdpi/"
-	into "res/drawable-large-xhdpi/"
-	include "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
-	preserve {
-		include '*'
-		exclude "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
-	}
-}
-
-task copyWidgetIconsHdpi(type: Sync) {
-	from "res/drawable-xhdpi/"
-	into "res/drawable-large-hdpi/"
-	include "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
-	preserve {
-		include '*'
-		exclude "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
-	}
-}
-
-task copyWidgetIcons(type: Sync) {
-	from "res/drawable-hdpi/"
-	into "res/drawable-large/"
-	include "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
-	preserve {
-		include '*'
-		exclude "**/widget_*.png",  "**/widget_*.xml",  "**/map_*.xml", "**/map_*.png"
+task collectTestResources(type: Copy) {
+	into "test/assets/"
+	from("../../resources/test-resources/ui/") {
+		include "*"
+		include "/search/*"
+		include "/routing/*"
 	}
 }
 
@@ -287,20 +259,18 @@ task collectExternalResources {
 	dependsOn collectVoiceAssets,
 			collectFonts,
 			collectUiFonts,
-			collectHelpContentsAssets,
 			collectHelpContentsStyle,
 			copyMapShaderIcons,
 			copyMapPOIIcons,
 			copyLargePOIIcons,
 			validateTranslate,
-			copyWidgetIcons,
-			copyWidgetIconsHdpi,
-			copyWidgetIconsXhdpi,
 			copyProjDb,
 			copyWeatherFiles,
+			copyHeightmapFiles,
 			copyPoiCategories,
 			downloadWorldMiniBasemap,
-			downloadDefaultWikivoyage
+			downloadDefaultWikivoyage,
+			collectTestResources
 }
 
 // Legacy core build
@@ -309,7 +279,7 @@ import org.apache.tools.ant.taskdefs.condition.Os
 task buildOsmAndCore(type: Exec) {
 	Gradle gradle = getGradle()
 	String tskReqStr = gradle.getStartParameter().getTaskRequests().toString().toLowerCase()
-	String flavour = "";
+	String flavour = ""
 	if(!tskReqStr.contains("fat")) {
 		if(tskReqStr.contains("arm64")) {
 			flavour = flavour.length() == 0 ? "ARM64_ONLY" : ""
@@ -362,11 +332,15 @@ task appStart(type: Exec) {
 dependencies {
 	implementation project(path: ':OsmAnd-java', configuration: 'android')
 	implementation project(':OsmAnd-api')
+
+	implementation project(':OsmAnd-shared')
+	implementation("androidx.sqlite:sqlite-framework:2.3.1")
+
 	implementation 'androidx.multidex:multidex:2.0.1'
 	implementation 'androidx.gridlayout:gridlayout:1.0.0'
 	implementation 'androidx.cardview:cardview:1.0.0'
-	implementation 'androidx.appcompat:appcompat:1.2.0'
-	implementation 'com.google.android.material:material:1.4.0'
+	implementation 'androidx.appcompat:appcompat:1.6.1'
+	implementation 'com.google.android.material:material:1.9.0'
 	implementation 'androidx.browser:browser:1.0.0'
 	implementation 'androidx.preference:preference:1.1.0'
 	implementation fileTree(include: ['gnu-trove-osmand.jar', 'icu4j-49_1_patched.jar'], dir: 'libs')
@@ -378,7 +352,7 @@ dependencies {
 	implementation 'org.immutables:gson:2.5.0'
 	implementation 'com.vividsolutions:jts-core:1.14.0'
 	implementation 'com.google.openlocationcode:openlocationcode:1.0.4'
-	implementation 'com.android.billingclient:billing:5.0.0'
+	implementation 'com.android.billingclient:billing:6.1.0'
 	// turn off for now
 	//implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
 	implementation 'com.squareup.picasso:picasso:2.71828'
@@ -402,9 +376,7 @@ dependencies {
 	implementation("com.github.HITGIF:TextFieldBoxes:1.4.5") {
 		exclude group: 'com.android.support'
 	}
-	implementation('com.github.scribejava:scribejava-apis:7.1.1') {
-		exclude group: "com.fasterxml.jackson.core"
-	}
+	implementation('com.github.scribejava:scribejava-apis:7.1.1')
 	implementation 'com.jaredrummler:colorpicker:1.1.0'
 	implementation 'org.bouncycastle:bcpkix-jdk15on:1.56'
 	implementation 'com.google.android.play:core:1.9.1'
@@ -412,5 +384,16 @@ dependencies {
 	implementation "androidx.car.app:app:1.2.0"
 	implementation "androidx.car.app:app-projected:1.2.0"
 
-	implementation 'com.google.android.gms:play-services-location:20.0.0'
+	implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+	//implementation "androidx.tracing:tracing:1.1.0"
+	//debugImplementation 'androidx.test:monitor:1.6.1'
+	androidTestImplementation "androidx.test:runner:1.5.2"
+	androidTestImplementation "androidx.test:rules:1.5.0"
+	androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+	//debugImplementation("androidx.test:core:1.5.0")
+	androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+	androidTestImplementation ('androidx.test.espresso:espresso-contrib:3.5.1') {
+		exclude module: "protobuf-lite"
+	}
 }

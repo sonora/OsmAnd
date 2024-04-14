@@ -1,6 +1,8 @@
 package net.osmand.plus.views.controls.maphudbuttons;
 
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.COMPASS_HUD_ID;
+import static net.osmand.plus.settings.enums.CompassVisibility.ALWAYS_VISIBLE;
+import static net.osmand.plus.settings.enums.CompassVisibility.VISIBLE_IF_MAP_ROTATED;
 import static net.osmand.plus.views.layers.base.OsmandMapLayer.setMapButtonIcon;
 
 import android.graphics.Canvas;
@@ -20,14 +22,16 @@ import androidx.core.view.ViewPropertyAnimatorListener;
 
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.settings.backend.ApplicationMode;
-import net.osmand.plus.settings.backend.OsmandSettings;
-import net.osmand.plus.views.mapwidgets.configure.CompassVisibilityBottomSheetDialogFragment.CompassVisibility;
+import net.osmand.plus.settings.controllers.CompassModeWidgetDialogController;
+import net.osmand.plus.settings.enums.CompassMode;
+import net.osmand.plus.settings.enums.CompassVisibility;
+import net.osmand.plus.views.mapwidgets.configure.buttons.CompassButtonState;
 
 public class CompassButton extends MapButton {
 
 	private static final int HIDE_DELAY_MS = 5000;
 
+	private final CompassButtonState buttonState;
 	private ViewPropertyAnimatorCompat hideAnimator;
 
 	private boolean forceHideCompass;
@@ -35,10 +39,16 @@ public class CompassButton extends MapButton {
 	private float mapRotation;
 
 	public CompassButton(@NonNull MapActivity mapActivity) {
-		super(mapActivity, mapActivity.findViewById(R.id.map_compass_button), COMPASS_HUD_ID);
+		super(mapActivity, mapActivity.findViewById(R.id.map_compass_button), COMPASS_HUD_ID, false);
+		buttonState = app.getMapButtonsHelper().getCompassButtonState();
+
 		setIconColorId(0);
 		setBackground(R.drawable.btn_inset_circle_trans, R.drawable.btn_inset_circle_night);
-		setOnClickListener(v -> app.getMapViewTrackingUtilities().switchRotateMapMode());
+		setOnClickListener(v -> app.getMapViewTrackingUtilities().requestSwitchCompassToNextMode());
+		setOnLongClickListener(v -> {
+			CompassModeWidgetDialogController.showDialog(mapActivity);
+			return true;
+		});
 	}
 
 	@Nullable
@@ -78,33 +88,19 @@ public class CompassButton extends MapButton {
 			this.mapRotation = mapRotation;
 			view.invalidate();
 		}
-
-		if (settings.ROTATE_MAP.get() == OsmandSettings.ROTATE_MAP_NONE) {
-			setIconId(R.drawable.ic_compass_niu, R.drawable.ic_compass_niu_white);
-			setContentDesc(R.string.rotate_map_north_opt);
-		} else if (settings.ROTATE_MAP.get() == OsmandSettings.ROTATE_MAP_MANUAL) {
-			setIconId(R.drawable.ic_compass_niu, R.drawable.ic_compass_niu_white);
-			setContentDesc(R.string.rotate_map_manual_opt);
-		} else if (settings.ROTATE_MAP.get() == OsmandSettings.ROTATE_MAP_BEARING) {
-			setIconId(R.drawable.ic_compass_bearing, R.drawable.ic_compass_bearing_white);
-			setContentDesc(R.string.rotate_map_bearing_opt);
-		} else {
-			setIconId(R.drawable.ic_compass, R.drawable.ic_compass_white);
-			setContentDesc(R.string.rotate_map_compass_opt);
-		}
+		CompassMode compassMode = settings.getCompassMode();
+		setIconId(compassMode.getIconId());
+		setContentDesc(compassMode.getTitleId());
 	}
 
 	@Override
 	protected boolean shouldShow() {
-		forceHideCompass = isRouteDialogOpened() || widgetsVisibilityHelper.shouldHideCompass();
+		forceHideCompass = isRouteDialogOpened() || visibilityHelper.shouldHideCompass();
 		if (forceHideCompass) {
 			return false;
 		} else if (!specialPosition) {
-			ApplicationMode appMode = settings.getApplicationMode();
-			CompassVisibility compassVisibility = settings.COMPASS_VISIBILITY.getModeValue(appMode);
-			return compassVisibility == CompassVisibility.VISIBLE_IF_MAP_ROTATED
-					? mapActivity.getMapRotate() != 0
-					: compassVisibility == CompassVisibility.ALWAYS_VISIBLE;
+			CompassVisibility visibility = buttonState.getVisibility();
+			return visibility == VISIBLE_IF_MAP_ROTATED ? mapActivity.getMapRotate() != 0 : visibility == ALWAYS_VISIBLE;
 		}
 		return true;
 	}
@@ -171,7 +167,6 @@ public class CompassButton extends MapButton {
 			hideAnimator.start();
 		}
 	}
-
 
 	public void cancelHideAnimation() {
 		if (hideAnimator != null) {

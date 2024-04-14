@@ -11,30 +11,35 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.TextView.BufferType;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.gpx.GPXFile;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
 import net.osmand.data.QuadRect;
+import net.osmand.gpx.GPXFile;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
-import net.osmand.plus.activities.search.SearchHistoryFragment;
 import net.osmand.plus.dashboard.tools.DashFragmentData;
 import net.osmand.plus.dialogs.DirectionsDialogs;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.helpers.SearchHistoryHelper;
 import net.osmand.plus.helpers.SearchHistoryHelper.HistoryEntry;
+import net.osmand.plus.search.ShowQuickSearchMode;
+import net.osmand.plus.settings.enums.HistorySource;
 import net.osmand.plus.track.fragments.TrackMenuFragment;
 import net.osmand.plus.track.fragments.TrackSelectSegmentBottomSheet;
 import net.osmand.plus.track.fragments.TrackSelectSegmentBottomSheet.OnSegmentSelectedListener;
 import net.osmand.plus.track.helpers.GpxNavigationHelper;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
+import net.osmand.plus.utils.OsmAndFormatter;
+import net.osmand.plus.utils.UiUtilities;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 
 import java.io.File;
 import java.util.List;
@@ -67,7 +72,7 @@ public class DashRecentsFragment extends DashLocationFragment implements OnSegme
 			closeDashboard();
 			if (getActivity() instanceof MapActivity) {
 				MapActivity mapActivity = (MapActivity) getActivity();
-				mapActivity.showQuickSearch(MapActivity.ShowQuickSearchMode.NEW, false);
+				mapActivity.getFragmentsHelper().showQuickSearch(ShowQuickSearchMode.NEW, false);
 			}
 		});
 
@@ -87,7 +92,8 @@ public class DashRecentsFragment extends DashLocationFragment implements OnSegme
 		OsmandApplication app = requireMyApplication();
 		SearchHistoryHelper helper = SearchHistoryHelper.getInstance(app);
 		List<HistoryEntry> historyEntries = helper.getHistoryEntries(true);
-		if (Algorithms.isEmpty(historyEntries)) {
+
+		if (!app.getSettings().SEARCH_HISTORY.get() || Algorithms.isEmpty(historyEntries)) {
 			AndroidUiHelper.updateVisibility(mainView.findViewById(R.id.main_fav), false);
 			return;
 		} else {
@@ -102,7 +108,7 @@ public class DashRecentsFragment extends DashLocationFragment implements OnSegme
 		for (HistoryEntry historyEntry : historyEntries) {
 			LayoutInflater inflater = requireActivity().getLayoutInflater();
 			View itemView = inflater.inflate(R.layout.search_history_list_item, null, false);
-			SearchHistoryFragment.updateHistoryItem(historyEntry, itemView, loc, app);
+			updateHistoryItem(historyEntry, itemView, loc);
 			itemView.findViewById(R.id.divider).setVisibility(View.VISIBLE);
 			itemView.findViewById(R.id.navigate_to).setVisibility(View.VISIBLE);
 
@@ -114,6 +120,37 @@ public class DashRecentsFragment extends DashLocationFragment implements OnSegme
 			setupDistanceAndDirection(historyEntry, itemView);
 
 			recents.addView(itemView);
+		}
+	}
+
+	private void updateHistoryItem(@NonNull HistoryEntry historyEntry, @NonNull View row, @Nullable LatLon location) {
+		TextView nameText = row.findViewById(R.id.name);
+		TextView distanceText = row.findViewById(R.id.distance);
+		ImageView direction = row.findViewById(R.id.direction);
+		UiUtilities ic = app.getUIUtilities();
+		direction.setImageDrawable(ic.getIcon(R.drawable.ic_direction_arrow, R.color.color_distance));
+
+		String distance = "";
+		if (location != null) {
+			int dist = (int) (MapUtils.getDistance(location, historyEntry.getLat(), historyEntry.getLon()));
+			distance = OsmAndFormatter.getFormattedDistance(dist, app) + "  ";
+		}
+		distanceText.setText(distance);
+
+		PointDescription pointDescription = historyEntry.getName();
+		nameText.setText(pointDescription.getSimpleName(app, false), BufferType.SPANNABLE);
+		ImageView icon = row.findViewById(R.id.icon);
+		icon.setImageDrawable(ic.getThemedIcon(pointDescription.getItemIcon()));
+
+		String typeName = pointDescription.getTypeName();
+		if (!Algorithms.isEmpty(typeName)) {
+			ImageView group = row.findViewById(R.id.type_name_icon);
+			group.setVisibility(View.VISIBLE);
+			group.setImageDrawable(ic.getThemedIcon(R.drawable.ic_action_group_name_16));
+			((TextView) row.findViewById(R.id.type_name)).setText(typeName);
+		} else {
+			row.findViewById(R.id.type_name_icon).setVisibility(View.GONE);
+			((TextView) row.findViewById(R.id.type_name)).setText("");
 		}
 	}
 
@@ -163,7 +200,7 @@ public class DashRecentsFragment extends DashLocationFragment implements OnSegme
 			String relativeGpxPath = pointDescription.getName();
 			File gpxFile = new File(tracksDir, relativeGpxPath);
 			if (gpxFile.isFile()) {
-				SearchHistoryHelper.getInstance(app).addNewItemToHistory(0, 0, pointDescription);
+				SearchHistoryHelper.getInstance(app).addNewItemToHistory(0, 0, pointDescription, HistorySource.SEARCH);
 				TrackMenuFragment.openTrack(activity, gpxFile, null);
 				closeDashboard();
 			}

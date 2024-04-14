@@ -1,11 +1,9 @@
 package net.osmand.plus.track.fragments;
 
 import static net.osmand.IndexConstants.GPX_FILE_EXT;
-import static net.osmand.IndexConstants.GPX_INDEX_DIR;
 
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,12 +18,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import net.osmand.gpx.GPXFile;
 import net.osmand.PlatformUtil;
 import net.osmand.data.QuadRect;
 import net.osmand.data.RotatedTileBox;
+import net.osmand.gpx.GPXFile;
 import net.osmand.plus.OsmAndConstants;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.ContextMenuFragment;
@@ -35,14 +32,13 @@ import net.osmand.plus.measurementtool.SaveAsNewTrackBottomSheetDialogFragment.S
 import net.osmand.plus.measurementtool.SavedTrackBottomSheetDialogFragment;
 import net.osmand.plus.track.GpsFilterScreensAdapter;
 import net.osmand.plus.track.GpxSelectionParams;
-import net.osmand.plus.track.SaveGpxAsyncTask;
-import net.osmand.plus.track.SaveGpxAsyncTask.SaveGpxListener;
 import net.osmand.plus.track.cards.GpsFilterBaseCard.SaveIntoFileListener;
 import net.osmand.plus.track.helpers.FilteredSelectedGpxFile;
 import net.osmand.plus.track.helpers.GpsFilterHelper;
 import net.osmand.plus.track.helpers.GpsFilterHelper.GpsFilterListener;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
 import net.osmand.plus.track.helpers.SelectedGpxFile;
+import net.osmand.plus.track.helpers.save.SaveGpxHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
 import net.osmand.plus.views.controls.PagerSlidingTabStrip;
@@ -66,7 +62,6 @@ public class GpsFilterFragment extends ContextMenuScrollFragment implements Save
 	private static final String KEY_GPX_FILE_PATH = "gpx_file_path";
 	private static final String KEY_SAVED_GPX_FILE_PATH = "saved_gpx_file_path";
 
-	private OsmandApplication app;
 	private GpsFilterHelper gpsFilterHelper;
 	private GpxSelectionHelper gpxSelectionHelper;
 	private SelectedGpxFile selectedGpxFile;
@@ -122,7 +117,6 @@ public class GpsFilterFragment extends ContextMenuScrollFragment implements Save
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		app = requireMyApplication();
 		gpsFilterHelper = app.getGpsFilterHelper();
 		gpxSelectionHelper = app.getSelectedGpxHelper();
 		toolbarHeight = getResources().getDimensionPixelSize(R.dimen.toolbar_height);
@@ -419,30 +413,19 @@ public class GpsFilterFragment extends ContextMenuScrollFragment implements Save
 	}
 
 	@Override
-	public void onSaveAsNewTrack(@Nullable String folderName, @NonNull String fileName,
+	public void onSaveAsNewTrack(@NonNull String folderPath, @NonNull String fileName,
 	                             boolean showOnMap, boolean simplifiedTrack) {
 		if (selectedGpxFile.getFilteredSelectedGpxFile() != null) {
-			File destFile = app.getAppPath(GPX_INDEX_DIR);
-			if (!Algorithms.isEmpty(folderName) && !destFile.getName().equals(folderName)) {
-				destFile = new File(destFile, folderName);
-			}
-			destFile = new File(destFile, fileName + GPX_FILE_EXT);
+			File fileDir = new File(folderPath);
+			File destFile = new File(fileDir, fileName + GPX_FILE_EXT);
 
 			GPXFile filteredGpxFile = selectedGpxFile.getFilteredSelectedGpxFile().getGpxFile();
 			GPXFile gpxFileToWrite = GpsFilterHelper.copyGpxFile(app, filteredGpxFile);
 			gpxFileToWrite.path = destFile.getAbsolutePath();
 
-			new SaveGpxAsyncTask(destFile, gpxFileToWrite, new SaveGpxListener() {
-
-				@Override
-				public void gpxSavingStarted() {
-				}
-
-				@Override
-				public void gpxSavingFinished(Exception errorMessage) {
-					onGpxSavingFinished(gpxFileToWrite, errorMessage, showOnMap);
-				}
-			}).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+			SaveGpxHelper.saveGpx(destFile, gpxFileToWrite, errorMessage -> {
+				onGpxSavingFinished(gpxFileToWrite, errorMessage, showOnMap);
+			});
 		}
 	}
 

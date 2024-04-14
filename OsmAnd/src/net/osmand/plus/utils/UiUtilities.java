@@ -1,7 +1,6 @@
 package net.osmand.plus.utils;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -9,16 +8,17 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
-import android.os.Build;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -46,16 +46,25 @@ import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.snackbar.SnackbarContentLayout;
 
-import net.osmand.Location;
+import net.osmand.CallbackWithObject;
 import net.osmand.PlatformUtil;
-import net.osmand.data.LatLon;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.activities.MapActivity;
+import net.osmand.plus.base.BaseOsmAndFragment;
 import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.helpers.MapFragmentsHelper;
 import net.osmand.plus.settings.backend.ApplicationMode;
-import net.osmand.plus.views.DirectionDrawable;
+import net.osmand.plus.settings.backend.OsmandSettings;
+import net.osmand.plus.settings.fragments.BaseSettingsFragment;
+import net.osmand.plus.views.MapLayers;
+import net.osmand.plus.views.mapwidgets.MapWidgetRegistry;
+import net.osmand.plus.views.mapwidgets.TopToolbarController;
 import net.osmand.plus.widgets.TextViewEx;
+import net.osmand.plus.widgets.dialogbutton.DialogButtonType;
+import net.osmand.plus.widgets.style.CustomClickableSpan;
 import net.osmand.plus.widgets.style.CustomTypefaceSpan;
+import net.osmand.plus.widgets.style.CustomURLSpan;
 
 import org.apache.commons.logging.Log;
 
@@ -65,23 +74,9 @@ public class UiUtilities {
 
 	private static final Log LOG = PlatformUtil.getLog(UiUtilities.class);
 
-	private static final int ORIENTATION_0 = 0;
-	private static final int ORIENTATION_90 = 3;
-	private static final int ORIENTATION_270 = 1;
-	private static final int ORIENTATION_180 = 2;
 	private final TLongObjectHashMap<Drawable> drawableCache = new TLongObjectHashMap<>();
 	private final OsmandApplication app;
 	private static final int INVALID_ID = -1;
-
-	public enum DialogButtonType {
-		PRIMARY,
-		PRIMARY_HARMFUL,
-		SECONDARY,
-		SECONDARY_HARMFUL,
-		SECONDARY_ACTIVE,
-		STROKED,
-		TERTIARY
-	}
 
 	public enum CompoundButtonType {
 		GLOBAL,
@@ -162,12 +157,21 @@ public class UiUtilities {
 		return getDrawable(id, R.color.icon_color_default_light);
 	}
 
+	public Drawable getActiveIcon(@DrawableRes int id, boolean nightMode) {
+		return getDrawable(id, ColorUtilities.getActiveIconColorId(nightMode));
+	}
+
 	public Drawable getIcon(@DrawableRes int id) {
 		return getDrawable(id, 0);
 	}
 
 	public Drawable getIcon(@DrawableRes int id, boolean light) {
 		return getDrawable(id, ColorUtilities.getDefaultIconColorId(!light));
+	}
+
+	public static void setupListItemBackground(@NonNull Context context, @NonNull View view, @ColorInt int color) {
+		Drawable background = getColoredSelectableDrawable(context, color, 0.3f);
+		AndroidUtils.setBackground(view, background);
 	}
 
 	public static Drawable getColoredSelectableDrawable(Context ctx, int color, float alpha) {
@@ -184,6 +188,7 @@ public class UiUtilities {
 		return drawable;
 	}
 
+	@Nullable
 	public static Drawable getSelectableDrawable(Context ctx) {
 		int bgResId = AndroidUtils.resolveAttribute(ctx, R.attr.selectableItemBackground);
 		if (bgResId != 0) {
@@ -204,147 +209,13 @@ public class UiUtilities {
 				coloredDrawable = coloredDrawable.getConstantState().newDrawable();
 			}
 			coloredDrawable.mutate();
-			if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP && coloredDrawable instanceof RippleDrawable) {
+			if (coloredDrawable instanceof RippleDrawable) {
 				((RippleDrawable) coloredDrawable).setColor(ColorStateList.valueOf(color));
 			} else {
 				DrawableCompat.setTint(coloredDrawable, color);
 			}
 		}
-
 		return coloredDrawable;
-	}
-
-	public UpdateLocationViewCache getUpdateLocationViewCache() {
-		return getUpdateLocationViewCache(true);
-	}
-
-	public UpdateLocationViewCache getUpdateLocationViewCache(boolean useScreenOrientation) {
-		UpdateLocationViewCache uvc = new UpdateLocationViewCache();
-		if (useScreenOrientation) {
-			uvc.screenOrientation = getScreenOrientation();
-		}
-		return uvc;
-	}
-
-	public static class UpdateLocationViewCache {
-		int screenOrientation;
-		public boolean paintTxt = true;
-		public int arrowResId;
-		public int arrowColor;
-		public int textColor;
-		public LatLon specialFrom;
-	}
-
-	public void updateLocationView(UpdateLocationViewCache cache, ImageView arrow, TextView txt,
-			double toLat, double toLon) {
-		updateLocationView(cache, arrow, txt, new LatLon(toLat, toLon));
-	}
-
-	public void updateLocationView(UpdateLocationViewCache cache, ImageView arrow, TextView txt,
-			LatLon toLoc) {
-		float[] mes = new float[2];
-		boolean stale = false;
-		LatLon fromLoc = cache == null ? null : cache.specialFrom;
-		boolean useCenter = fromLoc != null;
-		Float h = null;
-		if (fromLoc == null) {
-			Location loc = app.getLocationProvider().getLastKnownLocation();
-			h = app.getLocationProvider().getHeading();
-			if (loc == null) {
-				loc = app.getLocationProvider().getLastStaleKnownLocation();
-				stale = true;
-			}
-			if (loc != null) {
-				fromLoc = new LatLon(loc.getLatitude(), loc.getLongitude());
-			} else {
-				useCenter = true;
-				stale = false;
-				fromLoc = app.getMapViewTrackingUtilities().getMapLocation();
-				h = app.getMapViewTrackingUtilities().getMapRotate();
-				if (h != null) {
-					h = -h;
-				}
-			}
-		}
-		if (fromLoc != null && toLoc != null) {
-			Location.distanceBetween(toLoc.getLatitude(), toLoc.getLongitude(), fromLoc.getLatitude(),
-					fromLoc.getLongitude(), mes);
-		}
-
-		if (arrow != null) {
-			boolean newImage = false;
-			int arrowResId = cache == null ? 0 : cache.arrowResId;
-			if (arrowResId == 0) {
-				arrowResId = R.drawable.ic_direction_arrow;
-			}
-			DirectionDrawable dd;
-			if (!(arrow.getDrawable() instanceof DirectionDrawable)) {
-				newImage = true;
-				dd = new DirectionDrawable(app, arrow.getWidth(), arrow.getHeight());
-			} else {
-				dd = (DirectionDrawable) arrow.getDrawable();
-			}
-			int imgColorSet = cache == null ? 0 : cache.arrowColor;
-			if (imgColorSet == 0) {
-				imgColorSet = useCenter ? R.color.color_distance : R.color.color_myloc_distance;
-				if (stale) {
-					imgColorSet = R.color.icon_color_default_light;
-				}
-			}
-			dd.setImage(arrowResId, imgColorSet);
-			if (fromLoc == null || h == null || toLoc == null) {
-				dd.setAngle(0);
-			} else {
-				float orientation = (cache == null ? 0 : cache.screenOrientation);
-				dd.setAngle(mes[1] - h + 180 + orientation);
-			}
-			if (newImage) {
-				arrow.setImageDrawable(dd);
-			}
-			arrow.invalidate();
-		}
-		if (txt != null) {
-			if (fromLoc != null && toLoc != null) {
-				if (cache.paintTxt) {
-					int textColorSet = cache.textColor;
-					if (textColorSet == 0) {
-						textColorSet = useCenter ? R.color.color_distance : R.color.color_myloc_distance;
-						if (stale) {
-							textColorSet = R.color.icon_color_default_light;
-						}
-					}
-					txt.setTextColor(ColorUtilities.getColor(app, textColorSet));
-				}
-				txt.setText(OsmAndFormatter.getFormattedDistance(mes[0], app));
-			} else {
-				txt.setText("");
-			}
-		}
-	}
-
-	public int getScreenOrientation() {
-		int screenOrientation = ((WindowManager) app.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
-		switch (screenOrientation) {
-			case ORIENTATION_0:   // Device default (normally portrait)
-				screenOrientation = 0;
-				break;
-			case ORIENTATION_90:  // Landscape right
-				screenOrientation = 90;
-				break;
-			case ORIENTATION_270: // Landscape left
-				screenOrientation = 270;
-				break;
-			case ORIENTATION_180: // Upside down
-				screenOrientation = 180;
-				break;
-		}
-		//Looks like screenOrientation correction must not be applied for devices without compass?
-		PackageManager manager = app.getPackageManager();
-		boolean hasCompass = manager.hasSystemFeature(PackageManager.FEATURE_SENSOR_COMPASS);
-		if (!hasCompass) {
-			screenOrientation = 0;
-		}
-		return screenOrientation;
 	}
 
 	public static void setupSnackbar(Snackbar snackbar, boolean nightMode) {
@@ -376,7 +247,7 @@ public class UiUtilities {
 			tvMessage.setMaxLines(maxLines);
 		}
 		if (backgroundColor == null) {
-			backgroundColor = nightMode ? R.color.list_background_color_dark : R.color.color_black;
+			backgroundColor = nightMode ? R.color.list_background_color_dark : R.color.activity_background_color_dark;
 		}
 		view.setBackgroundColor(ContextCompat.getColor(ctx, backgroundColor));
 	}
@@ -550,9 +421,9 @@ public class UiUtilities {
 	}
 
 	public static void setupCompoundButton(CompoundButton compoundButton,
-										   @ColorInt int activeColor,
-										   @ColorInt int inactiveColorPrimary,
-										   @ColorInt int inactiveColorSecondary) {
+	                                       @ColorInt int activeColor,
+	                                       @ColorInt int inactiveColorPrimary,
+	                                       @ColorInt int inactiveColorSecondary) {
 		if (compoundButton == null) {
 			return;
 		}
@@ -623,7 +494,7 @@ public class UiUtilities {
 		slider.setTrackInactiveTintList(inactiveCsl);
 		slider.setHaloTintList(activeCsl);
 		slider.setThumbTintList(activeCsl);
-		int colorBlack = ContextCompat.getColor(ctx, R.color.color_black);
+		int colorBlack = ContextCompat.getColor(ctx, R.color.activity_background_color_dark);
 		int ticksColor = showTicks ?
 				(nightMode ? colorBlack : ColorUtilities.getColorWithAlpha(colorBlack, 0.5f)) :
 				Color.TRANSPARENT;
@@ -639,7 +510,7 @@ public class UiUtilities {
 	}
 
 	public static void setupSlider(RangeSlider slider, boolean nightMode,
-								   @ColorInt Integer activeColor, boolean showTicks) {
+	                               @ColorInt Integer activeColor, boolean showTicks) {
 		Context ctx = slider.getContext();
 		if (ctx == null) {
 			return;
@@ -663,7 +534,7 @@ public class UiUtilities {
 		slider.setTrackInactiveTintList(inactiveCsl);
 		slider.setHaloTintList(activeCsl);
 		slider.setThumbTintList(activeCsl);
-		int colorBlack = ContextCompat.getColor(ctx, R.color.color_black);
+		int colorBlack = ContextCompat.getColor(ctx, R.color.activity_background_color_dark);
 		int ticksColor = showTicks ?
 				(nightMode ? colorBlack : ColorUtilities.getColorWithAlpha(colorBlack, 0.5f)) :
 				Color.TRANSPARENT;
@@ -687,72 +558,56 @@ public class UiUtilities {
 	}
 
 	public static void setupDialogButton(boolean nightMode, View buttonView, DialogButtonType buttonType, CharSequence buttonText, int iconResId) {
+		// Base background
 		Context ctx = buttonView.getContext();
-		TextViewEx buttonTextView = buttonView.findViewById(R.id.button_text);
-		View buttonContainer = buttonView.findViewById(R.id.button_container);
-		ColorStateList colorStateList = null;
-		int textAndIconColorResId = INVALID_ID;
-		switch (buttonType) {
-			case PRIMARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_primary_light, R.drawable.dlg_btn_primary_dark);
-				textAndIconColorResId = nightMode ? R.color.dlg_btn_primary_text_dark : R.color.dlg_btn_primary_text_light;
-				break;
-			case PRIMARY_HARMFUL:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(buttonView, AppCompatResources.getDrawable(ctx, R.drawable.dlg_btn_primary_harmfull));
-				textAndIconColorResId = nightMode ? R.color.dlg_btn_primary_text_dark : R.color.dlg_btn_primary_text_light;
-				break;
-			case SECONDARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_secondary_light, R.drawable.dlg_btn_secondary_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case SECONDARY_HARMFUL:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_secondary_light, R.drawable.dlg_btn_secondary_dark);
-				textAndIconColorResId = R.color.color_osm_edit_delete;
-				break;
-			case SECONDARY_ACTIVE:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_solid_light, R.drawable.ripple_solid_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_transparent_light, R.drawable.dlg_btn_transparent_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case STROKED:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_light, R.drawable.ripple_dark);
-				AndroidUtils.setBackground(ctx, buttonView, nightMode, R.drawable.dlg_btn_stroked_light, R.drawable.dlg_btn_stroked_dark);
-				textAndIconColorResId = ColorUtilities.getButtonSecondaryTextColorId(nightMode);
-				break;
-			case TERTIARY:
-				AndroidUtils.setBackground(ctx, buttonContainer, nightMode, R.drawable.ripple_tetriary_light, R.drawable.ripple_dark);
-				textAndIconColorResId = nightMode ? R.color.active_color_primary_dark : R.color.button_color_active_light;
-				int disabledColor = ColorUtilities.getSecondaryTextColorId(nightMode);
-				colorStateList = AndroidUtils.createEnabledColorStateList(ctx, disabledColor, textAndIconColorResId);
-				break;
+		int backgroundAttr = buttonType.getBackgroundAttr();
+		if (backgroundAttr != INVALID_ID) {
+			int backgroundResId = AndroidUtils.resolveAttribute(ctx, buttonType.getBackgroundAttr());
+			AndroidUtils.setBackground(ctx, buttonView, backgroundResId);
 		}
-		if (textAndIconColorResId != INVALID_ID) {
-			if (colorStateList == null) {
-				colorStateList = ContextCompat.getColorStateList(ctx, textAndIconColorResId);
-			}
-			buttonTextView.setText(buttonText);
-			buttonTextView.setTextColor(colorStateList);
-			buttonTextView.setEnabled(buttonView.isEnabled());
-			if (iconResId != INVALID_ID) {
-				Drawable icon = tintDrawable(AppCompatResources.getDrawable(ctx, iconResId), ContextCompat.getColor(ctx, textAndIconColorResId));
-				buttonTextView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
-				buttonTextView.setCompoundDrawablePadding(AndroidUtils.dpToPx(ctx, ctx.getResources().getDimension(R.dimen.content_padding_half)));
-			}
+
+		// Ripple background
+		View buttonContainer = buttonView.findViewById(R.id.button_container);
+		int rippleResId = AndroidUtils.resolveAttribute(ctx, buttonType.getRippleAttr());
+		AndroidUtils.setBackground(ctx, buttonContainer, rippleResId);
+
+		// Content colors
+		ColorStateList colorStateList;
+		int contentColorId = AndroidUtils.resolveAttribute(ctx, buttonType.getContentColorAttr());
+		if (buttonType == DialogButtonType.TERTIARY) {
+			int disabledColor = ColorUtilities.getSecondaryTextColorId(nightMode);
+			colorStateList = AndroidUtils.createEnabledColorStateList(ctx, disabledColor, contentColorId);
+		} else {
+			colorStateList = ContextCompat.getColorStateList(ctx, contentColorId);
+		}
+
+		// Button title
+		TextViewEx tvTitle = buttonView.findViewById(R.id.button_text);
+		tvTitle.setText(buttonText);
+		tvTitle.setTextColor(colorStateList);
+		tvTitle.setEnabled(buttonView.isEnabled());
+
+		// Button icon
+		if (iconResId != INVALID_ID) {
+			int contentColor = ColorUtilities.getColor(ctx, contentColorId);
+			Drawable icon = AppCompatResources.getDrawable(ctx, iconResId);
+			icon = tintDrawable(icon, contentColor);
+			tvTitle.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
+			tvTitle.setCompoundDrawablePadding(AndroidUtils.dpToPx(ctx, ctx.getResources().getDimension(R.dimen.content_padding_half)));
 		}
 	}
 
+	@NonNull
 	public static LayoutInflater getInflater(Context ctx, boolean nightMode) {
 		return LayoutInflater.from(getThemedContext(ctx, nightMode));
 	}
 
+	@NonNull
 	public static Context getThemedContext(Context context, boolean nightMode) {
 		return getThemedContext(context, nightMode, R.style.OsmandLightTheme, R.style.OsmandDarkTheme);
 	}
 
+	@NonNull
 	public static Context getThemedContext(Context context, boolean nightMode, int lightStyle, int darkStyle) {
 		return new ContextThemeWrapper(context, nightMode ? darkStyle : lightStyle);
 	}
@@ -765,6 +620,7 @@ public class UiUtilities {
 		}
 	}
 
+	@NonNull
 	public static SpannableString createSpannableString(@NonNull String text, int style, @NonNull String... textToStyle) {
 		SpannableString spannable = new SpannableString(text);
 		for (String t : textToStyle) {
@@ -773,26 +629,119 @@ public class UiUtilities {
 		return spannable;
 	}
 
-	private static void setSpan(@NonNull SpannableString spannable,
-	                            @NonNull Object styleSpan,
-	                            @NonNull String text, @NonNull String t) {
-		try {
-			int startIndex = text.indexOf(t);
-			spannable.setSpan(
-					styleSpan,
-					startIndex,
-					startIndex + t.length(),
-					Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-		} catch (RuntimeException e) {
-			LOG.error("Error trying to find index of " + t + " " + e);
-		}
-	}
-
+	@NonNull
 	public static SpannableString createCustomFontSpannable(@NonNull Typeface typeface, @NonNull String text, @NonNull String... textToStyle) {
 		SpannableString spannable = new SpannableString(text);
 		for (String s : textToStyle) {
 			setSpan(spannable, new CustomTypefaceSpan(typeface), text, s);
 		}
 		return spannable;
+	}
+
+	@NonNull
+	public static SpannableString createUrlSpannable(@NonNull String text, @NonNull String url) {
+		SpannableString spannable = new SpannableString(text);
+		setSpan(spannable, new CustomURLSpan(url), text, url);
+		return spannable;
+	}
+
+	@NonNull
+	public static SpannableString createColorSpannable(@NonNull String text, @ColorInt int color, @NonNull String... textToStyle) {
+		SpannableString spannable = new SpannableString(text);
+		for (String s : textToStyle) {
+			setSpan(spannable, new ForegroundColorSpan(color), text, s);
+		}
+		return spannable;
+	}
+
+	@NonNull
+	public static SpannableString createClickableSpannable(@NonNull String text, @NonNull String clickableText,
+	                                                       @NonNull CallbackWithObject<Void> onClickedText) {
+		SpannableString spannable = new SpannableString(text);
+		ClickableSpan clickableSpan = new CustomClickableSpan() {
+			@Override
+			public void onClick(@NonNull View view) {
+				onClickedText.processResult(null);
+			}
+		};
+		setSpan(spannable, clickableSpan, text, clickableText);
+		return spannable;
+	}
+
+	public static void setSpan(@NonNull SpannableString spannable,
+	                           @NonNull Object styleSpan,
+	                           @NonNull String text, @NonNull String textToSpan) {
+		try {
+			int start = text.indexOf(textToSpan);
+			int end = start + textToSpan.length();
+			spannable.setSpan(styleSpan, start, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+		} catch (RuntimeException e) {
+			LOG.error("Error trying to find index of " + textToSpan + " " + e);
+		}
+	}
+
+	public static void setupClickableText(@NonNull TextView textView, @NonNull SpannableString spannable, boolean nightMode) {
+		textView.setText(spannable);
+		textView.setMovementMethod(LinkMovementMethod.getInstance());
+		textView.setHighlightColor(ColorUtilities.getActiveColor(textView.getContext(), nightMode));
+	}
+
+	public static void updateStatusBarColor(@NonNull MapActivity activity) {
+		int colorId = -1;
+		boolean nightModeForContent = true;
+		OsmandApplication app = activity.getMyApplication();
+		OsmandSettings settings = app.getSettings();
+		MapLayers mapLayers = activity.getMapLayers();
+
+		MapFragmentsHelper fragmentsHelper = activity.getFragmentsHelper();
+		BaseOsmAndFragment fragmentAboveDashboard = fragmentsHelper.getVisibleBaseOsmAndFragment(R.id.fragmentContainer);
+		BaseSettingsFragment settingsFragmentAboveDashboard = fragmentsHelper.getVisibleBaseSettingsFragment(R.id.fragmentContainer);
+		BaseOsmAndFragment fragmentBelowDashboard = fragmentsHelper.getVisibleBaseOsmAndFragment(R.id.routeMenuContainer, R.id.topFragmentContainer, R.id.bottomFragmentContainer);
+		if (fragmentAboveDashboard != null) {
+			colorId = fragmentAboveDashboard.getStatusBarColorId();
+			nightModeForContent = fragmentAboveDashboard.getContentStatusBarNightMode();
+		} else if (settingsFragmentAboveDashboard != null) {
+			colorId = settingsFragmentAboveDashboard.getStatusBarColorId();
+			nightModeForContent = settingsFragmentAboveDashboard.getContentStatusBarNightMode();
+
+		} else if (activity.getDashboard().isVisible()) {
+			colorId = activity.getDashboard().getStatusBarColor();
+		} else if (fragmentBelowDashboard != null) {
+			colorId = fragmentBelowDashboard.getStatusBarColorId();
+			nightModeForContent = fragmentBelowDashboard.getContentStatusBarNightMode();
+		} else if (mapLayers.getMapQuickActionLayer() != null
+				&& mapLayers.getMapQuickActionLayer().isWidgetVisible()) {
+			colorId = R.color.status_bar_transparent_gradient;
+		}
+		if (colorId != -1) {
+			activity.getWindow().setStatusBarColor(ContextCompat.getColor(activity, colorId));
+			AndroidUiHelper.setStatusBarContentColor(activity.getWindow().getDecorView(), nightModeForContent);
+			return;
+		}
+
+		int color = TopToolbarController.NO_COLOR;
+		boolean mapControlsVisible = activity.findViewById(R.id.MapHudButtonsOverlay).getVisibility() == View.VISIBLE;
+		boolean topToolbarVisible = mapLayers.getMapInfoLayer().isTopToolbarViewVisible();
+		boolean night = app.getDaynightHelper().isNightModeForMapControls();
+
+		TopToolbarController toolbarController = mapLayers.getMapInfoLayer().getTopToolbarController();
+		if (toolbarController != null && mapControlsVisible && topToolbarVisible) {
+			color = toolbarController.getStatusBarColor(activity, night);
+		}
+		if (color == TopToolbarController.NO_COLOR) {
+			ApplicationMode appMode = settings.getApplicationMode();
+			MapWidgetRegistry widgetRegistry = mapLayers.getMapWidgetRegistry();
+			int defaultColorId = night ? R.color.status_bar_transparent_dark : R.color.status_bar_transparent_light;
+			int colorIdForTopWidget = widgetRegistry.getStatusBarColor(appMode, night);
+			if (colorIdForTopWidget != -1) {
+				nightModeForContent = widgetRegistry.getStatusBarContentNightMode(appMode, night);
+			}
+
+			colorId = mapControlsVisible && colorIdForTopWidget != -1 ? colorIdForTopWidget : defaultColorId;
+			color = ContextCompat.getColor(activity, colorId);
+		}
+		activity.getWindow().setStatusBarColor(color);
+
+		AndroidUiHelper.setStatusBarContentColor(activity.getWindow().getDecorView(), nightModeForContent);
 	}
 }

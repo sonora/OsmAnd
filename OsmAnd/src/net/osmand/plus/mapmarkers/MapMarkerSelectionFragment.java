@@ -6,16 +6,15 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
 
 import androidx.annotation.Nullable;
 
+import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.data.LatLon;
-import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.base.BaseOsmAndDialogFragment;
@@ -28,6 +27,7 @@ import net.osmand.plus.routepreparationmenu.MapRouteInfoMenu.PointType;
 import java.util.List;
 
 public class MapMarkerSelectionFragment extends BaseOsmAndDialogFragment {
+
 	public static final String TAG = "MapMarkerSelectionFragment";
 	private static final String POINT_TYPE_KEY = "point_type";
 
@@ -43,7 +43,7 @@ public class MapMarkerSelectionFragment extends BaseOsmAndDialogFragment {
 	@Nullable
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-
+		updateNightMode();
 		Bundle bundle = null;
 		if (getArguments() != null) {
 			bundle = getArguments();
@@ -55,12 +55,11 @@ public class MapMarkerSelectionFragment extends BaseOsmAndDialogFragment {
 		}
 
 		MapActivity mapActivity = getMapActivity();
-		OsmandApplication app = getMyApplication();
 		if (mapActivity != null) {
 			MapRouteInfoMenu routeInfoMenu = mapActivity.getMapRouteInfoMenu();
 			onClickListener = routeInfoMenu.getOnMarkerSelectListener();
 
-			screenOrientation = app.getUIUtilities().getScreenOrientation();
+			screenOrientation = AndroidUiHelper.getScreenOrientation(mapActivity);
 
 			MapViewTrackingUtilities trackingUtils = mapActivity.getMapViewTrackingUtilities();
 			if (trackingUtils != null) {
@@ -77,36 +76,27 @@ public class MapMarkerSelectionFragment extends BaseOsmAndDialogFragment {
 				}
 			}
 		}
-		nightMode = !app.getSettings().isLightContent();
 
-		View view = inflater.inflate(R.layout.map_marker_selection_fragment, container, false);
+		View view = themedInflater.inflate(R.layout.map_marker_selection_fragment, container, false);
 		ImageButton closeButton = view.findViewById(R.id.closeButton);
 		Drawable icBack = app.getUIUtilities().getIcon(AndroidUtils.getNavigationIconResId(app));
 		closeButton.setImageDrawable(icBack);
-		closeButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				dismiss();
-			}
-		});
+		closeButton.setOnClickListener(v -> dismiss());
 
 		ListView listView = view.findViewById(android.R.id.list);
 		ArrayAdapter<MapMarker> adapter = new MapMarkersListAdapter();
-		List<MapMarker> markers = getMyApplication().getMapMarkersHelper().getMapMarkers();
+		List<MapMarker> markers = app.getMapMarkersHelper().getMapMarkers();
 		if (markers.size() > 0) {
 			for (MapMarker marker : markers) {
 				adapter.add(marker);
 			}
 		}
 		listView.setAdapter(adapter);
-		listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			@Override
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				if (onClickListener != null) {
-					onClickListener.onSelect(position, pointType);
-				}
-				dismiss();
+		listView.setOnItemClickListener((parent, v, position, id) -> {
+			if (onClickListener != null) {
+				onClickListener.onSelect(position, pointType);
 			}
+			dismiss();
 		});
 		return view;
 	}
