@@ -169,8 +169,8 @@ android {
 			buildConfigField "boolean", "USE_DEBUG_LIBRARIES", "false"
 		}
 		release {
-			//signingConfig signingConfigs.publishing
-			signingConfig signingConfigs.development
+			signingConfig signingConfigs.publishing
+			//signingConfig signingConfigs.development
 		}
 	}
 
