@@ -22,6 +22,10 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.car.app.CarToast;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.ProcessLifecycleOwner;
 import androidx.multidex.MultiDex;
 import androidx.multidex.MultiDexApplication;
 
@@ -211,7 +215,8 @@ public class OsmandApplication extends MultiDexApplication {
 	private final Map<String, Builder> customRoutingConfigs = new ConcurrentHashMap<>();
 	private File externalStorageDirectory;
 	private boolean externalStorageDirectoryReadOnly;
-
+	private boolean appInForeground;
+	private boolean androidAutoInForeground;
 	// Typeface
 
 	@Override
@@ -222,6 +227,20 @@ public class OsmandApplication extends MultiDexApplication {
 		long timeToStart = System.currentTimeMillis();
 		enableStrictMode();
 		super.onCreate();
+
+		LifecycleObserver appLifecycleObserver = new DefaultLifecycleObserver() {
+			@Override
+			public void onStart(@NonNull LifecycleOwner owner) {
+				appInForeground = true;
+			}
+
+			@Override
+			public void onStop(@NonNull LifecycleOwner owner) {
+				appInForeground = false;
+			}
+		};
+		ProcessLifecycleOwner.get().getLifecycle().addObserver(appLifecycleObserver);
+
 		createInUiThread();
 		uiHandler = new Handler();
 		appCustomization = new OsmAndAppCustomization();
@@ -282,6 +301,10 @@ public class OsmandApplication extends MultiDexApplication {
 
 	public MapPoiTypes getPoiTypes() {
 		return poiTypes;
+	}
+
+	public boolean isAppInForeground() {
+		return appInForeground || androidAutoInForeground;
 	}
 
 	private void createInUiThread() {
@@ -643,7 +666,9 @@ public class OsmandApplication extends MultiDexApplication {
 			if (navigationService != null) {
 				navigationService.stopIfNeeded(this, NavigationService.USED_BY_CAR_APP);
 			}
+			androidAutoInForeground = false;
 		} else {
+			androidAutoInForeground = true;
 			startNavigationService(NavigationService.USED_BY_CAR_APP);
 		}
 		this.carNavigationSession = carNavigationSession;
@@ -947,7 +972,11 @@ public class OsmandApplication extends MultiDexApplication {
 		Intent intent = new Intent(this, NavigationService.class);
 		intent.putExtra(NavigationService.USAGE_INTENT, usageIntent);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			startForegroundService(intent);
+			runInUIThread(() -> {
+				if (isAppInForeground()) {
+					startForegroundService(intent);
+				}
+			});
 		} else {
 			startService(intent);
 		}
