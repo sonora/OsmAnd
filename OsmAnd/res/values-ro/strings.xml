@@ -2859,7 +2859,7 @@
     <string name="add_to_a_track">Adaugă la un traseu</string>
     <string name="shared_string_custom">Personalizare</string>
     <string name="gpx_direction_arrows">Săgeți direcționale</string>
-    <string name="track_coloring_solid">Solid</string>
+    <string name="track_coloring_solid">Solidă</string>
     <string name="plan_route_last_edited">Ultima editare</string>
     <string name="plan_route_import_track">Importă traseu</string>
     <string name="plan_route_open_existing_track">Deschide un traseu existent</string>
@@ -2907,8 +2907,8 @@
     <string name="backup_into_file">Fă backup ca fișier</string>
     <string name="restore_from_file">Restaurează din fișier</string>
     <string name="osmand_cloud_help_descr">Aveți nevoie de ajutor\? Contactați-ne la %1$s</string>
-    <string name="osmand_cloud_create_account_descr">"Introduceți adresa voastră de e-mail, un cod de verificare va fi trimis acolo,
-\nși toate datele  vor fi asociate acesteia."</string>
+    <string name="osmand_cloud_create_account_descr">Vă rugăm să introduceți adresa dumneavoastră de e-mail, un cod de verificare va fi trimis acolo,
+\nși toate datele dumneavoastră vor fi legate de acesta.</string>
     <string name="osmand_cloud_login_descr">Introduceți adresa de e-mail cu care v-ați înregistrat. O parolă de unică folosință va fi trimisă la aceasta.</string>
     <string name="verify_email_address">Verificați adresa de e-mail</string>
     <string name="verify_email_address_descr">Codul de verificare a fost trimis la %1$s. Introduceți-l în câmpul de mai jos.</string>
@@ -3225,7 +3225,7 @@
     <string name="activity_type_snowmobile_name">Snowmobil</string>
     <string name="activity_type_riding_name">Echitație</string>
     <string name="activity_type_racing_name">Cursă</string>
-    <string name="activity_type_mountainbike_name">Mountain bike</string>
+    <string name="activity_type_mountainbike_name">Bicicletă de munte</string>
     <string name="activity_type_cycling_name">Ciclism</string>
     <string name="activity_type_hiking_name">Drumeție</string>
     <string name="activity_type_running_name">Alergare</string>
@@ -3280,7 +3280,7 @@
     <string name="contact_support">Contactează suportul tehnic</string>
     <string name="troubleshooting">Deparare</string>
     <string name="troubleshooting_description">Urmați acest link dacă aveți probleme cu achizițiile.</string>
-    <string name="osmand_live">OsmAnd Live</string>
+    <string name="osmand_live">OsmAnd în direct</string>
     <string name="annual_subscription">Abonament anual</string>
     <string name="monthly_subscription">Abonament lunar</string>
     <string name="three_months_subscription">Abonament pe trei luni</string>
@@ -4398,7 +4398,7 @@
     <string name="show_parameter_seekbar">Arată bara de căutare a parametrilor</string>
     <string name="shared_string_hide_all">Ascunde toate</string>
     <string name="files_remaining">Fișiere rămase: %1$s %2$s</string>
-    <string name="from_to_with_params">De la %1$s la %2$s</string>
+    <string name="from_to_with_params">Din %1$s la %2$s</string>
     <string name="progress_complete">%1$s complet</string>
     <string name="storage_copied_files_size">S-au procesat %1$s fișier(e) %2$s</string>
     <string name="storage_copying_files_size">Se copiază %1$s fișiere %2$s</string>
@@ -4411,7 +4411,7 @@
     <string name="shared_storage_migration">Migrarea stocării partajate</string>
     <string name="shared_string_migration">Migrare</string>
     <string name="icon_group_education">Educație</string>
-    <string name="icon_group_industrial">Industrial</string>
+    <string name="icon_group_industrial">Industrială</string>
     <string name="rendering_attr_natureReserves_description">Arată rezervații naturale, zone protejate și parcuri naționale.</string>
     <string name="memory_allocated_for_routing">Memorie alocată pentru rutare</string>
     <string name="shared_string_skip_warning">Săriți peste migrare\? OsmAnd nu mai are acces la fișierele dumneavoastră din stocarea partajată.
@@ -4985,7 +4985,7 @@
     <string name="deleted_file">Fișier șters</string>
     <string name="sync_now">Sincronizează acum</string>
     <string name="cloud_conflicts">Conflicte</string>
-    <string name="cloud_conflict">Conflict</string>
+    <string name="cloud_conflict">Conflictul</string>
     <string name="upload_all">Încarcă tot</string>
     <string name="cloud_recent_changes">Modificări</string>
     <string name="cloud_all_changes_uploaded">S-au încărcat toate modificările</string>
