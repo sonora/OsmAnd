@@ -14,6 +14,7 @@ import org.apache.commons.logging.Log;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,13 @@ public class WikiCoreHelper {
 		String wikimediaCommons = tags.get(Amenity.WIKIMEDIA_COMMONS);
 		String wikiTitle = tags.get(Amenity.WIKIPEDIA);
 		String wikiCategory = "";
-
+		int urlInd = wikiTitle == null? 0 : wikiTitle.indexOf(".wikipedia.org/wiki/");
+		if (urlInd > 0) {
+			String prefix = wikiTitle.substring(0, urlInd);
+			String lang = prefix.substring(prefix.lastIndexOf("/") + 1, prefix.length());
+			String title = wikiTitle.substring(urlInd + ".wikipedia.org/wiki/".length());
+			wikiTitle = lang + ":" + title;
+		}
 		if (!Algorithms.isEmpty(wikimediaCommons)) {
 			if (wikimediaCommons.startsWith(WIKIMEDIA_FILE)) {
 				addFile(wikiImages, wikimediaCommons);
@@ -59,17 +66,23 @@ public class WikiCoreHelper {
 		}
 		if (USE_OSMAND_WIKI_API) {
 			// article // category
-			String url = null;
-			if (!Algorithms.isEmpty(wikidataId)) {
-				url = (url == null ? OSMAND_API_ENDPOINT : "&") + "article=" + wikidataId;
+			String url = "";
+			try {
+				if (!Algorithms.isEmpty(wikidataId)) {
+					url += (url.length() == 0 ? OSMAND_API_ENDPOINT : "&") + "article=" + URLEncoder.encode(wikidataId, "UTF-8");
+				}
+				if (!Algorithms.isEmpty(wikiCategory)) {
+					url += (url.length() == 0 ? OSMAND_API_ENDPOINT : "&") + "category=" + URLEncoder.encode(wikiCategory, "UTF-8");
+				}
+				if (!Algorithms.isEmpty(wikiTitle)) {
+					url += (url.length() == 0 ? OSMAND_API_ENDPOINT : "&") + "wiki=" + URLEncoder.encode(wikiTitle, "UTF-8");
+				}
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException(e);
 			}
-			if (!Algorithms.isEmpty(wikiCategory)) {
-				url = (url == null ? OSMAND_API_ENDPOINT : "&") + "category=" + wikiCategory;
+			if (url.length() > 0) {
+				getImagesOsmAndAPIRequest(url, wikiImages);
 			}
-			if (!Algorithms.isEmpty(wikiTitle)) {
-				url = (url == null ? OSMAND_API_ENDPOINT : "&") + "wiki=" + wikiTitle;
-			}
-			getImagesOsmAndAPIRequest(url, wikiImages);
 		} else {
 			if (!Algorithms.isEmpty(wikidataId)) {
 				getWikidataImageWikidata(wikidataId, wikiImages);

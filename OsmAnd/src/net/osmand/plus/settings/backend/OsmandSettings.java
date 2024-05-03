@@ -848,7 +848,7 @@ public class OsmandSettings {
 	}
 
 	public final CommonPreference<Boolean> ENABLE_3D_MAPS = registerBooleanPreference("enable_3d_maps", true).makeProfile().makeShared().cache();
-	public final CommonPreference<Float> VERTICAL_EXAGGERATION_SCALE = registerFloatPreference("vertical_exaggeration_scale", 1).makeProfile();
+	public final CommonPreference<Float> VERTICAL_EXAGGERATION_SCALE = registerFloatPreference("vertical_exaggeration_scale", 1f).makeProfile();
 
 	public final CommonPreference<Integer> SIMULATE_POSITION_SPEED = new IntPreference(this, "simulate_position_movement_speed", 1).makeGlobal().makeShared();
 
@@ -2787,7 +2787,7 @@ public class OsmandSettings {
 	}
 
 	public final CommonPreference<Boolean> IS_QUICK_ACTION_TUTORIAL_SHOWN = new BooleanPreference(this, "quick_action_tutorial", false).makeGlobal().makeShared();
-	public final ListStringPreference QUICK_ACTION_BUTTONS = (ListStringPreference) new ListStringPreference(this, "quick_action_buttons", DEFAULT_BUTTON_ID + ";", ";").makeProfile();
+	public final ListStringPreference QUICK_ACTION_BUTTONS = (ListStringPreference) new ListStringPreference(this, "quick_action_buttons", DEFAULT_BUTTON_ID + ";", ";").makeGlobal().makeShared().storeLastModifiedTime();
 
 
 	/**
