@@ -4664,7 +4664,7 @@
     <string name="transport_hazmat_yes_desc">Válassza ki a megfelelő kategóriát.</string>
     <string name="transport_hazmat_no_desc">Egyes utakon és alagutakban korlátozott lehet a veszélyes anyagok szállítása.</string>
     <string name="transport_hazmat_title">Veszélyes anyag szállítása</string>
-    <string name="use_latin_name_if_missing">Latin név használata, ha hiányzik</string>
+    <string name="use_latin_name_if_missing">Latin betűs átírás, ha hiányzik</string>
     <string name="import_as_one_track">Importálás egyetlen nyomvonalként</string>
     <string name="routing_attr_goods_restrictions_description">Az (áruszállító) könnyű tehergépjárművekre vonatkozó behajtási engedélyek figyelembevétele</string>
     <string name="co2_mission">CO₂-kibocsátás</string>
@@ -5725,7 +5725,7 @@
     <string name="disable_map_layers_descr">Tiltsa le az összes térképréteget a vektortérkép felett (újraindítás szükséges).</string>
     <string name="disable_map_layers">Térképrétegek letiltása</string>
     <string name="height_legend_description">A színes magassági térképek a domborzat megjelenítésére használhatók.</string>
-    <string name="play_weather_forecast">Időjárás előrejelzés lejátszása</string>
+    <string name="play_weather_forecast">Időjárás-előrejelzés lejátszása</string>
     <string name="travel_topics">Utazási témák</string>
     <string name="change_terrain_color_scheme">Domborzati színséma módosítása</string>
     <string name="wall_height">Fal magassága</string>
@@ -5744,4 +5744,26 @@
     <string name="action_icon">Műveletikon</string>
     <string name="shared_string_colors">Színek</string>
     <string name="user_palette">Felhasználói paletta</string>
+    <string name="backup_error_failed_to_transfer_file">Nem sikerült a felhőfájl(ok) átvitele.</string>
+    <string name="contact_support_retry">Próbálja újra, vagy lépjen kapcsolatba az ügyfélszolgálattal</string>
+    <string name="missing_maps_ignore">Meglévő térképek használata</string>
+    <string name="daynight_mode_sensor_summary">A környezeti megvilágítás szintjének megfelelően az eszköz fényérzékelőjét használja a világos és sötét témák közötti váltáshoz.</string>
+    <string name="daynight_mode_sunrise_sunset_summary">Automatikusan vált a nappali és éjszakai téma között a helyi napkelte és napnyugta időpontja alapján.</string>
+    <string name="daynight_mode_app_theme">Alkalmazás témája</string>
+    <string name="key_event_action_continuous_zoom_out">Folyamatos kicsinyítés</string>
+    <string name="key_event_action_continuous_zoom_in">Folyamatos nagyítás</string>
+    <string name="remove_key_assignment_summary">A kiválasztott művelethez tartozó gomb-hozzárendelés el lesz távolítva.</string>
+    <string name="remove_key_assignment">Gomb-hozzárendelés eltávolítása</string>
+    <string name="tomorrow">Holnap</string>
+    <string name="daynight_mode_day_summary">Mindig világos témával jeleníti meg a térképet, nappali fényviszonyokhoz ideális.</string>
+    <string name="daynight_mode_night_summary">Mindig sötét témában jeleníti meg a térképet, éjszaka vagy gyenge fényviszonyokhoz ideális.</string>
+    <string name="daynight_mode_app_theme_summary">A térkép megjelenése igazodik az alkalmazás általános témájához – nappali mód világos témához, éjszakai mód sötét témához</string>
+    <string name="map_settings_weather_wind_animation">Szél animáció</string>
+    <string name="weather_source_ecmwf_title">ECMWF</string>
+    <string name="data_source">Adatforrás</string>
+    <string name="weather_data_sources_prompt">Az OsmAnd időjárási adatai két forrásból származnak:</string>
+    <string name="weather_source_GFS_title">GFS</string>
+    <string name="weather_source_GFS_description">Az amerikai Nemzeti Környezeti Előrejelző Központok adatait felhasználó Globális Előrejelzési Rendszer</string>
+    <string name="weather_source_ecmwf_description">Középtávú Időjárás-előrejelzések Európai Központja</string>
+    <string name="shared_string_modify">Módosít</string>
 </resources>

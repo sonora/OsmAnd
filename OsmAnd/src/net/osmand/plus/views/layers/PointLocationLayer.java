@@ -66,7 +66,7 @@ import java.util.List;
 public class PointLocationLayer extends OsmandMapLayer
 		implements OsmAndLocationListener, OsmAndCompassListener, IContextMenuProvider {
 
-	private static final int MODEL_3D_MAX_SIZE_DP = 48;
+	private static final int MODEL_3D_MAX_SIZE_DP = 24;
 	protected static final float BEARING_SPEED_THRESHOLD = 0.1f;
 	protected static final int MIN_ZOOM = 3;
 	protected static final int RADIUS = 7;
@@ -147,7 +147,7 @@ public class PointLocationLayer extends OsmandMapLayer
 
 			if (model3D != null) {
 				myLocMarkerBuilder.setModel3D(model3D);
-				myLocMarkerBuilder.setModel3DMaxSizeInPixels(AndroidUtils.dpToPx(ctx, MODEL_3D_MAX_SIZE_DP));
+				myLocMarkerBuilder.setModel3DMaxSizeInPixels((int) (AndroidUtils.dpToPx(ctx, MODEL_3D_MAX_SIZE_DP) * scale));
 			} else {
 				int width = (int) (icon.getIntrinsicWidth() * scale);
 				int height = (int) (icon.getIntrinsicHeight() * scale);
@@ -683,6 +683,20 @@ public class PointLocationLayer extends OsmandMapLayer
 		return mapViewTrackingUtilities.isMovingToMyLocation();
 	}
 
+	private void setLocationModel() {
+		locationModel = model3dHelper.getModel(locationIconName, model -> {
+			locationModel = model;
+			locationModel.setMainColor(NativeUtilities.createFColorARGB(profileColor));
+			brokenLocationModel = model == null;
+			markersInvalidated = true;
+			return true;
+		});
+		if (locationModel != null) {
+			locationModel.setMainColor(NativeUtilities.createFColorARGB(profileColor));
+		}
+		locationIcon = null;
+	}
+
 	private void updateParams(ApplicationMode appMode, boolean nighMode, boolean locationOutdated) {
 		boolean hasMapRenderer = hasMapRenderer();
 		Context ctx = getContext();
@@ -720,10 +734,17 @@ public class PointLocationLayer extends OsmandMapLayer
 			if (NavigationIcon.isModel(navigationIconName)) {
 				navigationModel = model3dHelper.getModel(navigationIconName, model -> {
 					navigationModel = model;
+					navigationModel.setMainColor(NativeUtilities.createFColorARGB(profileColor));
 					brokenNavigationModel = model == null;
 					markersInvalidated = true;
+					if (LocationIcon.isModel(locationIconName)) {
+						setLocationModel();
+					}
 					return true;
 				});
+				if (navigationModel != null) {
+					navigationModel.setMainColor(NativeUtilities.createFColorARGB(profileColor));
+				}
 				navigationIcon = null;
 			} else {
 				int navigationIconId = NavigationIcon.fromName(navigationIconName).getIconId();
@@ -736,13 +757,9 @@ public class PointLocationLayer extends OsmandMapLayer
 
 			LocationIcon locationIconType = LocationIcon.fromName(locationIconName);
 			if (LocationIcon.isModel(locationIconName)) {
-				locationModel = model3dHelper.getModel(locationIconName, model -> {
-					locationModel = model;
-					brokenLocationModel = model == null;
-					markersInvalidated = true;
-					return true;
-				});
-				locationIcon = null;
+				if (!NavigationIcon.isModel(navigationIconName) || navigationModel != null) {
+					setLocationModel();
+				}
 			} else {
 				locationIcon = (LayerDrawable) AppCompatResources.getDrawable(ctx, locationIconType.getIconId());
 				if (locationIcon != null) {

@@ -1019,7 +1019,7 @@
     <string name="routing_attr_short_way_name">Пут који штеди гориво</string>
     <string name="replace_favorite_confirmation">Замените омиљеног %1$s\?</string>
     <string name="rendering_attr_hideOverground_name">Надземне грађевине</string>
-    <string name="shared_string_change">Измени</string>
+    <string name="shared_string_change">Промени</string>
     <string name="get_started">Почнимо</string>
     <string name="route_stops_before">%1$s стајања пре</string>
     <string name="coords_search">Претрага координата</string>
@@ -5698,7 +5698,7 @@
     <string name="missing_maps_description">Неке ванмрежне мапе потребне за ову руту недостају или нису ажуриране. Преузмите или ажурирајте ове мапе.</string>
     <string name="missing_maps_header">Недостајуће или застареле мапе</string>
     <string name="route_line_use_coloring_speed">Линија руте је обојена по брзини кретања.</string>
-    <string name="maps_that_also_be_used">Мапе које се такође користе: %1$s</string>
+    <string name="maps_that_also_be_used">Мапе које ће се такође користити: %1$s</string>
     <string name="required_maps_calculate_online_summary">Листа мапа које недостају заснива се на праволинијској рути. Да бисте добили тачну листу мапа, ОсмАнд може унапред да израчуна вашу руту на мрежи.</string>
     <string name="downward_gradient">Надоле градијент</string>
     <string name="upward_gradient">Градијент навише</string>
@@ -5743,4 +5743,26 @@
     <string name="action_icon">Додај икону</string>
     <string name="user_palette">Корисничка палета</string>
     <string name="shared_string_colors">Боје</string>
+    <string name="missing_maps_ignore">Користи постојеће мапе</string>
+    <string name="backup_error_failed_to_transfer_file">Пренос датотеке(а) у облаку није успео.</string>
+    <string name="contact_support_retry">Покушајте поново или контактирајте подршку</string>
+    <string name="tomorrow">Сутрадан</string>
+    <string name="map_settings_weather_wind_animation">Анимација ветра</string>
+    <string name="daynight_mode_sensor_summary">Користи светлосни сензор уређаја за пребацивање између светлих и тамних тема у складу са нивоима амбијенталног светла.</string>
+    <string name="daynight_mode_sunrise_sunset_summary">Аутоматски пребацује између дневне и ноћне теме на основу локалног времена изласка и заласка сунца.</string>
+    <string name="daynight_mode_night_summary">Увек приказује мапу у тамној теми, погодној за ноћне услове или услове слабог осветљења.</string>
+    <string name="daynight_mode_day_summary">Увек приказује мапу у светлој теми, идеално за видљивост током дана.</string>
+    <string name="daynight_mode_app_theme">Тема апликације</string>
+    <string name="key_event_action_continuous_zoom_out">Континуирано умањивање</string>
+    <string name="remove_key_assignment_summary">Додељивање тастера за изабрану радњу ће бити уклоњено.</string>
+    <string name="remove_key_assignment">Уклони додељивање тастера</string>
+    <string name="daynight_mode_app_theme_summary">Приказ мапе је у складу са општом темом апликације — дневни режим за светлу тему и ноћни режим за тамну тему</string>
+    <string name="key_event_action_continuous_zoom_in">Континуирано увећавање</string>
+    <string name="weather_data_sources_prompt">ОсмАнд пружа временске податке из два извора:</string>
+    <string name="weather_source_ecmwf_description">Европски Центар за средњерочне временске прогнозе</string>
+    <string name="weather_source_GFS_description">Глобални систем прогнозе Националног центра за предвиђање животне средине</string>
+    <string name="weather_source_ecmwf_title">ЕЦМВП</string>
+    <string name="weather_source_GFS_title">ГФС</string>
+    <string name="data_source">Извор података</string>
+    <string name="shared_string_modify">Измени</string>
 </resources>
