@@ -3396,7 +3396,7 @@
     <string name="shared_string_routing">Навођење</string>
     <string name="shared_string_app_default_w_val">Подразумевано у програму (%s)</string>
     <string name="no_recalculation_setting">Без прерачунавања</string>
-    <string name="route_recalculation_dist_title">Најмања удаљеност за прерачунавање пута</string>
+    <string name="route_recalculation_dist_title">Минимална удаљеност за поновно израчунавање руте</string>
     <string name="route_recalculation_dist_descr">Пут ће бити прерачунат ако је удаљеност до пута већа од одабране одреднице</string>
     <string name="profile_type_custom_string">Произвољни налог</string>
     <string name="shared_string_angle_param">Угао: %s°</string>
@@ -5243,7 +5243,7 @@
     <string name="osmand_cloud_deletion_all_data_warning">Сви подаци из Облака ОсмАнда ће бити %1$s. Подаци на уређају ће остати нетакнути.</string>
     <string name="send_crash_log_descr">Садржи само податке о рушењима програма</string>
     <string name="help_article_plan_route_coordinate_input_name">Унос координата</string>
-    <string name="dangerous_goods_description">На неким путевима и тунелима превоз опасних твари је забрањен.</string>
+    <string name="dangerous_goods_description">На неким путевима и тунелима није дозвољен превоз опасних материја.</string>
     <string name="delete_account">Обриши налог</string>
     <string name="write_bearing">Пиши усмерење страна света</string>
     <string name="routing_attr_allow_via_ferrata_description">Планинарска путања опремљена постављеним ужадима, гредама, лествицама и брвнима.</string>
@@ -5375,7 +5375,7 @@
     <string name="osmand_cloud_deleting_account_descr">Кроз неколико тренутака ће сви Ваши подаци и налози бити избрисани из Облака ОсмАнда.
 \n
 \nСви подаци на уређају остаће целовити.</string>
-    <string name="shared_string_class">Врста</string>
+    <string name="shared_string_class">Класа</string>
     <string name="help_article_navigation_routing_bicycle_based_routing_name">Путања бициклом (МТБ)</string>
     <string name="routing_attr_hazmat_category_usa_2_name">Плинови</string>
     <string name="dangerous_goods">Опасна роба</string>
@@ -5765,4 +5765,5 @@
     <string name="weather_source_GFS_title">ГФС</string>
     <string name="data_source">Извор података</string>
     <string name="shared_string_modify">Измени</string>
+    <string name="missing_maps_ignore_details">Неке већ преузете мапе могу бити прикладне за вашу руту. Ако сте упознати са подручјем и мапама, можете покушати са рутирањем користећи постојеће мапе.</string>
 </resources>
