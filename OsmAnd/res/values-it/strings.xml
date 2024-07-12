@@ -4641,7 +4641,7 @@
     <string name="import_as_one_track">Importa come un\'unica traccia</string>
     <string name="use_latin_name_if_missing">Usa nomi latini se mancano</string>
     <string name="transport_hazmat_no_desc">Strade e tunnel possono proibire il trasporto di materiale pericoloso.</string>
-    <string name="transport_hazmat_title">Trasporto di materiale pericoloso</string>
+    <string name="transport_hazmat_title">Trasporto di materiali pericolosi</string>
     <string name="routing_attr_goods_restrictions_description">Considerare le autorizzazioni di accesso per i veicoli commerciali leggeri (merci)</string>
     <string name="routing_attr_motor_type_lpg_name">GPL</string>
     <string name="routing_attr_motor_type_electric_name">Elettrico</string>
@@ -5759,8 +5759,8 @@
     <string name="remove_key_assignment_summary">L\'assegnazione dei tasti per l\'azione selezionata verrà rimossa.</string>
     <string name="weather_data_sources_prompt">OsmAnd fornisce dati meteorologici da due fonti:</string>
     <string name="data_source">Fonte dati</string>
-    <string name="weather_source_ecmwf_description">Centro Europeo per le Previsioni Meteorologiche a Medio Termine</string>
-    <string name="weather_source_GFS_description">Sistema di previsione globale dei Centri Nazionali di Previsione Ambientale</string>
+    <string name="weather_source_ecmwf_description">European Centre for Medium-Range Weather Forecasts</string>
+    <string name="weather_source_GFS_description">Global Forecast System from National Centers for Environmental Prediction</string>
     <string name="weather_source_ecmwf_title">ECMWF</string>
     <string name="weather_source_GFS_title">GFS</string>
     <string name="shared_string_modify">Modifica</string>
@@ -5809,4 +5809,11 @@
 \nIDLE 1k: %4$s</string>
     <string name="energy_avg_info">Statistiche energetiche (media 1 / 5 / 15 minuti)</string>
     <string name="rendering_avg_info">Statistiche di rendering (media 1 / 5 / 15 minuti)</string>
+    <string name="choose_map_orientation">Scegli l\'orientamento della mappa</string>
+    <string name="shared_string_all_icons">Tutte le icone</string>
+    <string name="profile_icon">Icona del profilo</string>
+    <string name="navigation_position_icon_summary">Icona visualizzata durante la navigazione o lo spostamento.</string>
+    <string name="navigation_position_icon">Icona della posizione di navigazione</string>
+    <string name="resting_position_icon_summary">Icona visualizzata quando non ti stai muovendo.</string>
+    <string name="resting_position_icon">Icona della posizione di riposo</string>
 </resources>

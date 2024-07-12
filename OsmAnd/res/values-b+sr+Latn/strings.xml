@@ -846,7 +846,7 @@
     <string name="overlay_transparency">Transparetnost sloja iznad</string>
     <string name="overlay_transparency_descr">Podesi transparetnost gornjeg sloja.</string>
     <string name="warning_tile_layer_not_downloadable">Program nije uspeo da preuzme nivo sa mapama %1$s, reinstalacija programa može da pomogne.</string>
-    <string name="voice_stream_music">Zvuk preko medija/ navođenja</string>
+    <string name="voice_stream_music">Zvuk multimedije/ navođenja</string>
     <string name="choose_audio_stream_descr">Odaberi govornika za glasovno navođenje.</string>
     <string name="switch_to_vector_map_to_see">Postojeće vektorske mape za ovaj lokaciju. 
 \n\t 
@@ -3533,11 +3533,11 @@
 \n
 \nDalje čitanje na %1$s.</string>
     <string name="record_plugin_name">Snimanje putovanja</string>
-    <string name="osmand_rastermaps_plugin_description">Pristupi različitim vrstama online mapa (takozvanim sličicama ili rasterskim), od predefinisanih sličica OSM-a (kao što je Mapnik) do satelitskih slika i slojevima sa uskom specijalizacijom, kao što su meteorološke, klimatske, geološke mape, osenčeni slojevi, itd.
+    <string name="osmand_rastermaps_plugin_description">Pristupi različitim vrstama online mapa (takozvanim tilovima ili rasterskim), od predefinisanih sličica OSM-a (kao što je Mapnik) do satelitskih slika i slojevima sa uskom specijalizacijom, kao što su meteorološke, klimatske, geološke mape, osenčeni slojevi, itd.
 \n
 \nSvaka od ovih mapa može biti korišćena ili kao glavna (osnovna) mapa koja se prikazuje, ili kao nivo iznad ili ispod osnovne mape. Određeni elementi vektorskih mapa OsmAnda se mogu sakriti preko menia „Podesi mapu“.
 \n
-\nPreuzmi mape sa pločicama neposredno sa intereneta, ili ih pripremi za upotrebu bez interneta (ručno snimiti u folder OsmAnda sa podacima), i to kao baza podataka SQLite koju može da napravi veliki broj alata treće strane.</string>
+\nPreuzmi mape sa tilovima neposredno sa intereneta, ili ih pripremi za upotrebu bez interneta (ručno snimiti u folder OsmAnda sa podacima), i to kao baza podataka SQLite koju može da napravi veliki broj alata treće strane.</string>
     <string name="shared_string_online_maps">Internet mape</string>
     <string name="track_points">Tačke trase</string>
     <string name="track_segments">Segmenti trase</string>
@@ -4390,7 +4390,7 @@
     <string name="use_latin_name_if_missing">Koristi latinično ime ako nedostaje</string>
     <string name="transport_hazmat_yes_desc">Odaberi primenljivu kategoriju.</string>
     <string name="transport_hazmat_no_desc">Na nekim putevima i tunelima može biti zabranjen prevoz opasnih materije.</string>
-    <string name="transport_hazmat_title">Prevoz opasnih materija</string>
+    <string name="transport_hazmat_title">Prevoženje opasnih materija</string>
     <string name="routing_attr_hazmat_category_description">Vrsta opasnih materije / razmotri dozvole za pristup sa opasnim materijema</string>
     <string name="distance_circles">Krugovi rastojanja</string>
     <string name="circle_settings">Podešavanja kruga</string>
@@ -5140,7 +5140,7 @@
     <string name="select_layer">Odaberi nivo</string>
     <string name="shutter_sound">Zvuk okidača</string>
     <string name="speak_route_deviation">Obaveštava o napuštanju rute</string>
-    <string name="clear_online_cache_description">Ovo će očistiti keš internet slika vremenskih pločica.</string>
+    <string name="clear_online_cache_description">Ovo će očistiti keš, tilove za vreme.</string>
     <string name="weather_widget_group_desc">Skup vidžeta koji prikazuju razne podatke o vremenskim prilikama.</string>
     <string name="precipitation_widget_desc">Prikazuje padavine na trenutnom središtu mape.</string>
     <string name="rendering_engine_failed">Render OsmAnd mape se srušio.</string>
@@ -5326,7 +5326,7 @@
 \n
 \n • Ispravljena je greška prilikom prikaza mesta pošćenja
 \n
-\n • Dodata je mogućnost preuzimanja pločica sa mreže koristeći „pročeljne“ ili „podmetnute“ mape
+\n • Dodata je mogućnost preuzimanja tilova sa interneta koristeći „frontalne“ ili „podmetnute“ mape
 \n
 \n • Dodata je mogućnost upotrebe imperijalne merne jedinice za „osobine vozila“
 \n
@@ -5822,4 +5822,12 @@
 \nIDLE 1k: %4$s</string>
     <string name="energy_avg_info">Energetska statistika (prosek 1 / 5 / 15 minuta)</string>
     <string name="rendering_avg_info">Statistika prikazivanja (prosečno 1 / 5 / 15 minuta)</string>
+    <string name="choose_map_orientation">Odaberite orjentaciju mape</string>
+    <string name="rendering_value_pale_name">Bledo</string>
+    <string name="shared_string_all_icons">Sve ikone</string>
+    <string name="navigation_position_icon_summary">Ikona koja se prikazuje dok ste usmeravani ili se krećete.</string>
+    <string name="navigation_position_icon">Ikona navigacione pozicije</string>
+    <string name="resting_position_icon_summary">Ikona se prikazuje kada se ne krećete.</string>
+    <string name="resting_position_icon">Ikona položaja za odmor</string>
+    <string name="profile_icon">Ikona profila</string>
 </resources>

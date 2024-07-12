@@ -4658,7 +4658,7 @@
     <string name="routing_attr_motor_type_diesel_name">Дизел</string>
     <string name="routing_attr_motor_type_petrol_name">Бензин</string>
     <string name="transport_hazmat_yes_desc">Одаберите применљиву врсту.</string>
-    <string name="transport_hazmat_title">Превожење опасних твари</string>
+    <string name="transport_hazmat_title">Превожење опасних материја</string>
     <string name="download_heightmap_maps">Висинска карта</string>
     <string name="av_notes_photo_widget_desc">Тап по справици ће усликати слику.</string>
     <string name="compass_always_visible">Увек видљиво</string>
@@ -5813,4 +5813,12 @@
 \nGPU 1k: %3$s
 \nIDLE 1k: %4$s</string>
     <string name="energy_avg_info">Енергетска статистика (просек 1 / 5 / 15 минута)</string>
+    <string name="choose_map_orientation">Одаберите орјентацију мапе</string>
+    <string name="navigation_position_icon">Икона навигационе позиције</string>
+    <string name="resting_position_icon">Икона положаја за одмор</string>
+    <string name="shared_string_all_icons">Све иконе</string>
+    <string name="rendering_value_pale_name">Бледо</string>
+    <string name="profile_icon">Икона профила</string>
+    <string name="navigation_position_icon_summary">Икона се приказује док сте усмеравани или се крећете.</string>
+    <string name="resting_position_icon_summary">Икона се приказује када се не крећете.</string>
 </resources>
