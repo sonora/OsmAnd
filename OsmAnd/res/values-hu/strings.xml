@@ -1029,7 +1029,6 @@
     <string name="driving_region_us">USA</string>
     <string name="driving_region_canada">Kanada</string>
     <string name="driving_region_europe_asia">Európa, Ázsia, Latin-Amerika és hasonlók</string>
-    <string name="driving_region_uk">Egyesült Királyság, India és hasonlók</string>
     <string name="speak_title">Bemondás…</string>
     <string name="speak_descr">Utcanevek, forgalmi figyelmeztetések (közúti ellenőrzés, fekvőrendőr), traffipaxriasztás és sebességkorlátozás bemondásának beállítása.</string>
     <string name="speak_street_names">Utcanevek (TTS)</string>
@@ -4133,7 +4132,7 @@
     <string name="shared_string_discussion">Vitafórum</string>
     <string name="backup_delete_types">Letiltott adattípusok törlése</string>
     <string name="backup_delete_types_descr">Törli az összes elavult adattípus adatát az OsmAnd Cloudból\?</string>
-    <string name="from_with_param">Innentől: %1$s</string>
+    <string name="from_with_param">%1$s-tól</string>
     <string name="regular_price">Rendes ár</string>
     <string name="complete_purchase">Vásárlás befejezése</string>
     <string name="shared_string_includes">Tartalmazza</string>
