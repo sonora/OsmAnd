@@ -165,7 +165,7 @@
     <string name="transport_search_desc">Αναζήτηση δημοσίων Μ.Μ.Μ</string>
     <string name="favourites_search_desc">Ένας τρόπος αναζήτησης αγαπημένων</string>
     <string name="offline_navigation_not_available">Η εκτός διαδικτύου πλοήγηση του OsmAnd δεν είναι διαθέσιμη προσωρινά.</string>
-    <string name="left_side_navigation">Οδήγηση αριστερά</string>
+    <string name="left_side_navigation">Οδήγηση στα αριστερά</string>
     <string name="left_side_navigation_descr">Για χώρες όπου οι άνθρωποι οδηγούν στα αριστερά του δρόμου.</string>
     <string name="unknown_from_location">Το σημείο εκκίνησης δεν έχει ακόμη καθοριστεί</string>
     <string name="unknown_location">Η θέση δεν είναι ακόμα γνωστή.</string>
@@ -1925,7 +1925,7 @@
     <string name="osm_live_subscription_desc">Η εγγραφή ενεργοποιεί ωριαίες, ημερήσιες και εβδομαδιαίες ενημερώσεις και απεριόριστες λήψεις για όλους τους χάρτες παγκοσμίως.</string>
     <string name="get_it">Εγγραφείτε</string>
     <string name="get_for">Εγγραφείτε για %1$s</string>
-    <string name="osm_live_banner_desc">Κάντε απεριόριστες λήψεις χαρτών, προσθέτοντας εβδομαδιαία, ημερησίως, ή ακόμα και ωριαίες ενημερώσεις.</string>
+    <string name="osm_live_banner_desc">Αποκτήστε απεριόριστες λήψεις χάρτη, προσθέτοντας εβδομαδιαίες, ημερήσιες, ή ακόμα και ωριαίες ενημερώσεις.</string>
     <string name="osmand_plus_banner_desc">Απεριόριστες λήψεις χαρτών, ενημερώσεις και πρόσθετο βικιπαίδεια.</string>
     <string name="si_mi_meters">Μίλια/μέτρα</string>
     <string name="skip_map_downloading">Παράλειψη λήψης χαρτών</string>
@@ -2652,7 +2652,7 @@
     <string name="in_app_purchase_desc">Εφάπαξ πληρωμή</string>
     <string name="in_app_purchase_desc_ex">Μόλις αγοραστεί, θα είναι μονίμως διαθέσιμη για σας.</string>
     <string name="purchase_unlim_title">Αγορά - %1$s</string>
-    <string name="wikivoyage_offline">Βικιταξίδια χωρίς διαδίκτυο</string>
+    <string name="wikivoyage_offline">Βικιταξίδια εκτός σύνδεσης</string>
     <string name="unlimited_downloads">Απεριόριστες λήψεις</string>
     <string name="wikipedia_offline">Βικιπαίδεια χωρίς διαδίκτυο</string>
     <string name="unlock_all_features">Ξεκλείδωμα όλων των χαρακτηριστικών του OsmAnd</string>
@@ -4313,4 +4313,37 @@
     <string name="visible_in_3d_mode">Ορατό σε λειτουργία 3D</string>
     <string name="map_3d_mode_hint">Με το παρατεταμένο πάτημα του κουμπιού επιτρέπει την αλλαγή της θέσης του κουμπιού.</string>
     <string name="shared_strings_all_regions">Όλες οι περιοχές</string>
+    <string name="default_buttons">Προεπιλεγμένα κουμπιά</string>
+    <string name="top_widgets_panel">Πάνω πίνακας</string>
+    <string name="shared_string_speedometer">Ταχύμετρο</string>
+    <string name="copy_to_map_favorites">Αντιγραφή στα αγαπημένα</string>
+    <string name="add_button">Προσθήκη κουμπιού</string>
+    <string name="shared_string_last_used">Τελευταίας χρήσης</string>
+    <string name="shared_string_limit">Όριο</string>
+    <string name="speedometer_description">Δείχνει την τρέχουσα ταχύτητα σας, όπως αναφέρεται μέσω GPS</string>
+    <string name="modified_file">Τροποποιημένο αρχείο</string>
+    <string name="bottom_widgets_panel">Κάτω πίνακας</string>
+    <string name="empty_name">Κενό όνομα</string>
+    <string name="simulation_preview_mode_title">Προεπισκόπηση γρήγορης λειτουργίας</string>
+    <string name="exit_number">Αριθμός εξόδου</string>
+    <string name="shared_string_modified">Τροποποιημένα</string>
+    <string name="current_speed_widget_desc">Δείχνει την τρέχουσα ταχύτητα σας, όπως αναφέρεται μέσω GPS.</string>
+    <string name="battery_widget_desc">Εμφανίζετε η στάθμη της μπαταρίας της συσκευή σας.</string>
+    <string name="map_widget_current_speed">Τρέχουσα ταχύτητα</string>
+    <string name="offline_wikivoyage">Βικιταξίδια χωρίς σύνδεσης</string>
+    <string name="wikipedia_and_wikivoyage_offline">Βικιπαίδεια και Βικιταξίδια εκτός σύνδεσης</string>
+    <string name="shared_string_min_height">Ελάχιστο ύψος</string>
+    <string name="customize_route_line">Προσαρμογή γραμμής διαδρομής</string>
+    <string name="grey_color_undefined">Κομμάτια χωρίς δεδομένα είναι γκρι.</string>
+    <string name="nautical_depth">Ναυτικό βάθος</string>
+    <string name="osmand_cloud_create_account_descr">Παρακαλώ εισάγετε την διεύθυνση e-mail σας,
+\nένα κωδικός επιβεβαίωσης θα σας σταλθεί εκεί και όλα τα δεδομένα σας θα συνδεθούν με αυτό.</string>
+    <string name="nautical_depth_points">Σημεία ναυτικού βάθους</string>
+    <string name="shared_string_max_height">Μέγιστο ύψος</string>
+    <string name="in_case_of_reverse_direction">Σε περίπτωση αντιστροφής κατεύθυνσης</string>
+    <string name="unlimited_map_downloads">Απεριόριστες λήψεις χάρτη</string>
+    <string name="purchases_feature_desc_nautical">Αποκτήστε πρόσβαση σε πληροφορίες ναυτικού βάθους</string>
+    <string name="purchases_feature_desc_wikivoyage">Εξερευνήστε τα Βικιταξίδια εκτός σύνδεσης. Άρθρα χωρισμένες ανά χώρες και περιοχές και είναι διαθέσιμα σε όλες τις γλώσσες.</string>
+    <string name="routing_attr_goods_restrictions_name">Παράδοση αγαθών</string>
+    <string name="weather_source_ecmwf_description">Ευρωπαϊκό Κέντρο Μεσοπρόθεσμων Μετεωρολογικών Προγνώσεων (ECMWF)</string>
 </resources>
