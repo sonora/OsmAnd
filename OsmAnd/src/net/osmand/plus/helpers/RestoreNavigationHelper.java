@@ -4,21 +4,16 @@ import static net.osmand.plus.settings.enums.TrackApproximationType.AUTOMATIC;
 
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 
 import net.osmand.PlatformUtil;
 import net.osmand.gpx.GPXFile;
 import net.osmand.gpx.GPXUtilities;
 import net.osmand.plus.OsmandApplication;
-import net.osmand.plus.R;
 import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.helpers.TargetPointsHelper.TargetPoint;
-import net.osmand.plus.measurementtool.GpxApproximationHelper;
 import net.osmand.plus.measurementtool.GpxApproximationParams;
 import net.osmand.plus.routing.GPXRouteParams.GPXRouteParamsBuilder;
 import net.osmand.plus.routing.RoutingHelper;
@@ -33,7 +28,7 @@ import java.util.ArrayList;
 
 public class RestoreNavigationHelper {
 
-	private static final Log log = PlatformUtil.getLog(RestoreNavigationHelper.class);
+	private static final Log LOG = PlatformUtil.getLog(RestoreNavigationHelper.class);
 
 	private final OsmandApplication app;
 	private final OsmandSettings settings;
@@ -41,11 +36,10 @@ public class RestoreNavigationHelper {
 	private final TargetPointsHelper targetPointsHelper;
 
 	private final MapActivity mapActivity;
-	private boolean quitRouteRestoreDialog;
 
-	public RestoreNavigationHelper(@NonNull MapActivity mapActivity) {
+	public RestoreNavigationHelper(@NonNull OsmandApplication app, @Nullable MapActivity mapActivity) {
+		this.app = app;
 		this.mapActivity = mapActivity;
-		this.app = mapActivity.getMyApplication();
 		this.settings = app.getSettings();
 		this.routingHelper = app.getRoutingHelper();
 		this.targetPointsHelper = app.getTargetPointsHelper();
@@ -65,64 +59,8 @@ public class RestoreNavigationHelper {
 		if (pointToNavigate == null && gpxPath == null) {
 			notRestoreRoutingMode();
 		} else {
-			quitRouteRestoreDialog = false;
-			if (settings.SHOW_RESTART_NAVIGATION_DIALOG.get()) {
-				showRestoreNavigationDialog(pointToNavigate, gpxPath);
-			} else {
-				restoreRoutingModeInner(pointToNavigate, gpxPath);
-			}
+			restoreRoutingModeInner(pointToNavigate, gpxPath);
 		}
-	}
-
-	private void showRestoreNavigationDialog(@Nullable TargetPoint pointToNavigate, @Nullable String gpxPath) {
-		Handler uiHandler = new Handler();
-		Runnable encapsulate = new Runnable() {
-			int delay = 7;
-			Runnable delayDisplay;
-
-			@Override
-			public void run() {
-				AlertDialog.Builder builder = new AlertDialog.Builder(mapActivity);
-				TextView textView = new TextView(mapActivity);
-				textView.setText(mapActivity.getString(R.string.continue_follow_previous_route_auto, String.valueOf(delay)));
-				textView.setPadding(7, 5, 7, 5);
-				builder.setView(textView);
-				builder.setPositiveButton(R.string.shared_string_yes, (dialog, which) -> {
-					quitRouteRestoreDialog = true;
-					restoreRoutingModeInner(pointToNavigate, gpxPath);
-				});
-				builder.setNegativeButton(R.string.shared_string_no, (dialog, which) -> {
-					quitRouteRestoreDialog = true;
-					notRestoreRoutingMode();
-				});
-				AlertDialog dialog = builder.show();
-				dialog.setOnDismissListener(d -> quitRouteRestoreDialog = true);
-				dialog.setOnCancelListener(d -> quitRouteRestoreDialog = true);
-
-				delayDisplay = () -> {
-					if (!quitRouteRestoreDialog) {
-						delay--;
-						textView.setText(app.getString(R.string.continue_follow_previous_route_auto, String.valueOf(delay)));
-						if (delay <= 0) {
-							try {
-								if (dialog.isShowing() && !quitRouteRestoreDialog) {
-									dialog.dismiss();
-								}
-								quitRouteRestoreDialog = true;
-								restoreRoutingModeInner(pointToNavigate, gpxPath);
-							} catch (Exception e) {
-								// swalow view not attached exception
-								log.error(e.getMessage(), e);
-							}
-						} else {
-							uiHandler.postDelayed(delayDisplay, 1000);
-						}
-					}
-				};
-				delayDisplay.run();
-			}
-		};
-		encapsulate.run();
 	}
 
 	@SuppressLint("StaticFieldLeak")
@@ -143,19 +81,7 @@ public class RestoreNavigationHelper {
 				if (pointToNavigate == null) {
 					notRestoreRoutingMode();
 				} else {
-					ApplicationMode appMode = routingHelper.getAppMode();
-					if (gpxFile != null && !gpxFile.isAttachedToRoads()
-							&& settings.DETAILED_TRACK_GUIDANCE.getModeValue(appMode) == AUTOMATIC) {
-						GpxApproximationParams params = new GpxApproximationParams();
-						params.setAppMode(appMode);
-						params.setDistanceThreshold(settings.GPX_APPROXIMATION_DISTANCE.getModeValue(appMode));
-						GpxApproximationHelper.approximateGpxAsync(app, gpxFile, params, approxGpx -> {
-							enterRoutingMode(createGpxRouteParams(approxGpx));
-							return true;
-						});
-					} else {
-						enterRoutingMode(createGpxRouteParams(gpxFile));
-					}
+					enterRoutingMode(createGpxRouteParams(gpxFile));
 				}
 			}
 
@@ -164,6 +90,7 @@ public class RestoreNavigationHelper {
 				GPXRouteParamsBuilder builder = null;
 				if (gpxFile != null) {
 					builder = new GPXRouteParamsBuilder(gpxFile, settings);
+
 					if (settings.GPX_ROUTE_CALC_OSMAND_PARTS.get()) {
 						builder.setCalculateOsmAndRouteParts(true);
 					}
@@ -178,6 +105,14 @@ public class RestoreNavigationHelper {
 					if (routeIndex != -1) {
 						builder.setSelectedRoute(routeIndex);
 					}
+					ApplicationMode appMode = routingHelper.getAppMode();
+					if (!gpxFile.isAttachedToRoads() && settings.DETAILED_TRACK_GUIDANCE.getModeValue(appMode) == AUTOMATIC) {
+						GpxApproximationParams params = new GpxApproximationParams();
+						params.setAppMode(appMode);
+						params.setDistanceThreshold(settings.GPX_APPROXIMATION_DISTANCE.getModeValue(appMode));
+
+						builder.setApproximationParams(params);
+					}
 				}
 				return builder;
 			}
@@ -188,7 +123,7 @@ public class RestoreNavigationHelper {
 	public void enterRoutingMode(@Nullable GPXRouteParamsBuilder gpxRoute) {
 		app.logRoutingEvent("enterRoutingMode gpxRoute " + gpxRoute);
 
-		mapActivity.getMapViewTrackingUtilities().backToLocationImpl();
+		app.getMapViewTrackingUtilities().backToLocationImpl();
 		settings.FOLLOW_THE_GPX_ROUTE.set(gpxRoute != null ? gpxRoute.getFile().path : null);
 
 		routingHelper.setGpxParams(gpxRoute);
@@ -198,22 +133,22 @@ public class RestoreNavigationHelper {
 		settings.FOLLOW_THE_ROUTE.set(true);
 		routingHelper.setFollowingMode(true);
 		targetPointsHelper.updateRouteAndRefresh(true);
-		app.initVoiceCommandPlayer(mapActivity, routingHelper.getAppMode(), null,
+		app.initVoiceCommandPlayer(app, routingHelper.getAppMode(), null,
 				true, false, false, false);
-		if (mapActivity.getDashboard().isVisible()) {
-			mapActivity.getDashboard().hideDashboard();
+		if (mapActivity != null) {
+			if (mapActivity.getDashboard().isVisible()) {
+				mapActivity.getDashboard().hideDashboard();
+			}
+			AndroidUtils.requestNotificationPermissionIfNeeded(mapActivity);
 		}
-		AndroidUtils.requestNotificationPermissionIfNeeded(mapActivity);
 	}
 
 	private void notRestoreRoutingMode() {
-		mapActivity.updateApplicationModeSettings();
+		if (mapActivity != null) {
+			mapActivity.updateApplicationModeSettings();
+		}
 		routingHelper.clearCurrentRoute(null, new ArrayList<>());
 		targetPointsHelper.removeAllWayPoints(false, false);
-		mapActivity.refreshMap();
-	}
-
-	public void quitRouteRestoreDialog() {
-		quitRouteRestoreDialog = true;
+		app.getOsmandMap().refreshMap();
 	}
 }
