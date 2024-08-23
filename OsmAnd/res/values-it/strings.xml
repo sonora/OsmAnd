@@ -5294,7 +5294,6 @@
     <string name="write_heading">Scrivi l\'intestazione</string>
     <string name="rendering_value_sacScale_name">SAC</string>
     <string name="rendering_value_sacScale_description">Club Alpino Svizzero</string>
-    <string name="rendering_attr_alpineHiking_name">Classificazione della difficoltà</string>
     <string name="routing_attr_hazmat_category_usa_7_name">Sostanze Radioattive</string>
     <string name="routing_attr_hazmat_category_usa_8_name">Sostanze Corrosive</string>
     <string name="rendering_value_caiScale_description">Club Alpino Italiano (Club Alpino Italiano)</string>
@@ -5855,4 +5854,5 @@
     <string name="delete_widget">Eliminare il widget?</string>
     <string name="delete_widget_description">Questo widget verrà eliminato. Puoi ripristinarlo più tardi in Configura schermo.</string>
     <string name="battery_saving_mode">Modalità di risparmio batteria</string>
+    <string name="app_mode_suv">SUV</string>
 </resources>
