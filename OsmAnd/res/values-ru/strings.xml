@@ -4725,8 +4725,8 @@
     <string name="av_notes_audio_widget_desc">Нажатие на виджет позволяет сделать аудиозаметку.</string>
     <string name="compass_visible_if_map_rotated_desc">Скрывать, когда север сверху</string>
     <string name="compass_visible_if_map_rotated">Виден, если карта повернута</string>
-    <string name="compass_always_hidden">Всегда скрыт</string>
-    <string name="compass_always_visible">Всегда виден</string>
+    <string name="compass_always_hidden">Скрыт</string>
+    <string name="compass_always_visible">Виден</string>
     <string name="compass_click_desc">Нажатие на компас переключает режим ориентации.</string>
     <string name="compass_desc">Кнопка с указателем севера.</string>
     <string name="rendering_attr_depthContourColorScheme_description">Цветовая схема линий глубины (изобат)</string>
@@ -5895,4 +5895,6 @@
     <string name="contour_layers_action_descr">Изменить контурные слои</string>
     <string name="change_zoom_action_descr">Изменить масштаб карты.</string>
     <string name="search_action_descr">Открыть поиск.</string>
+    <string name="type_of_activity">Вид активности</string>
+    <string name="change_activity">Изменить активность</string>
 </resources>
