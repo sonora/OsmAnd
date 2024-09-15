@@ -94,10 +94,10 @@ public class TrackFolderLoaderTask extends AsyncTask<Void, TrackItem, Void> {
 			if (Algorithms.isEmpty(files)) {
 				continue;
 			}
-			List<TrackItem> trackItems = new ArrayList<>();
-			List<TrackFolder> subFolders = new ArrayList<>();
+			List<TrackItem> trackItems = Collections.synchronizedList(new ArrayList<>());
+			List<TrackFolder> subFolders = Collections.synchronizedList(new ArrayList<>());
 
-			for (KFile file : files) {
+			files.parallelStream().forEach(file -> {
 				if (isCancelled()) {
 					return;
 				}
@@ -110,10 +110,12 @@ public class TrackFolderLoaderTask extends AsyncTask<Void, TrackItem, Void> {
 					item.setDataItem(getDataItem(item, file));
 					trackItems.add(item);
 
-					progress.add(item);
-					if (progress.size() > PROGRESS_BATCH_SIZE) {
-						publishProgress(progress.toArray(new TrackItem[0]));
-						progress.clear();
+					synchronized (progress) {
+						progress.add(item);
+						if (progress.size() > PROGRESS_BATCH_SIZE) {
+							publishProgress(progress.toArray(new TrackItem[0]));
+							progress.clear();
+						}
 					}
 					tracksCounter++;
 					if (tracksCounter % LOG_BATCH_SIZE == 0) {
@@ -122,14 +124,13 @@ public class TrackFolderLoaderTask extends AsyncTask<Void, TrackItem, Void> {
 						loadingTime = endTime;
 					}
 				}
-			}
+			});
+
 			folder.setTrackItems(trackItems);
 			folder.setSubFolders(subFolders);
 			smartFolderHelper.addTrackItemsToSmartFolder(trackItems);
 		}
-		for (TrackFolder folder : rootFolder.getFlattenedSubFolders()) {
-			folder.resetCashedData();
-		}
+		rootFolder.getFlattenedSubFolders().forEach(TrackFolder::resetCashedData);
 		rootFolder.resetCashedData();
 	}
 
