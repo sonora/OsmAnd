@@ -30,7 +30,7 @@ import androidx.lifecycle.ProcessLifecycleOwner;
 import androidx.multidex.MultiDex;
 import androidx.multidex.MultiDexApplication;
 
-import net.osmand.OsmAndContextImpl;
+import net.osmand.plus.shared.OsmAndContextImpl;
 import net.osmand.PlatformUtil;
 import net.osmand.aidl.OsmandAidlApi;
 import net.osmand.data.LatLon;
@@ -68,13 +68,13 @@ import net.osmand.plus.helpers.LocaleHelper;
 import net.osmand.plus.helpers.LocationServiceHelper;
 import net.osmand.plus.helpers.LockHelper;
 import net.osmand.plus.helpers.Model3dHelper;
-import net.osmand.plus.helpers.RouteActivityHelper;
 import net.osmand.plus.helpers.TargetPointsHelper;
 import net.osmand.plus.helpers.WaypointHelper;
 import net.osmand.plus.importfiles.ImportHelper;
 import net.osmand.plus.inapp.InAppPurchaseHelper;
 import net.osmand.plus.keyevent.InputDevicesHelper;
 import net.osmand.plus.keyevent.KeyEventHelper;
+import net.osmand.plus.mapcontextmenu.gallery.GalleryContextHelper;
 import net.osmand.plus.mapmarkers.MapMarkersDbHelper;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
 import net.osmand.plus.measurementtool.MeasurementEditingContext;
@@ -107,7 +107,6 @@ import net.osmand.plus.settings.enums.DrivingRegion;
 import net.osmand.plus.settings.enums.LocationSource;
 import net.osmand.plus.simulation.OsmAndLocationSimulation;
 import net.osmand.plus.track.helpers.GpsFilterHelper;
-import net.osmand.plus.track.helpers.GpxDbHelper;
 import net.osmand.plus.track.helpers.GpxDisplayHelper;
 import net.osmand.plus.track.helpers.GpxSelectionHelper;
 import net.osmand.plus.utils.AndroidUtils;
@@ -125,6 +124,8 @@ import net.osmand.router.GeneralRouter;
 import net.osmand.router.RoutingConfiguration;
 import net.osmand.router.RoutingConfiguration.Builder;
 import net.osmand.search.SearchUICore;
+import net.osmand.shared.gpx.GpxDbHelper;
+import net.osmand.shared.gpx.RouteActivityHelper;
 import net.osmand.shared.gpx.SmartFolderHelper;
 import net.osmand.shared.io.KFile;
 import net.osmand.shared.settings.enums.MetricsConstants;
@@ -202,7 +203,6 @@ public class OsmandApplication extends MultiDexApplication {
 	InputDevicesHelper inputDeviceHelper;
 	FileSettingsHelper fileSettingsHelper;
 	NetworkSettingsHelper networkSettingsHelper;
-	GpxDbHelper gpxDbHelper;
 	MapButtonsHelper mapButtonsHelper;
 	OsmOAuthHelper osmOAuthHelper;
 	MeasurementEditingContext measurementEditingContext;
@@ -217,11 +217,9 @@ public class OsmandApplication extends MultiDexApplication {
 	AverageGlideComputer averageGlideComputer;
 	WeatherHelper weatherHelper;
 	DialogManager dialogManager;
-	SmartFolderHelper smartFolderHelper;
 	RouteLayersHelper routeLayersHelper;
-	RouteActivityHelper routeActivityHelper;
-
 	Model3dHelper model3dHelper;
+	GalleryContextHelper galleryContextHelper;
 
 	private final Map<String, Builder> customRoutingConfigs = new ConcurrentHashMap<>();
 	private File externalStorageDirectory;
@@ -451,7 +449,7 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public GpxDbHelper getGpxDbHelper() {
-		return gpxDbHelper;
+		return GpxDbHelper.INSTANCE;
 	}
 
 	public FavouritesHelper getFavoritesHelper() {
@@ -639,7 +637,7 @@ public class OsmandApplication extends MultiDexApplication {
 
 	@NonNull
 	public SmartFolderHelper getSmartFolderHelper() {
-		return smartFolderHelper;
+		return SmartFolderHelper.INSTANCE;
 	}
 
 	@NonNull
@@ -649,7 +647,7 @@ public class OsmandApplication extends MultiDexApplication {
 
 	@NonNull
 	public RouteActivityHelper getRouteActivityHelper() {
-		return routeActivityHelper;
+		return RouteActivityHelper.INSTANCE;
 	}
 
 	@NonNull
@@ -660,6 +658,11 @@ public class OsmandApplication extends MultiDexApplication {
 	@NonNull
 	public Model3dHelper getModel3dHelper() {
 		return model3dHelper;
+	}
+
+	@NonNull
+	public GalleryContextHelper getGalleryContextHelper() {
+		return galleryContextHelper;
 	}
 
 	public CommandPlayer getPlayer() {
