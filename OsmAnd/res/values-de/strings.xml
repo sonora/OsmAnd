@@ -376,9 +376,7 @@
     <string name="shared_string_no_thanks">Nicht verwendet</string>
     <string name="basemap_missing">Laden Sie die Basis-Weltkarte herunter, um einen Überblick über die ganze Welt bei niedrigen Vergrößerungsstufen zu erhalten.</string>
     <string name="vector_data_missing">Bitte Offline-Daten herunterladen, damit Karten offline verwendet werden können.</string>
-    <string name="local_index_gpx_info_show">"
-\n
-\nFür Optionen lang tippen"</string>
+    <string name="local_index_gpx_info_show">\n\nFür Optionen lang tippen</string>
     <string name="local_index_installed">Lokale Version</string>
     <string name="local_index_items_backuped">%1$d von %2$d Datei(en) deaktiviert.</string>
     <string name="local_index_items_deleted">%1$d von %2$d Datei(en) gelöscht.</string>
@@ -1198,9 +1196,7 @@
     <string name="shared_string_my_places">Meine Orte</string>
     <string name="loading_smth">%1$s wird geladen …</string>
     <string name="map_widget_plain_time">Aktuelle Zeit</string>
-    <string name="selected_gpx_info_show">"
-\n
-\nZur Darstellung auf der Karte lange tippen"</string>
+    <string name="selected_gpx_info_show">\n\nZur Darstellung auf der Karte lange tippen</string>
     <string name="delay_navigation_start">Navigation automatisch starten</string>
     <string name="save_as_favorites_points">Als Favoritengruppe speichern</string>
     <string name="select_destination_and_intermediate_points">Ziele auswählen</string>
@@ -1610,7 +1606,7 @@
     <string name="lang_bpy">Bishnupriya</string>
     <string name="lang_nv">Navajo</string>
     <string name="lang_vo">Volapük</string>
-    <string name="lang_new">Newar / Nepal Bhasa</string>
+    <string name="lang_new">Newari / Nepal Bhasa</string>
     <string name="lang_ceb">Cebuano</string>
     <string name="local_recordings_delete_all_confirm">%1$d Notizen löschen\?</string>
     <string name="lang_te">Telugu</string>
@@ -5615,7 +5611,7 @@
     <string name="rendering_attr_padusDisplayMode_name">Anzeigemodus für öffentliche Flächen</string>
     <string name="auto_zoom_smooth">Glatt</string>
     <string name="auto_zoom_discrete">Schrittweise</string>
-    <string name="auto_zoom">Autozoom</string>
+    <string name="auto_zoom">Auto-Zoom</string>
     <string name="java_safe">Java (sicher)</string>
     <string name="gpx_approximation">GPX-Annäherung</string>
     <string name="routing_type">Routing-Typ</string>
@@ -5970,4 +5966,15 @@
     <string name="tracker_item">OsmAnd Tracker</string>
     <string name="lock_screen">Bildschirm sperren</string>
     <string name="lock_screen_description">Touchfunktion aktivieren oder deaktivieren, um versehentliche Berührungen zu verhindern</string>
+    <string name="track_does_not_contain_data_to_save">Track enthält keine zu speichernden Daten.</string>
+    <string name="start_trip_recording_first_m">Bitte zuerst die Reiseaufzeichnung starten.</string>
+    <string name="quick_action_finish_trip_recording_summary">Eine Schaltfläche zum Speichern des GPX-Tracks und Beenden der Reiseaufzeichnung.</string>
+    <string name="quick_action_save_recorded_trip_and_continue_summary">Eine Schaltfläche zum Speichern der aktuell aufgezeichneten Reise als GPX-Datei und zum Fortsetzen der Aufzeichnung eines neuen Tracks ohne Unterbrechung.</string>
+    <string name="quick_action_save_recorded_trip_and_continue">Aufgezeichnete Reise &amp; Weiter</string>
+    <string name="new_trip_segment">Neuer Reiseabschnitt</string>
+    <string name="quick_action_start_pause_recording">Eine Schaltfläche zum Starten, Anhalten oder Fortsetzen der Aufzeichnung des GPX-Tracks.</string>
+    <string name="third_links">Externe Links</string>
+    <string name="new_segment_started_m">Die Aufzeichnung eines neuen Tracksegments wurde gestartet.</string>
+    <string name="quick_action_new_trip_segment">Eine Schaltfläche zum Starten eines neuen Segments in der laufenden GPX-Track-Aufzeichnung.</string>
+    <string name="quick_action_showhide_osm_edits_descr">Schaltfläche zum Ein- und Ausblenden von lokalen OSM-Bearbeitungen auf der Karte.</string>
 </resources>
