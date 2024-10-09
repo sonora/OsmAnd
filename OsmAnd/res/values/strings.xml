@@ -11,6 +11,7 @@
 	Thx - Hardy
 -->
     <string name="quick_action_showhide_osm_edits_descr">Button to show or hide local OSM edits on the map.</string>
+	<string name="liter_per_hour">l/h</string>
 	<string name="lock_screen_description">Enables or disables touch screen functionality to prevent accidental taps</string>
 	<string name="lock_screen">Lock screen</string>
     <string name="track_does_not_contain_data_to_save">Track doesn\'t contain data to save.</string>
@@ -49,7 +50,7 @@
     <string name="map_3d_mode_action_descr">Change map tilt.</string>
     <string name="drawer_button_description">Opens the main menu.</string>
     <string name="configure_map_description">Change map style, layers, or other settings.</string>
-    <string name="rendering_attr_showDirtbikeTrails_name">Show dirt bike trails</string>
+    <string name="rendering_attr_showDirtbikeTrails_name">Dirt bike trails</string>
     <string name="rendering_attr_showDirtbikeTrails_description">Show dirt bike trails</string>
     <string name="type_of_activity">Type of activity</string>
     <string name="change_activity">Change activity</string>
