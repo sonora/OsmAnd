@@ -4,7 +4,12 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.view.View
 import android.widget.Toast
 import com.google.gson.GsonBuilder
@@ -24,6 +29,7 @@ import net.osmand.plus.settings.backend.preferences.CommonPreference
 import net.osmand.plus.settings.fragments.SettingsScreenType
 import net.osmand.plus.utils.AndroidUtils
 import net.osmand.plus.utils.BLEUtils
+import net.osmand.plus.utils.BLEUtils.getAliasName
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo
 import net.osmand.plus.views.mapwidgets.WidgetInfoCreator
 import net.osmand.plus.views.mapwidgets.WidgetType
@@ -58,7 +64,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		UUID.fromString("00001101-0000-1000-8000-00805f9b34fb") // Standard UUID for SPP
 	private var connectedDeviceInfo: BTDeviceInfo? = null
 	var socket: BluetoothSocket? = null
-	private var scanDevicesListener: ScanDevicesListener? = null
+	private var scanDevicesListener: ScanOBDDevicesListener? = null
 	private var connectionStateListener: ConnectionStateListener? = null
 
 	enum class OBDConnectionState {
@@ -66,8 +72,8 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 	}
 
 
-	interface ScanDevicesListener {
-		fun onScanFinished(foundDevices: List<BTDeviceInfo>)
+	interface ScanOBDDevicesListener {
+		fun onDeviceFound(foundDevice: BTDeviceInfo)
 	}
 
 	interface ConnectionStateListener {
@@ -96,14 +102,20 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 			createMapWidgetForParams(mapActivity, WidgetType.OBD_BATTERY_VOLTAGE)
 		widgetsInfos.add(creator.createWidgetInfo(batteryVoltageWidget))
 		val fuelLevelWidget: MapWidget =
-			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_LEVEL)
+			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_LEVEL_PERCENT)
 		widgetsInfos.add(creator.createWidgetInfo(fuelLevelWidget))
 		val fuelLeftDistanceWidget: MapWidget =
 			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_LEFT_DISTANCE)
 		widgetsInfos.add(creator.createWidgetInfo(fuelLeftDistanceWidget))
-		val fuelConsumptionRateWidget: MapWidget =
-			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_CONSUMPTION_RATE)
-		widgetsInfos.add(creator.createWidgetInfo(fuelConsumptionRateWidget))
+		val fuelConsumptionRateLiterHourWidget: MapWidget =
+			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_CONSUMPTION_RATE_LITER_HOUR)
+		widgetsInfos.add(creator.createWidgetInfo(fuelConsumptionRateLiterHourWidget))
+		val fuelConsumptionRatePercentHourWidget: MapWidget =
+			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_CONSUMPTION_RATE_PERCENT_HOUR)
+		widgetsInfos.add(creator.createWidgetInfo(fuelConsumptionRatePercentHourWidget))
+		val fuelConsumptionRateSensorWidget: MapWidget =
+			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_CONSUMPTION_RATE_SENSOR)
+		widgetsInfos.add(creator.createWidgetInfo(fuelConsumptionRateSensorWidget))
 		val fuelTypeWidget: MapWidget =
 			createMapWidgetForParams(mapActivity, WidgetType.OBD_FUEL_TYPE)
 		widgetsInfos.add(creator.createWidgetInfo(fuelTypeWidget))
@@ -138,17 +150,25 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 				mapActivity,
 				OBDWidgetDataFieldType.BATTERY_VOLTAGE)
 
-			WidgetType.OBD_FUEL_LEVEL -> return OBDTextWidget(
+			WidgetType.OBD_FUEL_LEVEL_PERCENT -> return OBDTextWidget(
 				mapActivity,
-				OBDWidgetDataFieldType.FUEL_LVL)
+				OBDWidgetDataFieldType.FUEL_LEFT_PERCENT)
 
 			WidgetType.OBD_FUEL_LEFT_DISTANCE -> return OBDTextWidget(
 				mapActivity,
 				OBDWidgetDataFieldType.FUEL_LEFT_DISTANCE)
 
-			WidgetType.OBD_FUEL_CONSUMPTION_RATE -> return OBDTextWidget(
+			WidgetType.OBD_FUEL_CONSUMPTION_RATE_PERCENT_HOUR -> return OBDTextWidget(
 				mapActivity,
-				OBDWidgetDataFieldType.FUEL_CONSUMPTION_RATE)
+				OBDWidgetDataFieldType.FUEL_CONSUMPTION_RATE_PERCENT_HOUR)
+
+			WidgetType.OBD_FUEL_CONSUMPTION_RATE_SENSOR -> return OBDTextWidget(
+				mapActivity,
+				OBDWidgetDataFieldType.FUEL_CONSUMPTION_RATE_SENSOR)
+
+			WidgetType.OBD_FUEL_CONSUMPTION_RATE_LITER_HOUR -> return OBDTextWidget(
+				mapActivity,
+				OBDWidgetDataFieldType.FUEL_CONSUMPTION_RATE_LITER_HOUR)
 
 			WidgetType.OBD_FUEL_TYPE -> return OBDTextWidget(
 				mapActivity,
@@ -228,7 +248,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 					device.uuids?.any { parcelUuid -> parcelUuid.uuid == uuid } == true
 				}.map {
 					if (it != null) BTDeviceInfo(
-						it.name,
+						it.getAliasName(activity),
 						it.address) else BTDeviceInfo.UNKNOWN_DEVICE
 				}
 			}
@@ -268,7 +288,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 						adapter.cancelDiscovery()
 						val pairedDevices = adapter.bondedDevices.toList()
 						val obdDevice: BluetoothDevice? =
-							pairedDevices.find { it.name == deviceInfo.name && it.address == deviceInfo.address }
+							pairedDevices.find { it.getAliasName(activity) == deviceInfo.name && it.address == deviceInfo.address }
 						if (obdDevice != null) {
 							connectToDevice(activity, obdDevice)
 						} else {
@@ -294,14 +314,17 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 			socket?.apply {
 				connect()
 				if (isConnected) {
-					onDeviceConnected(connectedDevice)
+					onDeviceConnected(
+						BTDeviceInfo(
+							connectedDevice.getAliasName(activity),
+							connectedDevice.address))
 					val input = inputStream.source()
 					val output = outputStream.sink()
 					OBDDispatcher.setReadWriteStreams(input, output)
 					app.runInUIThread {
 						Toast.makeText(
 							activity,
-							"Connected to ${connectedDevice.name ?: "Unknown device"}",
+							"Connected to ${connectedDevice.getAliasName(activity)}",
 							Toast.LENGTH_LONG).show()
 					}
 				}
@@ -311,16 +334,17 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 			app.runInUIThread {
 				Toast.makeText(
 					activity,
-					"Can\'t connect to ${connectedDevice.name ?: "Unknown device"}",
+					"Can\'t connect to ${connectedDevice.getAliasName(activity)}",
 					Toast.LENGTH_LONG).show()
 			}
 		}
 	}
 
 	@SuppressLint("MissingPermission")
-	private fun onDeviceConnected(connectedDevice: BluetoothDevice) {
-		connectedDeviceInfo = BTDeviceInfo(connectedDevice.name, connectedDevice.address)
+	private fun onDeviceConnected(btDeviceInfo: BTDeviceInfo) {
+		connectedDeviceInfo = btDeviceInfo
 		connectedDeviceInfo?.let {
+			OBDDataComputer.fuelTank = 52f //todo implement setting correct fuel tank
 			saveDeviceToUsedOBDDevicesList(it)
 			setLastConnectedDevice(it)
 		}
@@ -369,7 +393,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 				KLatLon(location.latitude, location.longitude)))
 	}
 
-	fun setScanDevicesListener(listener: ScanDevicesListener?) {
+	fun setScanDevicesListener(listener: ScanOBDDevicesListener?) {
 		scanDevicesListener = listener
 	}
 
@@ -385,7 +409,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		return arr?.toList() ?: emptyList()
 	}
 
-	fun saveDeviceToUsedOBDDevicesList(deviceInfo: BTDeviceInfo) {
+	private fun saveDeviceToUsedOBDDevicesList(deviceInfo: BTDeviceInfo) {
 		val currentList = getUsedOBDDevicesList().toMutableList()
 		val savedDevice = currentList.find { it.address == deviceInfo.address }
 		if (savedDevice == null) {
@@ -400,7 +424,19 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		}
 	}
 
-	fun removeDeviceToUsedOBDDevicesList(deviceInfo: BTDeviceInfo) {
+	fun setDeviceName(address: String, newName: String) {
+		removeDeviceToUsedOBDDevicesList(address)
+		saveDeviceToUsedOBDDevicesList(BTDeviceInfo(newName, address))
+	}
+
+	fun removeDeviceToUsedOBDDevicesList(address: String) {
+		val device = getUsedOBDDevicesList().find { info -> info.address == address }
+		if (device != null) {
+			removeDeviceToUsedOBDDevicesList(device)
+		}
+	}
+
+	private fun removeDeviceToUsedOBDDevicesList(deviceInfo: BTDeviceInfo) {
 		val currentList = getUsedOBDDevicesList().toMutableList()
 		currentList.remove(deviceInfo)
 		writeUsedOBDDevicesList(currentList)
@@ -424,6 +460,54 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 			val gson = GsonBuilder().create()
 			gson.fromJson(savedDevice, BTDeviceInfo::class.java)
 		}
+	}
+
+	private val bluetoothReceiver = object : BroadcastReceiver() {
+		@SuppressLint("MissingPermission")
+		override fun onReceive(context: Context, intent: Intent) {
+			if (AndroidUtils.hasBLEPermission(context)) {
+				when (intent.action) {
+					BluetoothDevice.ACTION_FOUND -> {
+						val device: BluetoothDevice? =
+							if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+								intent.getParcelableExtra(
+									BluetoothDevice.EXTRA_DEVICE,
+									BluetoothDevice::class.java)
+							} else {
+								@Suppress("DEPRECATION")
+								intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as? BluetoothDevice
+							}
+						device?.let {
+							if (it.bondState != BluetoothDevice.BOND_BONDED) {
+								scanDevicesListener?.onDeviceFound(
+									BTDeviceInfo(
+										it.getAliasName(
+											context), it.address))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	@SuppressLint("MissingPermission")
+	fun searchUnboundDevices(activity: Activity) {
+		if (BLEUtils.isBLEEnabled(activity) && AndroidUtils.hasBLEPermission(activity)) {
+			val bluetoothAdapter = BLEUtils.getBluetoothAdapter(activity)
+			bluetoothAdapter?.startDiscovery()
+		}
+	}
+
+	override fun mapActivityPause(activity: MapActivity) {
+		super.mapActivityPause(activity)
+		activity.unregisterReceiver(bluetoothReceiver)
+	}
+
+	override fun mapActivityResume(activity: MapActivity) {
+		super.mapActivityResume(activity)
+		val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+		activity.registerReceiver(bluetoothReceiver, filter)
 	}
 
 	override fun mapActivityCreate(activity: MapActivity) {
