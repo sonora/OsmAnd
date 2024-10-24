@@ -1,35 +1,55 @@
 package net.osmand.plus.views.controls;
 
+import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static net.osmand.plus.OsmAndConstants.UI_HANDLER_MAP_HUD;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.DEF_MARGIN_DP;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.POS_BOTTOM;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.POS_FULL_WIDTH;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.POS_LEFT;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.POS_RIGHT;
+import static net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize.POS_TOP;
+
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
+import android.content.res.Resources;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.PlatformUtil;
-import net.osmand.data.QuadRect;
-import net.osmand.data.QuadTree;
+import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
+import net.osmand.plus.helpers.AndroidUiHelper;
+import net.osmand.plus.quickaction.MapButtonsHelper;
 import net.osmand.plus.utils.AndroidUtils;
+import net.osmand.plus.views.controls.maphudbuttons.ButtonPositionSize;
 import net.osmand.plus.views.controls.maphudbuttons.MapButton;
-import net.osmand.plus.views.layers.base.OsmandMapLayer;
+import net.osmand.plus.views.mapwidgets.configure.buttons.MapButtonState;
 
 import org.apache.commons.logging.Log;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 public class MapHudLayout extends FrameLayout {
+
+	private static final int REFRESH_UI_ID = UI_HANDLER_MAP_HUD + 1;
+	private static final int UI_REFRESH_INTERVAL_MILLIS = 100;
 
 	private static final Log LOG = PlatformUtil.getLog(MapHudLayout.class);
 
-	private static final double[][] DIRECTIONS = getAvailableDirections();
+	protected final OsmandApplication app;
 
-	private final Paint gridPaint;
-	private final float gridSize;
+	private final List<MapButton> mapButtons = new ArrayList<>();
+	private final Map<View, ButtonPositionSize> widgetPositions = new LinkedHashMap<>();
+
+	private final float dpToPx;
+	private final int statusBarHeight;
 
 	public MapHudLayout(@NonNull Context context) {
 		this(context, null);
@@ -46,157 +66,268 @@ public class MapHudLayout extends FrameLayout {
 	public MapHudLayout(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
 		super(context, attrs, defStyleAttr, defStyleRes);
 
-		this.gridSize = AndroidUtils.dpToPxF(context, 8);
-		this.gridPaint = new Paint();
-		gridPaint.setColor(Color.BLACK);
-		gridPaint.setStrokeWidth(1f);
-		setWillNotDraw(false);
+		this.app = (OsmandApplication) context.getApplicationContext();
+		this.dpToPx = AndroidUtils.dpToPxF(context, 1);
+		this.statusBarHeight = AndroidUtils.getStatusBarHeight(context);
+	}
+
+	@Override
+	protected void onFinishInflate() {
+		super.onFinishInflate();
+
+		addPosition(findViewById(R.id.widget_top_bar));
+
+		addPosition(findViewById(R.id.top_widgets_panel));
+		addPosition(findViewById(R.id.map_bottom_widgets_panel));
+
+		addPosition(findViewById(R.id.map_left_widgets_panel));
+		addPosition(findViewById(R.id.map_right_widgets_panel));
+
+		updateRulerWidget(findViewById(R.id.map_ruler_container));
+	}
+
+	private void addPosition(@Nullable View view) {
+		if (view != null) {
+			addChangeListeners(view);
+			widgetPositions.put(view, createWidgetPosition(view));
+		}
+	}
+
+	private void addChangeListeners(@NonNull View view) {
+		if (view instanceof ViewChangeProvider provider) {
+			provider.setSizeListener((v, width, height, oldWidth, oldHeight) -> {
+				if (width != oldWidth || height != oldHeight) {
+					refresh();
+				}
+			});
+			provider.setVisibilityListener((v, visibility) -> refresh());
+		}
+	}
+
+	private void refresh() {
+		app.runMessageInUIThreadAndCancelPrevious(REFRESH_UI_ID, this::updateButtons, UI_REFRESH_INTERVAL_MILLIS);
+	}
+
+	public void addMapButton(@NonNull MapButton button) {
+		LayoutParams params = new FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+		ButtonPositionSize position = button.getDefaultPositionSize();
+		if (position != null) {
+			updateButtonParams(params, position);
+		}
+		addChangeListeners(button);
+
+		addView(button, params);
+		mapButtons.add(button);
+	}
+
+	public void removeMapButton(@NonNull MapButton button) {
+		removeView(button);
+		mapButtons.remove(button);
 	}
 
 	public void updateButtons() {
-		for (int i = 0; i < getChildCount(); i++) {
-			View child = getChildAt(i);
-			if (child instanceof MapButton button && button.getVisibility() == VISIBLE) {
-				updateButton(button, false);
+		if (getWidth() <= 0 && getHeight() <= 0 && getVisibility() != VISIBLE) {
+			return;
+		}
+		Map<View, ButtonPositionSize> map = getButtonPositionSizes();
+		for (Map.Entry<View, ButtonPositionSize> entry : map.entrySet()) {
+			View view = entry.getKey();
+			if (view instanceof MapButton button) {
+				updateButtonPosition(button, entry.getValue());
 			}
 		}
 	}
 
-	public void updateButton(@NonNull MapButton button, boolean save) {
-		QuadRect currentBounds = getRect(button);
-		QuadTree<QuadRect> intersections = initBoundIntersections(button);
-		LayoutParams params = (LayoutParams) button.getLayoutParams();
-//		if (OsmandMapLayer.intersects(intersections, currentBounds, false)) {
-//			params = updateButtonPosition(button, intersections);
+	@NonNull
+	private Map<View, ButtonPositionSize> getButtonPositionSizes() {
+		Map<View, ButtonPositionSize> map = collectPositions();
+//		LOG.info("--------START--------");
+//		for (ButtonPositionSize b : map.values()) {
+//			LOG.info(b + " value = " + b.toLongValue());
 //		}
-		int width = button.getMeasuredWidth();
-		int height = button.getMeasuredHeight();
+//		LOG.info("--------");
+		ButtonPositionSize.computeNonOverlap(1, new ArrayList<>(map.values()));
+//		for (ButtonPositionSize b : map.values()) {
+//			LOG.info(b + " value = " + b.toLongValue());
+//		}
+//		LOG.info("--------END--------");
 
-		if (width > 0 && height > 0) {
-			int sw = getWidth();
-			int sh = getHeight();
+		return map;
+	}
 
-			int x = roundCoordinate(params.rightMargin, sw, gridSize, button.getShadowPadding());
-			int y = roundCoordinate(params.bottomMargin, sh, gridSize, button.getShadowPadding());
-			if ((params.rightMargin != x) || (params.bottomMargin != y)) {
-				LOG.info(String.format("Correct %d, %d -> %d, %d",
-						params.rightMargin, params.bottomMargin, x, y));
-				params.rightMargin = x;
-				params.bottomMargin = y;
-				button.setLayoutParams(params);
+	@NonNull
+	public Map<View, ButtonPositionSize> collectPositions() {
+		Map<View, ButtonPositionSize> map = new LinkedHashMap<>();
 
-				float frameSize = button.getFrameSize();
-				float imageSize = button.getImageSize();
-				float widthDp = AndroidUtils.pxToDpF(getContext(), width);
-				float heightDp = AndroidUtils.pxToDpF(getContext(), height);
-
-				int imageWidth = button.getImageView().getMeasuredWidth();
-				int imageHeight = button.getImageView().getMeasuredHeight();
-				float imageWidthDp = AndroidUtils.pxToDpF(getContext(), imageWidth);
-				float imageHeightDp = AndroidUtils.pxToDpF(getContext(), imageHeight);
-
-				LOG.info("widthDp " + widthDp + " heightDp " + heightDp
-						+ " imageWidthDp " + imageWidthDp + " imageHeightDp " + imageHeightDp
-						+ " frameSize " + frameSize + " imageSize " + imageSize);
+		for (Map.Entry<View, ButtonPositionSize> entry : widgetPositions.entrySet()) {
+			View view = entry.getKey();
+			if (view.getVisibility() == VISIBLE) {
+				ButtonPositionSize position = updateWidgetPosition(view, entry.getValue());
+				map.put(view, position);
 			}
 		}
-		if (save) {
-			button.saveMargins();
-		}
-	}
-
-	private static int margin = 1;
-
-	public int roundCoordinate(int coord, int screenSize, float cellSize, float shadowPadding) {
-		int fullCells = (int) Math.max(((coord + cellSize) / cellSize), margin);
-		if (2 * fullCells * cellSize < screenSize) {
-			return (int) (fullCells * cellSize - shadowPadding);
-		}
-		float end = (screenSize - (coord - cellSize / 2));
-		fullCells = (int) (end / cellSize);
-		float ret = screenSize - fullCells * cellSize;
-		return (int) (ret);
-	}
-
-//	@NonNull
-//	private LayoutParams updateButtonPosition(@NonNull MapButton button, @NonNull QuadTree<QuadRect> intersections) {
-//		int width = getMeasuredWidth();
-//		int height = getMeasuredHeight();
-//		int buttonWidth = button.getMeasuredWidth();
-//		int buttonHeight = button.getMeasuredHeight();
-//
-//		int maxRightMargin = width - buttonWidth;
-//		int maxBottomMargin = height - buttonHeight;
-//
-//		int maxStepsX = width / gridSize;
-//		int maxStepsY = height / gridSize;
-//		int maxSteps = Math.max(maxStepsX, maxStepsY);
-//
-//		LayoutParams params = (LayoutParams) button.getLayoutParams();
-//		for (int step = 1; step <= maxSteps; step++) {
-//			for (double[] direction : DIRECTIONS) {
-//				int newRightMargin = (int) (params.rightMargin + direction[0] * step * gridSize);
-//				int newBottomMargin = (int) (params.bottomMargin + direction[1] * step * gridSize);
-//
-//				newRightMargin = Math.max(0, Math.min(newRightMargin, maxRightMargin));
-//				newBottomMargin = Math.max(0, Math.min(newBottomMargin, maxBottomMargin));
-//
-//				int newLeft = width - newRightMargin - buttonWidth;
-//				int newTop = height - newBottomMargin - buttonHeight;
-//
-//				QuadRect newRect = new QuadRect(newLeft, newTop, newLeft + buttonWidth, newTop + buttonHeight);
-//				if (!OsmandMapLayer.intersects(intersections, newRect, false)) {
-//					params.rightMargin = newRightMargin;
-//					params.bottomMargin = newBottomMargin;
-//					return params;
-//				}
-//			}
-//		}
-//		return params;
-//	}
-
-	@NonNull
-	private QuadRect getRect(@NonNull View view) {
-		Rect rect = AndroidUtils.getViewBoundOnWindow(view);
-		if (view instanceof MapButton button) {
-			int radius = (int) button.getShadowPadding();
-			return new QuadRect(rect.left - radius, rect.top - radius, rect.right + radius, rect.bottom + radius);
-		} else {
-			return new QuadRect(rect.left, rect.top, rect.right, rect.bottom);
-		}
-	}
-
-	@NonNull
-	private QuadTree<QuadRect> initBoundIntersections(@NonNull MapButton button) {
-		QuadTree<QuadRect> intersections = OsmandMapLayer.initBoundIntersections(getMeasuredWidth(), getMeasuredHeight());
-		initBoundIntersections(this, button, intersections, false);
-		initBoundIntersections(findViewById(R.id.MapHudButtonsOverlayTop), button, intersections, true);
-		initBoundIntersections(findViewById(R.id.MapHudButtonsOverlayBottom), button, intersections, true);
-		return intersections;
-	}
-
-	private void initBoundIntersections(@NonNull ViewGroup parent, @NonNull MapButton button, @NonNull QuadTree<QuadRect> intersections, boolean recursive) {
-		for (int i = 0; i < parent.getChildCount(); i++) {
-			View child = parent.getChildAt(i);
-			if (child != button && child.getVisibility() == VISIBLE) {
-				if (child instanceof MapButton || child instanceof SideWidgetsPanel || child instanceof VerticalWidgetPanel) {
-					QuadRect rect = getRect(child);
-					intersections.insert(rect, new QuadRect(rect));
-				} else if (child instanceof ViewGroup && recursive) {
-					initBoundIntersections((ViewGroup) child, button, intersections, true);
+		for (MapButton button : mapButtons) {
+			if (button.getVisibility() == VISIBLE) {
+				ButtonPositionSize position = button.getDefaultPositionSize();
+				if (position != null) {
+					map.put(button, position);
 				}
 			}
 		}
+		return map;
 	}
 
+	@NonNull
+	private ButtonPositionSize createWidgetPosition(@NonNull View view) {
+		String name = getViewName(view);
+		ButtonPositionSize position = new ButtonPositionSize(name);
+		if (view instanceof VerticalWidgetPanel panel) {
+			position.setMoveDescendantsVertical();
+			position.setPositionVertical(panel.isTopPanel() ? POS_TOP : POS_BOTTOM);
+			position.setPositionHorizontal(POS_FULL_WIDTH);
+		} else if (view instanceof SideWidgetsPanel panel) {
+			position.setPositionVertical(POS_TOP);
+			position.setPositionHorizontal(panel.rightSide ? POS_RIGHT : POS_LEFT);
 
-	private static double[][] getAvailableDirections() {
-		double[][] directions = new double[16][2];
-		for (int i = 0; i < 16; i++) {
-			double angle = Math.toRadians(i * 22.5);
-			directions[i][0] = Math.cos(angle);
-			directions[i][1] = Math.sin(angle);
+			if (AndroidUiHelper.isOrientationPortrait(getContext())) {
+				position.setMoveDescendantsVertical();
+			} else {
+				position.setMoveDescendantsHorizontal();
+			}
+		} else if (view.getId() == R.id.widget_top_bar) {
+			position.setMoveDescendantsVertical();
+			position.setPositionVertical(POS_TOP);
+			position.setPositionHorizontal(POS_FULL_WIDTH);
 		}
-		return directions;
+		return updateWidgetPosition(view, position);
+	}
+
+	@NonNull
+	private String getViewName(@NonNull View view) {
+		try {
+			return getResources().getResourceEntryName(view.getId());
+		} catch (Resources.NotFoundException e) {
+			return view.toString();
+		}
+	}
+
+	@NonNull
+	private ButtonPositionSize updateWidgetPosition(@NonNull View view, @NonNull ButtonPositionSize position) {
+		int width = (int) AndroidUtils.pxToDpF(getContext(), view.getWidth()) / 8;
+		int height = (int) AndroidUtils.pxToDpF(getContext(), view.getHeight()) / 8;
+		position.setSize(width, height);
+
+		if (view instanceof SideWidgetsPanel) {
+			int parentWidth = getWidth();
+			int parentHeight = getAdjustedHeight();
+			int[] margins = AndroidUtils.getRelativeMargins(this, view);
+			if (margins[0] >= 0 && margins[1] >= 0 && margins[2] >= 0 && margins[3] >= 0) {
+				position.calcGridPositionFromPixel(dpToPx, parentWidth, parentHeight,
+						position.isLeft(), position.isLeft() ? margins[0] : margins[2],
+						position.isTop(), position.isTop() ? margins[1] - statusBarHeight : margins[3] - statusBarHeight);
+			}
+		}
+		return position;
+	}
+
+	public void updateButtonPosition(@NonNull MapButton button, @NonNull ButtonPositionSize position) {
+		LayoutParams params = (LayoutParams) button.getLayoutParams();
+
+		boolean changed = updateButtonParams(params, position);
+		if (changed) {
+			button.setLayoutParams(params);
+		}
+	}
+
+	public boolean updateButtonParams(@NonNull LayoutParams params, @NonNull ButtonPositionSize position) {
+		boolean changed = false;
+
+		int gravity;
+		int leftMargin;
+		int topMargin;
+		int rightMargin;
+		int bottomMargin;
+
+		int marginX = position.getXStartPix(dpToPx);
+		int marginY = position.getYStartPix(dpToPx);
+
+		if (position.isLeft()) {
+			gravity = Gravity.START;
+			rightMargin = 0;
+			leftMargin = marginX;
+		} else {
+			gravity = Gravity.END;
+			leftMargin = 0;
+			rightMargin = marginX;
+		}
+		if (position.isTop()) {
+			gravity |= Gravity.TOP;
+			bottomMargin = 0;
+			topMargin = marginY;
+		} else {
+			gravity |= Gravity.BOTTOM;
+			topMargin = 0;
+			bottomMargin = marginY;
+		}
+		if (leftMargin != params.leftMargin || topMargin != params.topMargin
+				|| rightMargin != params.rightMargin || bottomMargin != params.bottomMargin) {
+			changed = true;
+			params.leftMargin = leftMargin;
+			params.topMargin = topMargin;
+			params.rightMargin = rightMargin;
+			params.bottomMargin = bottomMargin;
+		}
+		if (params.gravity != gravity) {
+			changed = true;
+			params.gravity = gravity;
+		}
+		return changed;
+	}
+
+	public void updateButton(@NonNull MapButton button, boolean save) {
+		MapButtonState buttonState = button.getButtonState();
+		ButtonPositionSize positionSize = buttonState != null ? buttonState.getPositionSize() : null;
+		if (buttonState != null) {
+			int width = getWidth();
+			int height = getAdjustedHeight();
+			LayoutParams params = (LayoutParams) button.getLayoutParams();
+
+			positionSize.calcGridPositionFromPixel(dpToPx, width, height,
+					positionSize.isLeft(), positionSize.isLeft() ? params.leftMargin : params.rightMargin,
+					positionSize.isTop(), positionSize.isTop() ? params.topMargin : params.bottomMargin);
+		}
+		if (save) {
+			button.savePosition();
+		}
+		updateButtons(); // relayout to avoid overlap
+	}
+
+	private int getAdjustedHeight() {
+		return getHeight() - statusBarHeight;
+	}
+
+	private void updateRulerWidget(@NonNull View widget) {
+		MapButtonsHelper helper = app.getMapButtonsHelper();
+		ButtonPositionSize drawer = helper.getDrawerMenuButtonState().getPositionSize();
+		ButtonPositionSize navigation = helper.getNavigationMenuButtonState().getPositionSize();
+
+		MarginLayoutParams params = (MarginLayoutParams) widget.getLayoutParams();
+		params.setMarginStart((int) (drawer.getWidthPix(dpToPx) + navigation.getWidthPix(dpToPx) + DEF_MARGIN_DP * dpToPx));
+	}
+
+	public interface VisibilityChangeListener {
+		void onVisibilityChanged(@NonNull View view, int visibility);
+	}
+
+	public interface SizeChangeListener {
+		void onSizeChanged(@NonNull View view, int w, int h, int oldw, int oldh);
+	}
+
+	public interface ViewChangeProvider {
+
+		void setSizeListener(@Nullable SizeChangeListener listener);
+
+		void setVisibilityListener(@Nullable VisibilityChangeListener listener);
+
 	}
 }
