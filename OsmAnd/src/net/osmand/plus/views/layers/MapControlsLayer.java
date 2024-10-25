@@ -48,6 +48,7 @@ public class MapControlsLayer extends OsmandMapLayer {
 	private final MapActionsHelper mapActionsHelper;
 	private final MapTransparencyHelper mapTransparencyHelper;
 
+	private View mapHudContainer;
 	private MapHudLayout mapHudLayout;
 	private List<MapButton> mapButtons = new ArrayList<>();
 	private List<MapButton> customMapButtons = new ArrayList<>();
@@ -97,6 +98,7 @@ public class MapControlsLayer extends OsmandMapLayer {
 			mapTransparencyHelper.destroyTransparencyBar();
 			mapRouteInfoMenu = null;
 			mapHudLayout = null;
+			mapHudContainer = null;
 		}
 	}
 
@@ -128,7 +130,8 @@ public class MapControlsLayer extends OsmandMapLayer {
 
 	public void initMapButtons() {
 		MapActivity activity = requireMapActivity();
-		mapHudLayout = activity.findViewById(R.id.map_hud_layout);
+		mapHudContainer = activity.findViewById(R.id.map_hud_container);
+		mapHudLayout = mapHudContainer.findViewById(R.id.map_hud_layout);
 
 		for (MapButton button : mapButtons) {
 			mapHudLayout.removeMapButton(button);
@@ -194,29 +197,28 @@ public class MapControlsLayer extends OsmandMapLayer {
 	}
 
 	private void showMapControls() {
-		MapActivity mapActivity = requireMapActivity();
 		if (settings.DO_NOT_USE_ANIMATIONS.get()) {
-			mapActivity.findViewById(R.id.map_hud_layout).setVisibility(View.VISIBLE);
+			mapHudContainer.setVisibility(View.VISIBLE);
 		} else {
 			animateMapControls(true);
 		}
-		AndroidUtils.showNavBar(mapActivity);
+		MapActivity activity = getMapActivity();
+		if (activity != null) {
+			AndroidUtils.showNavBar(activity);
+		}
 	}
 
 	public void hideMapControls() {
-		MapActivity mapActivity = requireMapActivity();
 		if (settings.DO_NOT_USE_ANIMATIONS.get()) {
-			mapActivity.findViewById(R.id.map_hud_layout).setVisibility(View.INVISIBLE);
+			mapHudContainer.setVisibility(View.INVISIBLE);
 		} else {
 			animateMapControls(false);
 		}
 	}
 
 	private void animateMapControls(boolean show) {
-		MapActivity mapActivity = requireMapActivity();
-		MapHudLayout mapHudLayout = mapActivity.findViewById(R.id.map_hud_layout);
-		View mapHudButtonsTop = mapActivity.findViewById(R.id.MapHudButtonsOverlayTop);
-		View mapHudButtonsBottom = mapActivity.findViewById(R.id.MapHudButtonsOverlayBottom);
+		View mapHudButtonsTop = mapHudLayout.findViewById(R.id.MapHudButtonsOverlayTop);
+		View mapHudButtonsBottom = mapHudLayout.findViewById(R.id.MapHudButtonsOverlayBottom);
 
 		float transTopInitial = show ? -mapHudButtonsTop.getHeight() : 0;
 		float transBottomInitial = show ? mapHudButtonsBottom.getHeight() : 0;
@@ -228,7 +230,7 @@ public class MapControlsLayer extends OsmandMapLayer {
 
 		AnimatorSet set = new AnimatorSet();
 		set.setDuration(300).playTogether(
-				ObjectAnimator.ofFloat(mapHudLayout, View.ALPHA, alphaInitial, alphaFinal),
+				ObjectAnimator.ofFloat(mapHudContainer, View.ALPHA, alphaInitial, alphaFinal),
 				ObjectAnimator.ofFloat(mapHudButtonsTop, View.TRANSLATION_Y, transTopInitial, transTopFinal),
 				ObjectAnimator.ofFloat(mapHudButtonsBottom, View.TRANSLATION_Y, transBottomInitial, transBottomFinal)
 		);
@@ -237,7 +239,7 @@ public class MapControlsLayer extends OsmandMapLayer {
 			public void onAnimationStart(Animator animation) {
 				super.onAnimationStart(animation);
 				if (show) {
-					mapHudLayout.setVisibility(View.VISIBLE);
+					mapHudContainer.setVisibility(View.VISIBLE);
 				}
 			}
 
@@ -245,21 +247,24 @@ public class MapControlsLayer extends OsmandMapLayer {
 			public void onAnimationEnd(Animator animation) {
 				super.onAnimationEnd(animation);
 				if (!show) {
-					mapHudLayout.setVisibility(View.INVISIBLE);
+					mapHudContainer.setVisibility(View.INVISIBLE);
 					mapHudButtonsTop.setTranslationY(transTopInitial);
 					mapHudButtonsBottom.setTranslationY(transBottomInitial);
-					mapHudLayout.setAlpha(alphaInitial);
+					mapHudContainer.setAlpha(alphaInitial);
 				}
 				mapHudLayout.updateButtons();
-				mapActivity.updateStatusBarColor();
+
+				MapActivity activity = getMapActivity();
+				if (activity != null) {
+					activity.updateStatusBarColor();
+				}
 			}
 		});
 		set.start();
 	}
 
 	public boolean isMapControlsVisible() {
-		MapActivity mapActivity = requireMapActivity();
-		return mapActivity.findViewById(R.id.map_hud_layout).getVisibility() == View.VISIBLE;
+		return mapHudContainer != null && mapHudContainer.getVisibility() == View.VISIBLE;
 	}
 
 	public void switchMapControlsVisibility(boolean switchNavBarVisibility) {

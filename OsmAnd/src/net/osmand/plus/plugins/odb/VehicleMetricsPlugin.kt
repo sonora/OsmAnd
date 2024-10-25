@@ -26,6 +26,8 @@ import net.osmand.plus.OsmandApplication
 import net.osmand.plus.R
 import net.osmand.plus.activities.MapActivity
 import net.osmand.plus.plugins.OsmandPlugin
+import net.osmand.plus.plugins.PluginsHelper
+import net.osmand.plus.plugins.development.OsmandDevelopmentPlugin
 import net.osmand.plus.plugins.odb.dialogs.OBDDevicesListFragment
 import net.osmand.plus.plugins.weather.units.TemperatureUnit
 import net.osmand.plus.settings.backend.ApplicationMode
@@ -63,6 +65,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 	private var mapActivity: MapActivity? = null
 	private val handler = Handler(Looper.myLooper()!!)
 	private val RECONNECT_DELAY = 5000L
+	private var currentConnectingState = OBDConnectionState.DISCONNECTED
 
 	val USED_OBD_DEVICES = registerStringPreference(
 		"used_obd_devices",
@@ -91,7 +94,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 	}
 
 	interface ConnectionStateListener {
-		fun onStateChanged(state: OBDConnectionState, deviceInfo: BTDeviceInfo?)
+		fun onStateChanged(state: OBDConnectionState, deviceInfo: BTDeviceInfo)
 	}
 
 	init {
@@ -375,9 +378,9 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		socket = null
 		val lastConnectedDeviceInfo = connectedDeviceInfo
 		connectedDeviceInfo = null
-		connectionStateListener?.onStateChanged(
-			OBDConnectionState.DISCONNECTED,
-			lastConnectedDeviceInfo)
+		if (lastConnectedDeviceInfo != null) {
+			onDisconnected(lastConnectedDeviceInfo)
+		}
 	}
 
 	@SuppressLint("MissingPermission")
@@ -414,48 +417,49 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 
 	@SuppressLint("MissingPermission")
 	fun connectToObd(activity: Activity, deviceInfo: BTDeviceInfo): Boolean {
-		if (connectedDeviceInfo == null) {
-			if (BLEUtils.isBLEEnabled(activity)) {
-				if (AndroidUtils.hasBLEPermission(activity)) {
-					connectionStateListener?.onStateChanged(
-						OBDConnectionState.CONNECTING,
-						deviceInfo)
-					if (socket != null && socket?.isConnected == true) {
-						socket?.close()
-						socket = null
-					}
-
-					if (settings.SIMULATE_OBD_DATA.get()) {
-						onDeviceConnected(deviceInfo)
-						val simulator = ODBSimulationSource()
-						val input = simulator.reader
-						val output = simulator.writer
-						OBDDispatcher.setReadWriteStreams(input, output)
-						return true
-					}
-
-					val bluetoothAdapter = BLEUtils.getBluetoothAdapter(activity)
-					bluetoothAdapter?.let { adapter ->
-						LOG.debug("adapter.isDiscovering ${adapter.isDiscovering}")
-						val pairedDevices = adapter.bondedDevices.toList()
-						val obdDevice: BluetoothDevice? =
-							pairedDevices.find { it.getAliasName(activity) == deviceInfo.name && it.address == deviceInfo.address }
-						if (obdDevice != null) {
-							connectToDevice(activity, obdDevice)
-						} else {
-							connectionStateListener?.onStateChanged(
-								OBDConnectionState.DISCONNECTED,
-								deviceInfo)
+		if (currentConnectingState == OBDConnectionState.DISCONNECTED) {
+			if (connectedDeviceInfo == null) {
+				if (BLEUtils.isBLEEnabled(activity)) {
+					if (AndroidUtils.hasBLEPermission(activity)) {
+						onConnecting(deviceInfo)
+						if (socket != null && socket?.isConnected == true) {
+							socket?.close()
+							socket = null
 						}
+						OBDDispatcher.useInfoLogging =
+							PluginsHelper.getPlugin(OsmandDevelopmentPlugin::class.java)?.isEnabled == true
+
+						if (settings.SIMULATE_OBD_DATA.get() && deviceInfo.address.isEmpty()) {
+							onDeviceConnected(deviceInfo)
+							val simulator = ODBSimulationSource()
+							val input = simulator.reader
+							val output = simulator.writer
+							OBDDispatcher.setReadWriteStreams(input, output)
+							return true
+						}
+
+						val bluetoothAdapter = BLEUtils.getBluetoothAdapter(activity)
+						bluetoothAdapter?.let { adapter ->
+							LOG.debug("adapter.isDiscovering ${adapter.isDiscovering}")
+							val pairedDevices = adapter.bondedDevices.toList()
+							val obdDevice: BluetoothDevice? =
+								pairedDevices.find { it.address == deviceInfo.address }
+							if (obdDevice != null) {
+								connectToDevice(activity, obdDevice)
+							} else {
+								LOG.debug("bt device ${deviceInfo.name} - ${deviceInfo.address}")
+								onDisconnected(deviceInfo)
+							}
+						}
+					} else {
+						AndroidUtils.requestBLEPermissions(activity)
 					}
-				} else {
-					AndroidUtils.requestBLEPermissions(activity)
 				}
+			} else {
+				socket?.close()
+				connectedDeviceInfo = null
+				connectToObd(activity, deviceInfo)
 			}
-		} else {
-			socket?.close()
-			connectedDeviceInfo = null
-			connectToObd(activity, deviceInfo)
 		}
 		return socket?.isConnected == true
 	}
@@ -465,44 +469,46 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		val deviceToConnect = BTDeviceInfo(
 			connectedDevice.getAliasName(activity),
 			connectedDevice.address)
-		try {
-			socket = connectedDevice.createRfcommSocketToServiceRecord(uuid)
-			socket?.apply {
-				connect()
-				if (isConnected) {
-					onDeviceConnected(
-						deviceToConnect)
-					val input = inputStream.source()
-					val output = outputStream.sink()
-					OBDDispatcher.setReadWriteStreams(input, output)
-					app.runInUIThread {
-						Toast.makeText(
-							activity,
-							"Connected to ${connectedDevice.getAliasName(activity)}",
-							Toast.LENGTH_LONG).show()
+		Thread {
+			try {
+				socket = connectedDevice.createRfcommSocketToServiceRecord(uuid)
+				socket?.apply {
+					connect()
+					if (isConnected) {
+						onDeviceConnected(deviceToConnect)
+						val input = inputStream.source()
+						val output = outputStream.sink()
+						OBDDispatcher.setReadWriteStreams(input, output)
+					} else {
+						LOG.error("Socket not connected")
+						onDisconnected(deviceToConnect)
 					}
-				} else {
-					connectionStateListener?.onStateChanged(
-						OBDConnectionState.DISCONNECTED,
-						deviceToConnect)
 				}
+			} catch (error: IOException) {
+				onDisconnected(deviceToConnect)
+				LOG.error("Can't connect to device. $error")
 			}
-		} catch (error: IOException) {
-			connectionStateListener?.onStateChanged(
-				OBDConnectionState.DISCONNECTED,
-				deviceToConnect)
-			LOG.error("Can't connect to device. $error")
-			app.runInUIThread {
-				Toast.makeText(
-					activity,
-					"Can\'t connect to ${connectedDevice.getAliasName(activity)}",
-					Toast.LENGTH_LONG).show()
-			}
-		}
+		}.start()
+	}
+
+	private fun onDisconnected(deviceInfo: BTDeviceInfo) {
+		currentConnectingState = OBDConnectionState.DISCONNECTED
+		connectionStateListener?.onStateChanged(
+			OBDConnectionState.DISCONNECTED,
+			deviceInfo)
+	}
+
+	private fun onConnecting(deviceInfo: BTDeviceInfo) {
+		currentConnectingState = OBDConnectionState.CONNECTING
+		connectionStateListener?.onStateChanged(
+			OBDConnectionState.CONNECTING,
+			deviceInfo)
 	}
 
 	@SuppressLint("MissingPermission")
 	private fun onDeviceConnected(btDeviceInfo: BTDeviceInfo) {
+		LOG.debug("Device connected ${btDeviceInfo.name}")
+		currentConnectingState = OBDConnectionState.CONNECTED
 		connectedDeviceInfo = btDeviceInfo
 		connectedDeviceInfo?.let {
 			OBDDataComputer.fuelTank = 52f //todo implement setting correct fuel tank
@@ -700,7 +706,7 @@ class VehicleMetricsPlugin(app: OsmandApplication) : OsmandPlugin(app),
 		permissions: Array<out String>,
 		grantResults: IntArray) {
 		super.handleRequestPermissionsResult(requestCode, permissions, grantResults)
-		if(requestCode == REQUEST_BT_PERMISSION_CODE) {
+		if (requestCode == REQUEST_BT_PERMISSION_CODE) {
 			for (grantResult in grantResults) {
 				if (grantResult != PackageManager.PERMISSION_GRANTED) {
 					return
