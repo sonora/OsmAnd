@@ -30,6 +30,12 @@ object OBDDataComputer {
 		compute()
 	}
 
+	fun clearCache() {
+		for (widget in widgets) {
+			widget.clearData()
+		}
+	}
+
 	fun registerLocation(l: OBDLocation) {
 		if (widgets.isNotEmpty()) {
 			// concurrency - change collection in one thread. Other places only read
@@ -230,6 +236,13 @@ object OBDDataComputer {
 		private var cachedVersion = 0
 		private var version = 0
 
+		fun clearData() {
+			values = ArrayList()
+			value = null
+			cachedVersion = 0
+			version = 0
+		}
+
 		fun computeValue(): Any? {
 			if (cachedVersion != version) {
 				val v = version
@@ -367,7 +380,7 @@ object OBDDataComputer {
 		}
 
 		private fun calculateFuelConsumption(locValues: ArrayList<OBDDataField<Any>>): Float {
-			val first = locValues[0]
+			val first = locValues[locValues.size - 2]
 			val last = locValues[locValues.size - 1]
 			val diffPerc = (first.value as Number).toFloat() - (last.value as Number).toFloat()
 			val diffTime = last.timestamp - first.timestamp

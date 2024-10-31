@@ -196,7 +196,7 @@
     <string name="map_widget_right">Panel derecho</string>
     <string name="map_widget_left">Panel izquierdo</string>
     <string name="configure_map">Configurar mapa</string>
-    <string name="search_radius_proximity">A menos de</string>
+    <string name="search_radius_proximity">Dentro de</string>
     <string name="anonymous_user">Usuario anónimo</string>
     <string name="logged_as">Conectado como «%1$s»</string>
     <string name="speed_limit_exceed">Tolerancia del límite de velocidad</string>
@@ -2504,7 +2504,7 @@
     <string name="map_imported_successfully">Mapa importado</string>
     <string name="enter_the_file_name">Escribe el nombre del archivo.</string>
     <string name="transport_nearby_routes_within">Rutas a menos de</string>
-    <string name="transport_nearby_routes">A menos de</string>
+    <string name="transport_nearby_routes">Dentro de</string>
     <string name="dd_mm_ss_format">GG°MM′SS″</string>
     <string name="dd_dddddd_format">GG.GGGGGG°</string>
     <string name="dd_ddddd_format">GG.GGGGG°</string>
@@ -5634,7 +5634,7 @@
     <string name="obd_engine_runtime">Tiempo de funcionamiento del motor</string>
     <string name="obd_engine_runtime_desc">Muestra el tiempo de funcionamiento del motor, según el escáner OBD</string>
     <string name="simulate_obd">Simular datos OBD</string>
-    <string name="obd_throttle_position">Ubicación del acelerador</string>
+    <string name="obd_throttle_position">Posición del acelerador</string>
     <string name="obd_throttle_position_desc">Muestra la presión del combustible (presión manométrica) según el escáner OBD</string>
     <string name="kpa_unit">kPa</string>
     <string name="obd_fuel_pressure">Presión del combustible</string>
@@ -5644,4 +5644,9 @@
     <string name="obd_engine_oil_temperature">Temperatura del aceite del motor</string>
     <string name="obd_engine_oil_temperature_desc">Muestra la temperatura del aceite del motor, según el escáner OBD</string>
     <string name="bt_start_pair_failed">No es posible vincular con el dispositivo</string>
+    <string name="dynamic_icon_type_summary">El icono cambia según el estado de la acción.</string>
+    <string name="obd_not_connected_to_device">Desconectado de %s</string>
+    <string name="obd_connecting_to_device">Conectando a %s</string>
+    <string name="shared_string_dynamic">Dinámico</string>
+    <string name="obd_connected_to_device">Conectado a %s</string>
 </resources>
