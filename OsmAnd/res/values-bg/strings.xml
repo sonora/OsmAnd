@@ -4385,12 +4385,8 @@
     <string name="obd_fuel_type_unknown">Неизвестен вид гориво</string>
     <string name="obd_widget_group">Показатели превозно средство</string>
     <string name="obd_rpm">об/мин</string>
-    <string name="obd_ambient_air_temp_desc">Показва температурата на околната среда спрямо сензора на OBD</string>
+    <string name="obd_ambient_air_temp_desc">Показва температурата на околната среда.</string>
     <string name="obd_rpm_desc">Показва оборотите на тахометъра спрямо сензора на OBD</string>
-    <string name="obd_speed_desc">Показва скоростта на превозното средство спрямо сензора на OBD</string>
-    <string name="obd_air_intake_temp_desc">Показва температурата на постъпващия въздух спрямо сензора на OBD</string>
-    <string name="obd_engine_coolant_temp_desc">Показва температурата на охлаждащата течност спрямо сензора на OBD</string>
-    <string name="obd_battery_voltage_desc">Показва напрежението в акумулатора спрямо сензора на OBD</string>
     <string name="obd_air_intake_temp">t⁰ на постъпващ въздух</string>
     <string name="obd_fuel_level_desc">Показва нивото на горивото спрямо сензора на OBD</string>
     <string name="obd_fuel_left_distance_desc">Показва разстоянието, което превозното средство може да измине с оставащото гориво спрямо сензора на OBD</string>
@@ -4405,7 +4401,7 @@
     <string name="obd_fuel_type">Вид на горивото</string>
     <string name="obd_support">Поддръжка на OBD</string>
     <string name="shared_string_bluetooth">Bluetooth</string>
-    <string name="connect_obd_instructions_step1">1. Включете скенера към куплунга за OBD-II.</string>
+    <string name="connect_obd_instructions_step1">Включете скенера към куплунга за OBD-II.</string>
     <string name="obd_fuel_type_not_provided">Вида гориво не е посочен</string>
     <string name="obd_fuel_type_propane">Пропан</string>
     <string name="obd_fuel_type_cng">Природен газ</string>
@@ -4417,9 +4413,9 @@
     <string name="obd_vehicle_info">Информация за превозното средство</string>
     <string name="connect_obd_instructions_title">OsmAnd поддържа връзка със скенери на OBD-II през Blurtooth.</string>
     <string name="obd_how_to_connect">Как да свържете:</string>
-    <string name="connect_obd_instructions_step2">2. Включете двигателя.</string>
-    <string name="connect_obd_instructions_step3">3. Включете Bluetooth на устройството.</string>
-    <string name="connect_obd_instructions_step4">4. Докоснете „Свързване“ и изберете скенера от списъка.</string>
+    <string name="connect_obd_instructions_step2">Включете двигателя.</string>
+    <string name="connect_obd_instructions_step3">Включете Bluetooth на устройството.</string>
+    <string name="connect_obd_instructions_step4">Докоснете „Свързване“ и изберете скенера от списъка.</string>
     <string name="learn_more_about_obd_sensors">Научете повече за сензорите.</string>
     <string name="obd_fuel_left_liters">Оставащо гориво (литри)</string>
     <string name="obd_fuel_type_electric">Електричество</string>
@@ -4449,4 +4445,18 @@
     <string name="max_sensor_speed">Сензор скорост, макс</string>
     <string name="avg_sensor_bycicle_power">Вело мощност, средно</string>
     <string name="max_sensor_temperature">Температура, макс</string>
+    <string name="remaining_fuel">Оставащо гориво</string>
+    <string name="reset_average_value">Нулиране на средна стойност</string>
+    <string name="shared_string_instant">Незабавно</string>
+    <string name="obd_fuel_consumption_rate_sensor_type">Избраните мерни единици да бъдат добавени в името.</string>
+    <string name="remaining_fuel_description">Показва количеството на оставащото в резервоара гориво</string>
+    <string name="obd_fuel_consumption_desc">Показва разхода на гориво от двигателя, изчислен въз основа на оставащото гориво, размера на резервоара и изминатото разстояние, според GPS.</string>
+    <string name="obd_fuel_consumption">Разход на гориво</string>
+    <string name="average_value_slider_description">Изберете интервала от време, през който да бъде измерена средната стойност.</string>
+    <string name="average_temperature">Средна температура</string>
+    <string name="average_temperature_slider_description">Изберете интервала от време, през който да бъде измерена средната трмпература.</string>
+    <string name="current_temperature">Текуща температура</string>
+    <string name="obd_battery_voltage_desc">Показва напрежението в акумулатора</string>
+    <string name="obd_air_intake_temp_desc">Показва температурата на постъпвщия през въздушната клапа въздух.</string>
+    <string name="preview_next_turn">Преглед следващ завой</string>
 </resources>

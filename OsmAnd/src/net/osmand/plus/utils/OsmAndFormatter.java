@@ -35,6 +35,7 @@ import net.osmand.plus.settings.enums.VolumeUnit;
 import net.osmand.shared.settings.enums.MetricsConstants;
 import net.osmand.shared.settings.enums.SpeedConstants;
 import net.osmand.util.Algorithms;
+import net.osmand.util.TextDirectionUtil;
 
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
@@ -96,9 +97,6 @@ public class OsmAndFormatter {
 	private static final char WEST = 'W';
 	private static final char EAST = 'E';
 
-	public static final String LTR_MARK = "\u200e";
-	public static final String RTL_MARK = "\u200f";
-
 	static {
 		setTwelveHoursFormatting(false, Locale.getDefault());
 		fixed2.setMinimumFractionDigits(2);
@@ -157,6 +155,21 @@ public class OsmAndFormatter {
 		Date date = calendar.getTime();
 		String formattedTime = shortTimeFormatter.format(date, twelveHoursFormat);
 		if (!isSameDay(calendar, Calendar.getInstance())) {
+			formattedTime += " " + localDaysStr[calendar.get(Calendar.DAY_OF_WEEK)];
+		}
+		return formattedTime;
+	}
+
+	public static String getFormattedTimeShort(long seconds, boolean useCurrentTime, boolean shouldShowDay) {
+		Calendar calendar = Calendar.getInstance();
+		if (useCurrentTime) {
+			calendar.setTimeInMillis(System.currentTimeMillis() + seconds * 1000);
+		} else {
+			calendar.setTimeInMillis(seconds * 1000);
+		}
+		Date date = calendar.getTime();
+		String formattedTime = shortTimeFormatter.format(date, twelveHoursFormat);
+		if (shouldShowDay) {
 			formattedTime += " " + localDaysStr[calendar.get(Calendar.DAY_OF_WEEK)];
 		}
 		return formattedTime;
@@ -593,11 +606,15 @@ public class OsmAndFormatter {
 
 	public static float readSavedFuelTankCapacity(@NonNull OsmandSettings settings, @NonNull VolumeUnit volumeUnit, @NonNull ApplicationMode mode) {
 		OsmandPreference<Float> fuelTankCapacity = settings.FUEL_TANK_CAPACITY;
-		float value = fuelTankCapacity.getModeValue(mode);
-		if (value == 0.0f) {
-			return value;
+		float valueInLitres = fuelTankCapacity.getModeValue(mode);
+		if (valueInLitres == 0.0f) {
+			return valueInLitres;
 		}
 
+		return convertLiterToVolumeUnit(volumeUnit, valueInLitres);
+	}
+
+	public static float convertLiterToVolumeUnit(@NonNull VolumeUnit volumeUnit, float value){
 		if (volumeUnit == VolumeUnit.US_GALLONS) {
 			return value / US_GALLONS_IN_LITER;
 		} else if (volumeUnit == VolumeUnit.IMPERIAL_GALLONS) {
@@ -915,6 +932,10 @@ public class OsmAndFormatter {
 	}
 
 	public static String getFormattedCoordinates(double lat, double lon, int outputFormat) {
+		return getFormattedCoordinates(lat, lon, outputFormat, true);
+	}
+
+	public static String getFormattedCoordinates(double lat, double lon, int outputFormat, boolean forceLTR) {
 		StringBuilder result = new StringBuilder();
 		if (outputFormat == FORMAT_DEGREES_SHORT) {
 			result.append(formatCoordinate(lat, outputFormat)).append(" ").append(formatCoordinate(lon, outputFormat));
@@ -956,7 +977,8 @@ public class OsmAndFormatter {
 			DecimalFormat swissGridFormat = new DecimalFormat("###,###.##", formatSymbols);
 			result.append(swissGridFormat.format(swissGrid[0])).append(", ").append(swissGridFormat.format(swissGrid[1]));
 		}
-		return result.toString();
+		String formattedCoordinates = result.toString();
+		return forceLTR ? TextDirectionUtil.markAsLTR(formattedCoordinates) : formattedCoordinates;
 	}
 
 
@@ -996,11 +1018,6 @@ public class OsmAndFormatter {
 					.append(DELIMITER_SECONDS);
 		}
 		return sb.toString();
-	}
-
-	// TODO do we need this method at all?
-	public static String markLTR(String text) {
-		return LTR_MARK + text;
 	}
 
 	private static double formatCoordinate(double coordinate, StringBuilder sb, char delimiter) {
