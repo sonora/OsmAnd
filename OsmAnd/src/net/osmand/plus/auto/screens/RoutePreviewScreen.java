@@ -71,8 +71,12 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 	private CompassMode savedCompassMode = CompassMode.NORTH_IS_UP;
 	private float prevElevationAngle = 90;
 	private float prevRotationAngle = 0;
+	private int prevZoom = 15;
 	private boolean prevMapLinkedToLocation = false;
 
+	private boolean calculateRoute = false;
+
+	private boolean calculating;
 
 	private final StateChangedListener<Void> stateChangedListener = new StateChangedListener<Void>() {
 		@Override
@@ -86,22 +90,24 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 		}
 	};
 
-	private boolean calculating;
 
 	public RoutePreviewScreen(@NonNull CarContext carContext, @NonNull Action settingsAction,
-	                          @NonNull SearchResult searchResult) {
+	                          @NonNull SearchResult searchResult, boolean calculateRoute) {
 		super(carContext);
 		this.settingsAction = settingsAction;
 		this.searchResult = searchResult;
-
+		this.calculateRoute =  calculateRoute;
 		getLifecycle().addObserver(this);
-		calculating = true;
+		calculating = calculateRoute;
 	}
 
 	private void prepareRoute() {
 		if (searchResult.objectType == GPX_TRACK) {
 			GPXInfo gpxInfo = ((GPXInfo) searchResult.relatedObject);
 			File file = gpxInfo.getFile();
+			if (file == null) {
+				return;
+			}
 			SelectedGpxFile selectedGpxFile = getApp().getSelectedGpxHelper().getSelectedFileByPath(file.getAbsolutePath());
 			if (selectedGpxFile == null) {
 				GpxFileLoaderTask.loadGpxFile(file, null, gpxFile -> {
@@ -144,26 +150,27 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 			String title = Algorithms.isEmpty(name) ? typeName : name;
 			routeRows.add(new Row.Builder().setTitle(title).addText(description).build());
 			this.routeRows = routeRows;
-			calculating = false;
+			calculating = app.getRoutingHelper().isRouteBeingCalculated();
 			invalidate();
 		}
 	}
 
 	@Override
 	public void onCreate(@NonNull LifecycleOwner owner) {
-		getApp().getRoutingHelper().addListener(this);
-		getApp().getTargetPointsHelper().addListener(stateChangedListener);
-		prevMapLinkedToLocation = getApp().getMapViewTrackingUtilities().isMapLinkedToLocation();
-		OsmandMapTileView mapView = getApp().getOsmandMap().getMapView();
-		savedCompassMode = getApp().getSettings().getCompassMode();
+		OsmandApplication app = getApp();
+		app.getRoutingHelper().addListener(this);
+		app.getTargetPointsHelper().addListener(stateChangedListener);
+		prevMapLinkedToLocation = app.getMapViewTrackingUtilities().isMapLinkedToLocation();
+		OsmandMapTileView mapView = app.getOsmandMap().getMapView();
+		savedCompassMode = app.getSettings().getCompassMode();
+		prevZoom = mapView.getBaseZoom();
 		prevRotationAngle = mapView.getRotate();
-		getApp().getSettings().setCompassMode(CompassMode.NORTH_IS_UP);
 		prevElevationAngle = mapView.normalizeElevationAngle(mapView.getElevationAngle());
 		NavigationSession navigationSession = getSession();
-		if (getApp().getRoutingHelper().isRouteCalculated() && navigationSession != null && navigationSession.isCarNavigationActive()) {
-			updateRoute(true);
-		} else {
+		if (calculateRoute) {
 			prepareRoute();
+		} else {
+			updateRoute(true);
 		}
 	}
 
@@ -197,13 +204,16 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 			getApp().getSettings().setCompassMode(savedCompassMode);
 		}
 		OsmandMapTileView mapView = getApp().getOsmandMap().getMapView();
-		if(mapView.getElevationAngle() != prevElevationAngle) {
+		if (mapView.getElevationAngle() != prevElevationAngle) {
 			mapView.setElevationAngle(prevElevationAngle);
 		}
-		if(mapView.getRotate() != prevRotationAngle) {
+		if (mapView.getRotate() != prevRotationAngle) {
 			mapView.setRotate(prevRotationAngle, true);
 		}
-		if(prevMapLinkedToLocation != getApp().getMapViewTrackingUtilities().isMapLinkedToLocation()) {
+		if (mapView.getZoom() != prevZoom) {
+			mapView.setIntZoom(prevZoom);
+		}
+		if (prevMapLinkedToLocation != getApp().getMapViewTrackingUtilities().isMapLinkedToLocation()) {
 			getApp().getMapViewTrackingUtilities().setMapLinkedToLocation(prevMapLinkedToLocation);
 		}
 	}
@@ -275,18 +285,11 @@ public final class RoutePreviewScreen extends BaseAndroidAutoScreen implements I
 	public void routeWasFinished() {
 	}
 
-	public void tryToStartNavigation() {
-		if (!calculating) {
-			onNavigate();
-		}
-	}
 
 	@Override
 	protected void adjustMapToRect(@NonNull LatLon location, @NonNull QuadRect mapRect) {
-		OsmandMapTileView mapView = getApp().getOsmandMap().getMapView();
-		mapView.setElevationAngle(90f);
-		getApp().getMapViewTrackingUtilities().setMapLinkedToLocation(false);
-		mapView.setRotate(0f, true);
+//		OsmandMapTileView mapView = getApp().getOsmandMap().getMapView();
+//		mapView.setElevationAngle(90f);
 		super.adjustMapToRect(location, mapRect);
 	}
 }

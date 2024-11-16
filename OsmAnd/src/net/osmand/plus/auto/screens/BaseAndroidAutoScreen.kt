@@ -12,6 +12,7 @@ import net.osmand.data.LatLon
 import net.osmand.data.QuadRect
 import net.osmand.plus.OsmandApplication
 import net.osmand.plus.R
+import net.osmand.plus.settings.enums.CompassMode
 import net.osmand.search.core.SearchResult
 import net.osmand.util.Algorithms
 
@@ -47,10 +48,9 @@ abstract class BaseAndroidAutoScreen(carContext: CarContext) : Screen(carContext
 		result: SearchResult
 	) {
 		screenManager.pushForResult(
-			RoutePreviewScreen(carContext, settingsAction, result)
+			RoutePreviewScreen(carContext, settingsAction, result, true)
 		) { obj: Any? ->
 			obj?.let {
-				onSearchResultSelected(result)
 				startNavigation()
 				finish()
 			}
@@ -63,9 +63,7 @@ abstract class BaseAndroidAutoScreen(carContext: CarContext) : Screen(carContext
 	private fun startNavigation() {
 		app.osmandMap.mapLayers.mapActionsHelper.startNavigation()
 		val session = app.carNavigationSession
-		if (session != null && session.hasStarted()) {
-			session.startNavigation()
-		}
+		session?.startNavigation()
 	}
 
 	protected fun createSearchAction() = Action.Builder()
@@ -91,16 +89,19 @@ abstract class BaseAndroidAutoScreen(carContext: CarContext) : Screen(carContext
 	}
 
 	protected open fun adjustMapToRect(location: LatLon, mapRect: QuadRect) {
+		app.mapViewTrackingUtilities.isMapLinkedToLocation = false
+		app.getSettings().setCompassMode(CompassMode.NORTH_IS_UP);
 		Algorithms.extendRectToContainPoint(mapRect, location.longitude, location.latitude)
 		app.carNavigationSession?.navigationCarSurface?.let { surfaceRenderer ->
 			if (!mapRect.hasInitialState()) {
 				val mapView = app.osmandMap.mapView
-				app.mapViewTrackingUtilities.isMapLinkedToLocation = false
 				val tb = mapView.rotatedTileBox
-				tb.setCenterLocation(tb.centerPixelX.toFloat() / tb.pixWidth, 0.5f )
-				mapView.fitRectToMap(tb,
+				tb.setCenterLocation(tb.centerPixelX.toFloat() / tb.pixWidth, 0.5f)
+				tb.rotate = 0f;
+				mapView.fitRectToMap(
+					tb,
 					mapRect.left, mapRect.right, mapRect.top, mapRect.bottom,
-					0, 0, true
+					0, 0, true, true
 				)
 				mapView.refreshMap()
 			}
