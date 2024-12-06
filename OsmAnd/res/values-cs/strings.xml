@@ -5575,7 +5575,7 @@
     <string name="connect_obd_instructions_step1">Připojte skener k portu OBD-II vozidla.</string>
     <string name="connect_obd_instructions_step2">Nastartujte motor vozidla</string>
     <string name="connect_obd_instructions_step3">Povolte v zařízení Bluetooth</string>
-    <string name="connect_obd_instructions_step4">Klepněte na možnost „Připojit“ a vyberte skener ze seznamu.</string>
+    <string name="connect_obd_instructions_step4">Klepněte na možnost „%1$s“ a vyberte skener ze seznamu.</string>
     <string name="obd_fuel_left_liters">Zbývající palivo (litry)</string>
     <string name="shared_string_bluetooth">Bluetooth</string>
     <string name="connect_obd_instructions_title">OsmAnd podporuje připojení Bluetooth ke skenerům OBD-II.</string>
@@ -5597,8 +5597,8 @@
     <string name="obd_device_forget_sensor">Zapomenout skener</string>
     <string name="obd_fuel_consumption_rate_percent_hour_desc">Zobrazuje spotřebu paliva vozidla na základě výpočtů (%/h)</string>
     <string name="l_100km">L/100km</string>
-    <string name="obd_fuel_consumption_rate_l_km">Spotřeba paliva (L/km)</string>
-    <string name="obd_fuel_consumption_rate_l_km_desc">Zobrazuje spotřebu paliva vozidla na základě výpočtů (L/km)</string>
+    <string name="obd_fuel_consumption_rate_l_km">Spotřeba paliva (L/100 km)</string>
+    <string name="obd_fuel_consumption_rate_l_km_desc">Zobrazuje spotřebu paliva vozidla na základě výpočtů (l/100 km)</string>
     <string name="simulate_obd">Simulace dat OBD</string>
     <string name="kpa_unit">kPa</string>
     <string name="obd_fuel_pressure">Tlak paliva</string>
@@ -5610,7 +5610,7 @@
     <string name="obd_fuel_level_liter">Hladina paliva (l)</string>
     <string name="obd_fuel_level_percent">Hladina paliva (%)</string>
     <string name="obd_fuel_left_km">Zbývá palivo (km)</string>
-    <string name="obd_fuel_consumption_rate_liter_hour">Spotřeba paliva L/h</string>
+    <string name="obd_fuel_consumption_rate_liter_hour">Míra spotřeby paliva</string>
     <string name="obd_fuel_consumption_rate_scanner">Spotřeba paliva (OBD)</string>
     <string name="obd_fuel_consumption_rate_percent_hour">Spotřeba paliva %/h</string>
     <string name="route_guidance">Navádění po trase</string>
@@ -5674,4 +5674,7 @@
     <string name="shared_string_engine">Motor</string>
     <string name="vehicle_metrics_recording_description">Vyberte parametry, které se mají zaznamenat do GPX souboru.</string>
     <string name="auto_zoom_3d_angle">Úhel automatického 3D zoomu</string>
+    <string name="location_interpolation_percent">Procento interpolace polohy</string>
+    <string name="location_interpolation_percent_desc">Nastavení procenta interpolace polohy během navigace po trase. Tento parametr snižuje zpoždění polohy na mapě během animace.</string>
+    <string name="shared_string_interpolation">Interpolace</string>
 </resources>

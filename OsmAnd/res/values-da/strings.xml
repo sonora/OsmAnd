@@ -5624,8 +5624,8 @@
     <string name="liter">l</string>
     <string name="obd_fuel_consumption_rate_percent_hour_desc">Viser køretøjets brændstofforbrug baseret på beregninger (%/t)</string>
     <string name="l_100km">L/100 km</string>
-    <string name="obd_fuel_consumption_rate_l_km">Brændstofforbrug (L/km)</string>
-    <string name="obd_fuel_consumption_rate_l_km_desc">Viser køretøjets brændstofforbrug baseret på beregninger (L/km)</string>
+    <string name="obd_fuel_consumption_rate_l_km">Brændstofforbrug (L/100 km)</string>
+    <string name="obd_fuel_consumption_rate_l_km_desc">Viser køretøjets brændstofforbrug baseret på beregninger (L/100 km)</string>
     <string name="simulate_obd">Simulér obd-data</string>
     <string name="kpa_unit">kPa</string>
     <string name="obd_fuel_pressure">Brændstoftryk</string>
@@ -5684,4 +5684,9 @@
     <string name="vehicle_metrics_recording_description">Vælg de parametre, der skal registreres i GPX-filen.</string>
     <string name="obd_throttle_position">Gasspjældets position</string>
     <string name="obd_throttle_position_desc">Viser vinklen på gasspjældspladen i gasspjældshuset.</string>
+    <string name="obd_speed_desc">Viser hastighed fra køretøjets hastighedssensor (VVS).</string>
+    <string name="obd_air_intake_temp_desc">Viser temperaturen på den luft, der kommer ind i motorens indsugningsmanifold.</string>
+    <string name="shared_string_interpolation">Interpolation</string>
+    <string name="location_interpolation_percent_desc">Indstil procentdelen af lokationsinterpolation under rutenavigation. Denne parameter reducerer forsinkelsen af din position på kortet under animation.</string>
+    <string name="location_interpolation_percent">Interpolation af placering i procent</string>
 </resources>

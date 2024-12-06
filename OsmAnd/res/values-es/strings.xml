@@ -6009,12 +6009,12 @@
     <string name="liter">l</string>
     <string name="percent_hour">%/h</string>
     <string name="speedometer_maximum">Máximo</string>
-    <string name="obd_fuel_consumption_rate_l_km_desc">Mostrar el consumo de combustible (L/km)</string>
+    <string name="obd_fuel_consumption_rate_l_km_desc">Mostrar el consumo de combustible (L/100 km)</string>
     <string name="simulate_obd">Simular datos OBD</string>
     <string name="obd_fuel_pressure">Presión del combustible</string>
     <string name="l_100km">L/100km</string>
     <string name="obd_fuel_consumption_rate_percent_hour_desc">Muestra el consumo de combustible del vehículo (%/h)</string>
-    <string name="obd_fuel_consumption_rate_l_km">Consumo de combustible (L/km)</string>
+    <string name="obd_fuel_consumption_rate_l_km">Consumo de combustible (L/100 km)</string>
     <string name="kpa_unit">kPa</string>
     <string name="bt_start_pair_failed">No se puede iniciar el emparejamiento con el dispositivo</string>
     <string name="dynamic_icon_type_summary">El icono cambia según el estado de la acción.</string>
@@ -6073,4 +6073,7 @@
     <string name="auto_zoom_3d_angle">Escalado automático de ángulos 3D</string>
     <string name="vehicle_metrics_recording_description">Seleccione los parámetros que se registrarán en el archivo GPX .</string>
     <string name="shared_string_engine">Motor</string>
+    <string name="location_interpolation_percent">Porcentaje de interpolación de la ubicación</string>
+    <string name="location_interpolation_percent_desc">Establece el porcentaje de interpolación de la posición durante la navegación por la ruta. Este parámetro reduce el desfase de la posición de tu ubicación en el mapa durante la animación.</string>
+    <string name="shared_string_interpolation">Interpolación</string>
 </resources>

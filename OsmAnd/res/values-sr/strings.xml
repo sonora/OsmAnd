@@ -5611,14 +5611,14 @@
     <string name="obd_fuel_level_percent">Ниво горива (%)</string>
     <string name="obd_fuel_left_km">Преостало гориво (km)</string>
     <string name="obd_fuel_consumption_rate_scanner">Брзина потрошње горива (днв)</string>
-    <string name="obd_fuel_consumption_rate_liter_hour">Брзина потрошње горива L/h</string>
+    <string name="obd_fuel_consumption_rate_liter_hour">Брзина потрошње горива</string>
     <string name="obd_fuel_consumption_rate_percent_hour">Брзина потрошње горива %/h</string>
     <string name="obd_fuel_consumption_rate_l_h">Брзина потрошње горива (L/h)</string>
     <string name="liter">l</string>
     <string name="percent_hour">%/h</string>
     <string name="speedometer_maximum">Највише</string>
-    <string name="obd_fuel_consumption_rate_l_km_desc">Приказује потрошњу горива возила на основу прорачуна (L/km)</string>
-    <string name="obd_fuel_consumption_rate_l_km">Потрошња горива (L/km)</string>
+    <string name="obd_fuel_consumption_rate_l_km_desc">Приказује потрошњу горива возила на основу прорачуна (L/100 km)</string>
+    <string name="obd_fuel_consumption_rate_l_km">Потрошња горива (L/100 km)</string>
     <string name="simulate_obd">Опонашај податке днв</string>
     <string name="kpa_unit">kPa</string>
     <string name="obd_fuel_pressure">Притисак горива</string>
@@ -5681,4 +5681,7 @@
     <string name="auto_zoom_3d_angle">Ауто зум 3Д угао</string>
     <string name="vehicle_metrics_recording_description">Изаберите параметре који ће бити снимљени у ГПКС фајлу.</string>
     <string name="shared_string_engine">Мотор</string>
+    <string name="shared_string_interpolation">Интерполација</string>
+    <string name="location_interpolation_percent_desc">Поставите проценат интерполације локације током руте. Овај параметар смањује кашњење положаја ваше локације на мапи, током анимације.</string>
+    <string name="location_interpolation_percent">Проценат интерполације позиције</string>
 </resources>
