@@ -165,9 +165,7 @@
 \n
 \nEssa visão pode ser revertida desativando aqui mesmo ou alterando o \'Estilo do mapa\' em \'Configurar mapa\' quando desejar.</string>
     <string name="plugin_nautical_name">Mapa náutico</string>
-    <string name="plugin_nautical_descr">Enriquece o seu mapa com informações sobre rotas de navegação, luzes de navegação, zonas náuticas de perigo, zonas com restrições de navegação ou atracação, etc.
-\n
-\nLeitura adicional em %1$s.</string>
+    <string name="plugin_nautical_descr">Enriquece o seu mapa com informações sobre rotas de navegação, luzes de navegação, zonas náuticas de perigo, zonas com restrições de navegação ou atracação, etc. \n \nLeitura adicional em %1$s.</string>
     <string name="plugin_ski_name">Mapa de esqui</string>
     <string name="plugin_ski_descr">Projetado para navegar em áreas de esportes de inverno: veja pistas de esqui e teleféricos e pistas de esqui cross country, com linhas coloridas indicando as classificações de dificuldade. Para usar, habilite este plugin e também vá em \"Configurar mapa\" e escolha o estilo de mapa \"Inverno e esqui\".</string>
     <string name="audionotes_plugin_name">Notas de áudio/vídeo</string>
@@ -3522,25 +3520,7 @@
     <string name="osmand_purchases_item">Compras no OsmAnd</string>
     <string name="legend_item_description">O guia para a simbologia de um mapa.</string>
     <string name="navigation_profiles_item">Perfis de navegação</string>
-    <string name="release_3_7">• Novos mapas de inclinação offline
-\n
-\n  • Personalização completa de Favoritos e Waypoints GPX - cores, ícones e formas personalizados
-\n
-\n  • Personalize a ordem dos itens no menu de contexto, configurar mapa, gaveta
-\n
-\n  • Wikipédia como uma camada separada no mapa Configurar, selecione apenas os idiomas necessários
-\n
-\n  • Crie seu próprio filtro / mapa de POI com total flexibilidade
-\n
-\n  • Adicionadas opções para restaurar configurações de perfis personalizados
-\n
-\n  • Rotas GPX completas das faixas de tráfego do apoio a navegação e instruções completas de curva
-\n
-\n  • Corrigidos tamanhos de interface do usuário em tablets
-\n
-\n  • Corrigidos bugs com RTL
-\n
-\n</string>
+    <string name="release_3_7">• Novos mapas de inclinação offline \n \n • Personalização completa de Favoritos e Waypoints GPX - cores, ícones e formas personalizados \n \n • Personalize a ordem dos itens no menu de contexto, configurar mapa, gaveta \n \n • Wikipédia como uma camada separada no mapa Configurar, selecione apenas os idiomas necessários \n \n • Crie seu próprio filtro / mapa de POI com total flexibilidade \n \n • Adicionadas opções para restaurar configurações de perfis personalizados \n \n • Rotas GPX completas das faixas de tráfego do apoio a navegação e instruções completas de curva \n \n • Corrigidos tamanhos de interface do usuário em tablets \n \n • Corrigidos bugs com RTL \n \n</string>
     <string name="additional_actions_descr">Acesse essas ações tocando no botão “%1$s”.</string>
     <string name="quick_action_transport_descr">Botão que mostra ou oculta o transporte público no mapa.</string>
     <string name="create_edit_poi">Criar ou editar POI</string>
