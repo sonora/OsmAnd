@@ -1144,7 +1144,6 @@
     <string name="live_monitoring_m_descr">Изпращане на изминатия път по Интернет, при условие, че записът в GPX е включен.</string>
     <string name="live_monitoring_start">Начало на проследяване в реално време</string>
     <string name="live_monitoring_stop">Край на проследяване в реално време</string>
-    <string name="rendering_attr_hideAccess_name">Ограничения за достъп</string>
     <string name="rendering_attr_showAccess_name">Ограничения на достъпа</string>
     <string name="rendering_attr_showSurfaceGrade_name">Качество на пътя</string>
     <string name="rendering_attr_showSurfaces_name">Вид на пътната настилка</string>
@@ -1322,7 +1321,7 @@
     <string name="notes">A/V бележки</string>
     <string name="online_map">Онлайн карта</string>
     <string name="roads_only">Само пътища</string>
-    <string name="rendering_attr_pisteRoutes_name">Ски писти</string>
+    <string name="rendering_attr_pisteRoutes_name">Ски маршрути</string>
     <string name="free">Свободни %1$s</string>
     <string name="device_memory">Памет на устройството</string>
     <string name="parking_place">Паркинг място</string>
@@ -2265,9 +2264,6 @@
     <string name="osm_live_subscription_desc">Абонаментът дава възможност за почасови, ежедневни, седмични обновявания и за неограничено изтегляне за всички карти в световен мащаб.</string>
     <string name="select_wikipedia_article_langs">Изберете езиците, на които публикациите в Уикипедия ще се появяват на картата. Можете да превключвате между наличните езици докато ги четете.</string>
     <string name="extra_maps_menu_group">Допълнителни карти</string>
-    <string name="opr_use_dev_url">Използване на test.openplacereviews.org</string>
-    <string name="login_open_place_reviews">Вход в OpenPlaceReviews</string>
-    <string name="open_place_reviews">OpenPlaceReviews</string>
     <string name="activity_type_water_name">Вода</string>
     <string name="activity_type_winter_name">Зима</string>
     <string name="activity_type_snowmobile_name">Моторни шейни</string>
@@ -2684,7 +2680,7 @@
     <string name="empty_state_favourites">Добавяне на избрани</string>
     <string name="rendering_attr_hideMilitaryAreas_name">Скриване на военните зони</string>
     <string name="rendering_attr_hideMilitaryAreas_description">Скриване на военните зони</string>
-    <string name="map_widget_trip_recording_distance">Разстояние</string>
+    <string name="map_widget_distance">Разстояние</string>
     <string name="routing_attr_hazmat_category_no_restrictions_name">A (Без ограничения)</string>
     <string name="routing_attr_avoid_fords_name">Избягване на бродове</string>
     <string name="map_widget_trip_recording_downhill">Спyскане</string>
@@ -3344,7 +3340,6 @@
     <string name="open_place_reviews_plugin_description">Направете принос към проекта OpenPlaceReviews, например снимки, отзиви или препратки за обществени места, като ресторанти, хотели или музеи.
 \n
 \nНамерете инструкции за това как да допринесете на адрес %1$s.</string>
-    <string name="add_to_opr">Добавяне в OpenPlaceReviews</string>
     <string name="angular_measeurement">Ъглови единици</string>
     <string name="display_zoom_level">Увеличение: %1$s</string>
     <string name="simulate_location_by_gpx">Симулиране на местоположението чрез GPX</string>
@@ -3435,7 +3430,6 @@
 \nOpenPlaceReviews - снимки на POI;
 \nMapillary - снимки от улицата;
 \nИнтернет / Wikimedia - снимки на POI по данни на OpenStreetMap.</string>
-    <string name="register_on_openplacereviews_desc">Снимките са предоставени от проекта за отворени данни OpenPlaceReviews.org. За да изпратите снимките си, трябва да се регистрирате.</string>
     <string name="routing_attr_length_name">Дължина</string>
     <string name="copy_from_other_profile">Копиране от друг профил</string>
     <string name="marker_moved_to_history">Маркерът е преместен в историята</string>
@@ -4558,7 +4552,7 @@
     <string name="quick_action_verb_start_pause">Старт/пауза</string>
     <string name="zoom_animated">Мащабиране с анимация</string>
     <string name="reset_key_assignments">Нулиране на зададените клавиши</string>
-    <string name="height_legend_description">За визуализиране на релефа се използват цветни карти на надморската височина.</string>
+    <string name="height_legend_description">За изобразяване на релефа се използват цветни карти на надморската височина.</string>
     <string name="action_icon">Пиктограма на действие</string>
     <string name="ltr_or_rtl_combine_with_brackets">%1$s (%2$s)</string>
     <string name="quick_action_add_configure_map">Настройки на картата</string>
@@ -4657,4 +4651,13 @@
     <string name="percent_hour">%/ч</string>
     <string name="calculating_indication_message">Изчисляване…</string>
     <string name="obd_engine_coolant_temp_desc">Показва температурата на охлаждащата течност на двигателя</string>
+    <string name="popular_places_nearby">Известни места наблизо</string>
+    <string name="display_distance_to_first_intermediate">Подробности за следващата точка от маршрута</string>
+    <string name="recently_visited">Скоро посетени</string>
+    <string name="rendering_attr_showClimbingRoutes_name">Маршрути за скално катерене</string>
+    <string name="rendering_attr_showClimbingRoutes_description">Показване на маршрути за скално катерене</string>
+    <string name="shared_string_avg_altitude">Средна надморска височина</string>
+    <string name="shared_string_length">Дължина</string>
+    <string name="shared_string_avg_speed">Мин. скорост</string>
+    <string name="calculate_size">Изчисляване на големината</string>
 </resources>

@@ -1226,7 +1226,6 @@
     <string name="rendering_attr_buildings15zoom_name">Budovy při přiblížení 15</string>
     <string name="rendering_attr_moreDetailed_name">Více detailů</string>
     <string name="rendering_attr_lessDetailed_name">Méně detailů</string>
-    <string name="rendering_attr_hideAccess_name">Omezení přístupu</string>
     <string name="rendering_attr_showAccess_name">Zobrazit omezení přístupu</string>
     <string name="rendering_attr_showSurfaceGrade_name">Zobrazit kvalitu cesty</string>
     <string name="rendering_attr_subwayMode_name">Trasy metra</string>
@@ -2995,7 +2994,7 @@
     <string name="pref_selected_by_default_for_profiles">Toto nastavení je vybráno jako výchozí pro profily: %s</string>
     <string name="change_default_settings">Změnit nastavení</string>
     <string name="discard_changes">Zahodit změny</string>
-    <string name="apply_to_current_profile">Použít pouze na „%1$s“</string>
+    <string name="apply_to_current_profile">Použít pouze na „%1$s\\</string>
     <string name="apply_to_all_profiles">Použít na všechny profily</string>
     <string name="start_up_message_pref">Úvodní zpráva</string>
     <string name="analytics_pref_title">Analytika</string>
@@ -3007,7 +3006,7 @@
     <string name="switch_profile">Přepnout profil</string>
     <string name="manage_profiles_descr">Vytváření, import a úprava profilů</string>
     <string name="screen_alerts">Upozornění na displeji</string>
-    <string name="application_profile_changed">Profil aplikace změněn na „%s“</string>
+    <string name="application_profile_changed">Profil aplikace změněn na „%s\\</string>
     <string name="plugins_settings">Nastavení modulů</string>
     <string name="download_detailed_map">Stáhněte detailní mapu %s pro zobrazení této oblasti.</string>
     <string name="change_data_storage_full_description">Přesunout OsmAnd soubory do nového umístění\?
@@ -3605,7 +3604,6 @@
     <string name="shared_string_add_photo">Přidat fotku</string>
     <string name="register_on_openplacereviews">Zaregistrovat na
 \nOpenPlaceReviews.org</string>
-    <string name="register_on_openplacereviews_desc">Fotografie poskytuje open data projekt OpenPlaceReviews.org. Abyste mohli nahrát své fotografie, musíte se přihlásit na jeho webové stránce.</string>
     <string name="register_opr_create_new_account">Vytvořit nový účet</string>
     <string name="register_opr_have_account">Už mám účet</string>
     <string name="ltr_or_rtl_combine_via_colon">%1$s: %2$s</string>
@@ -3640,7 +3638,6 @@
     <string name="app_mode_kayak">Kajak</string>
     <string name="app_mode_motorboat">Motorový člun</string>
     <string name="add_to_mapillary">Přidat do Mapillary</string>
-    <string name="add_to_opr">Přidat do OpenPlaceReviews</string>
     <string name="add_photos_descr">OsmAnd zobrazuje fotografie z několika zdrojů:
 \nOpenPlaceReviews - fotografie bodů zájmu
 \nMapillary - pouliční fotografie
@@ -3745,9 +3742,6 @@
     <string name="open_place_reviews_plugin_description">Přispívejte do projektu OpenPlaceReviews, například fotografiemi, recenzemi nebo odkazy na veřejná místa, jako jsou restaurace, hotely nebo muzea.
 \n
 \nNávod, jak přispět, najdete na našich webových stránkách %1$s.</string>
-    <string name="open_place_reviews">OpenPlaceReviews</string>
-    <string name="opr_use_dev_url">Použít test.openplacereviews.org</string>
-    <string name="login_open_place_reviews">Přihlásit se do OpenPlaceReviews</string>
     <string name="select_segments">Vybrat úseky</string>
     <string name="select_segments_description">%1$s obsahuje více než jeden úsek, musíte určit potřebnou část pro navigaci.</string>
     <string name="segments_count">Úsek %1$d</string>
@@ -4637,7 +4631,7 @@
     <string name="calculate_online">Výpočet online</string>
     <string name="explore_plans">Prozkoumat možnosti předplatného</string>
     <string name="arrival_time_widget_desc">Čas příjezdu do cílového bodu.</string>
-    <string name="map_widget_trip_recording_distance">Vzdálenost</string>
+    <string name="map_widget_distance">Vzdálenost</string>
     <string name="shared_string_widget">Nástroj</string>
     <string name="time_to_navigation_point_widget_settings_desc">Klepnutím na nástroj přepnete režimy.</string>
     <string name="elevation_profile_widget_desc">Zobrazuje výškový profil a profil sklonu aktuální trasy.</string>
@@ -4956,7 +4950,7 @@
     <string name="feature_available_as_part_of_plan">%1$s je k dispozici jako součást plánu %2$s</string>
     <string name="shared_string_included">Zahrnuto</string>
     <string name="ltr_or_rtl_combine_via_colon_with_space">%1$s : %2$s</string>
-    <string name="local_indexes_category_terrain">Terénní mapy (3D</string>
+    <string name="local_indexes_category_terrain">Terénní mapy (3D)</string>
     <string name="hillshade_slope">Stínování kopců, svahy</string>
     <string name="map_widget_glide_average_desc">Zobrazuje průměrný klouzavý poměr pro nastavený interval.</string>
     <string name="map_widget_glide_target_desc">Zobrazuje klouzavost potřebnou k dosažení cílového bodu.</string>
@@ -5284,8 +5278,8 @@
     <string name="quick_action_map_underlay">Podklad</string>
     <string name="choose_map_orientation">Zvolte orientaci mapy</string>
     <string name="shared_string_automatically">Automaticky</string>
-    <string name="ask_every_time">Pokaždé se zeptat</string>
-    <string name="detailed_track_guidance">Detailní navádění stopou</string>
+    <string name="ask_every_time">Pokaždé se ptejte</string>
+    <string name="detailed_track_guidance">Podrobné pokyny ke stopě</string>
     <string name="quick_action_routes_summary">Přepínač pro zobrazení nebo skrytí %1$s na mapě.</string>
     <string name="hugerock_promo">Promoakce Hugerock na %1$s měsíců</string>
     <string name="hugerock_promo_description">Bezplatný přístup k funkcím včetně neomezeného stahování map, 3D reliéfu atd. na %1$s měsíců</string>
@@ -5389,7 +5383,7 @@
     <string name="top_and_bottom">Nahoře a dole</string>
     <string name="wall_color">Barva zdi</string>
     <string name="use_nearby_roads">Použít blízké cesty</string>
-    <string name="detailed_track_guidance_description">Aplikace OsmAnd přiřadí vaši trasu k okolním cestám, abyste měli lepší navigaci krok za krokem.</string>
+    <string name="detailed_track_guidance_description">OsmAnd přizpůsobí vaši stopu blízkým silnicím pro vylepšené navádění krok za krokem.</string>
     <string name="change_terrain_color_scheme">Změnit barevné schéma terénu</string>
     <string name="play_weather_forecast">Přehrát předpověď počasí</string>
     <string name="quick_action_previous_app_profile">Profil aplikace k předchozí</string>
@@ -5622,7 +5616,6 @@
     <string name="current_temperature">Aktuální teplota</string>
     <string name="show_minor_turns">Zobrazení na menších křižovatkách při přímé navigaci</string>
     <string name="litres">Litry</string>
-    <string name="imperial_gallons_unit">imp gal</string>
     <string name="imperial_gallons">Imperiální galony</string>
     <string name="us_gallons">US galony</string>
     <string name="record_obd_data">Záznam metrik vozidla</string>
@@ -5657,7 +5650,7 @@
     <string name="location_interpolation_percent">Procento interpolace polohy</string>
     <string name="location_interpolation_percent_desc">Nastavení procenta interpolace polohy během navigace po trase. Tento parametr snižuje zpoždění polohy na mapě během animace.</string>
     <string name="shared_string_interpolation">Interpolace</string>
-    <string name="selected_delayed_profile">Zvolený profil „%s“</string>
+    <string name="selected_delayed_profile">Zvolený profil „%s\\</string>
     <string name="default_buttons_opacity_original_description">Každé tlačítko si zachová svou vlastní průhlednost pozadí.</string>
     <string name="default_buttons_size_original_description">Každé tlačítko si zachová svou vlastní velikost.</string>
     <string name="default_buttons_corners_original_description">Každé tlačítko si zachová své vlastní zaoblení rohů.</string>
@@ -5667,4 +5660,12 @@
     <string name="rendering_attr_showClimbingRoutes_name">Lezecké trasy</string>
     <string name="display_distance_to_first_intermediate">Zobrazit podrobnosti trasy k nejbližší zastávce</string>
     <string name="display_distance_to_first_intermediate_summary">Zobrazit čas a vzdálenost k nejbližšímu mezicíli. Vypněte, pokud chcete vždy vidět podrobnosti trasy k cíli.</string>
+    <string name="recently_visited">Nedávno navštíveno</string>
+    <string name="popular_places_nearby">Populární místa v okolí</string>
+    <string name="shared_string_length">Délka</string>
+    <string name="shared_string_avg_altitude">Prům. výška</string>
+    <string name="shared_string_avg_speed">Min. rychlost</string>
+    <string name="shared_string_default_view">Výchozí zobrazení</string>
+    <string name="map_widget_route_information">Informace o trase</string>
+    <string name="map_widget_route_information_desc">Zobrazuje odhadovaný čas příjezdu, zbývající čas jízdy a vzdálenost pro aktuální navigační trasu.</string>
 </resources>

@@ -10,6 +10,15 @@
 	- For wording and consistency, please note https://docs.osmand.net/docs/technical/contributions/translating-osmand
 	Thx - Hardy
 -->
+    <string name="shared_string_length">Length</string>
+    <string name="shared_string_avg_altitude">Avg. altitude</string>
+    <string name="shared_string_avg_speed">Min. speed</string>
+    <string name="popular_places_nearby">Popular places nearby</string>
+    <string name="recently_visited">Recently visited</string>
+
+    <string name="shared_string_default_view">Default view</string>
+    <string name="map_widget_route_information">Route information</string>
+    <string name="map_widget_route_information_desc">Displays the estimated arrival time, remaining travel time, and distance for the current navigation route.</string>
     <string name="display_distance_to_first_intermediate">Show route details for the next stop</string>
     <string name="display_distance_to_first_intermediate_summary">Shows time and distance for the next stop first. Turn off to always show details for the destination.</string>
 
@@ -1393,7 +1402,7 @@ You need to activate the sensor so OsmAnd can find it.</string>
     <string name="map_widget_trip_recording_downhill">Downhill</string>
     <string name="map_widget_trip_recording_uphill">Uphill</string>
     <string name="map_widget_trip_recording_duration">Duration</string>
-    <string name="map_widget_trip_recording_distance">Distance</string>
+    <string name="map_widget_distance">Distance</string>
     <string name="routing_attr_hazmat_category_name">Hazmat category</string>
     <string name="routing_attr_hazmat_category_description">Hazardous materials category / Consider hazmat access permissions</string>
     <string name="routing_attr_hazmat_category_no_restrictions_name">A (No restrictions)</string>
@@ -4248,7 +4257,7 @@ Download tile maps directly, or copy them as SQLite database files to OsmAnd\'s 
     <string name="notes">A/V notes</string>
     <string name="online_map">Online map</string>
     <string name="roads_only">Roads only</string>
-    <string name="rendering_attr_pisteRoutes_name">Ski slopes</string>
+    <string name="rendering_attr_pisteRoutes_name">Ski routes</string>
     <string name="free">Free %1$s </string>
     <string name="device_memory">Device memory</string>
     <string name="rendering_attr_pisteGrooming_name">Piste grooming</string>
