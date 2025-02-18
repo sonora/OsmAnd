@@ -5733,4 +5733,11 @@
     <string name="show_grids_description">Tillad visning af gradnet over kortet</string>
     <string name="no_places_available">Ingen steder til rådighed</string>
     <string name="no_photo_for_location_desc">Der er endnu ikke tilføjet nogen brugerbilleder til dette sted</string>
+    <string name="hmd_promo_description">Gratis adgang til funktioner, herunder ubegrænsede kortdownloads, 3D-relief etc. i %1$s måneder</string>
+    <string name="shared_string_road_exit">Afkørsel</string>
+    <string name="hmd_promo">HMD Promo i %1$s måneder</string>
+    <string name="original_color_description">Hvert punkt beholder sin egen farve.</string>
+    <string name="original_icon_description">Hvert punkt beholder sit eget ikon.</string>
+    <string name="original_shape_description">Hvert punkt beholder sin egen form.</string>
+    <string name="apply_to_all_points">Anvend på alle punkter</string>
 </resources>
