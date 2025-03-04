@@ -182,4 +182,27 @@
     <string name="restart_now">Ath-thòisich an-dràsta</string>
     <string name="map_rendering_engine_v1">Dreach 1</string>
     <string name="map_rendering_engine_v2">Dreach 2 (OpenGL)</string>
+    <string name="coordinates_widget_map_center">Co-chomharran: meadhan a\' mhapa</string>
+    <string name="coordinates_widget_current_location">Co-chomharran: àite làithreach</string>
+    <string name="shared_string_large">Mòr</string>
+    <string name="shared_string_normal">Àbhaisteach</string>
+    <string name="download_tiles">Luchdaich a-nuas leacan</string>
+    <string name="auto_25_chars_route_tl_kl">Tionndaidh agus cùm gu do làimh chlì</string>
+    <string name="auto_backup_title">Lethbhreac-glèidhidh fèin-obrachail</string>
+    <string name="shared_string_duplicate">Lethbhreac</string>
+    <string name="compass_always_hidden">An-còmhnaidh falaichte</string>
+    <string name="compass_always_visible">An-còmhnaidh faicsinneach</string>
+    <string name="download_complete">Luchdachadh a-nuas dèanta</string>
+    <string name="marker_1st">A\' chiad comharraiche</string>
+    <string name="routing_attr_motor_type_electric_name">Dealain</string>
+    <string name="updated_map_time">Ùraichte: %1$s.</string>
+    <string name="next_live_update_date_and_time">An ath ùrachadh %1$s aig %2$s.</string>
+    <string name="next_live_update_time">An ath ùrachadh aig %1$s.</string>
+    <string name="co2_mission">Eimiseanan CO2</string>
+    <string name="kg">cg</string>
+    <string name="routing_attr_motor_type_diesel_name">Dìosal</string>
+    <string name="routing_attr_motor_type_petrol_name">Peatral</string>
+    <string name="routing_attr_motor_type_lpg_name">LPG</string>
+    <string name="routing_attr_motor_type_gas_name">CNG</string>
+    <string name="routing_attr_motor_type_hybrid_name">Haibrid</string>
 </resources>
