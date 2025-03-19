@@ -6,7 +6,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import net.osmand.data.Amenity;
-import net.osmand.data.DataSourceType;
 import net.osmand.data.LatLon;
 import net.osmand.osm.PoiType;
 import net.osmand.plus.OsmandApplication;
@@ -35,11 +34,12 @@ public class QuickSearchWikiItem extends QuickSearchListItem {
 			preferredMapLang = app.getLanguage();
 		}
 		String articleLang = PluginsHelper.onGetMapObjectsLocale(amenity, preferredMapLang);
-		String lng = amenity.getContentLanguage("content", articleLang, "en");
-		boolean onlineDataSource = app.getSettings().WIKI_DATA_SOURCE_TYPE.get() == DataSourceType.ONLINE;
+		String lang = amenity.getContentLanguage("content", articleLang, "en");
 		this.title = amenity.getName();
-		String descriptionText = amenity.getDescription(lng);
-		this.description = onlineDataSource ? descriptionText : WikiArticleHelper.getPartialContent(descriptionText);
+
+		String text = amenity.getDescription(lang);
+		boolean html = !Algorithms.isEmpty(text) && Algorithms.isHtmlText(text);
+		this.description = html ? WikiArticleHelper.getPartialContent(text) : text;
 		this.type = getPoiTypeTranslation(app, amenity);
 		this.icon = getPoiTypeIcon(app, amenity);
 		this.imageUrl = amenity.getWikiImageStubUrl();
@@ -53,15 +53,25 @@ public class QuickSearchWikiItem extends QuickSearchListItem {
 
 	@NonNull
 	private String getPoiTypeTranslation(@NonNull OsmandApplication app, @NonNull Amenity amenity) {
-		PoiType subType = app.getPoiTypes().getPoiTypeByKey(amenity.getSubType());
+		String itemType = getPoiTypeKey(amenity);
+		PoiType subType = app.getPoiTypes().getPoiTypeByKey(itemType);
 		return subType != null ? subType.getTranslation() : "";
+	}
+
+	@NonNull
+	private String getPoiTypeKey(@NonNull Amenity amenity) {
+		String itemType = amenity.getOsmandPoiKey();
+		if (itemType == null) {
+			itemType = amenity.getSubType();
+		}
+		return itemType;
 	}
 
 	@NonNull
 	private Drawable getPoiTypeIcon(@NonNull OsmandApplication app, @NonNull Amenity amenity) {
 		boolean nightMode = app.getDaynightHelper().isNightMode();
 		Drawable drawable = app.getUIUtilities().getIcon(R.drawable.ic_action_info_dark, nightMode);
-		PoiType subType = app.getPoiTypes().getPoiTypeByKey(amenity.getSubType());
+		PoiType subType = app.getPoiTypes().getPoiTypeByKey(getPoiTypeKey(amenity));
 		if (subType != null) {
 			Drawable renderingIcon = app.getUIUtilities().getRenderingIcon(app, subType.getKeyName(), nightMode);
 			if (renderingIcon != null) {
