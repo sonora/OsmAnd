@@ -5006,4 +5006,9 @@
     <string name="poi_travel_agency">Туристичка агенција</string>
     <string name="poi_area_highway_steps">Простор степеница</string>
     <string name="poi_steps">Нивои</string>
+    <string name="poi_mormon_church">Мормонска црква</string>
+    <string name="poi_seventh_day_adventist_church">Адвентистичка црква седмог дана</string>
+    <string name="poi_church_of_scotland">Crkva Škotske</string>
+    <string name="poi_church_of_christ">Crkva Hristova</string>
+    <string name="poi_armenian_apostolic_church">Jermenska apostolska crkva</string>
 </resources>
