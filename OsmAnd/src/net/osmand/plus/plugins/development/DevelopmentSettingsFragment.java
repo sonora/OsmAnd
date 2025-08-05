@@ -195,6 +195,10 @@ public class DevelopmentSettingsFragment extends BaseSettingsFragment implements
 		SwitchPreferenceEx headingPref = findPreference(plugin.SAVE_HEADING_TO_GPX.getId());
 		headingPref.setIconSpaceReserved(false);
 		headingPref.setDescription(R.string.write_heading_description);
+
+		SwitchPreferenceEx locationProviderPref = findPreference(plugin.SAVE_LOCATION_PROVIDER_TO_GPX.getId());
+		locationProviderPref.setIconSpaceReserved(false);
+		locationProviderPref.setDescription(R.string.write_location_provider_description);
 	}
 
 	private void setupMapRenderingPrefs() {
