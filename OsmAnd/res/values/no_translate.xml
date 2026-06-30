@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <resources>
     <!-- Part of build.gradle -->
-    <!-- <string name="app_name">OsmAnd~</string> -->
-    <!-- <string name="app_edition"></string> -->
-    <!-- string name="app_version_suffix"></string -->
 
     <string name="app_store_name">OsmAnd Maps</string>
     
