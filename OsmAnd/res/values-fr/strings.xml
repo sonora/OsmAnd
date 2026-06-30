@@ -5954,7 +5954,7 @@
     <string name="intersection">Intersection</string>
     <string name="show_layout_grid_logs">Afficher les journaux de la grille</string>
     <string name="astro_culmination">Apogée</string>
-    <string name="astro_today_visibility">Visibilité aujourd\'hui</string>
+    <string name="astro_today_visibility">Visibilité du jour</string>
     <string name="astro_alt_short">Alt</string>
     <string name="astro_az_short">Az</string>
     <string name="astronomy_schedule">Calendrier</string>
@@ -6025,11 +6025,11 @@
     <string name="start_free_trial">Commencer l\'essai gratuit</string>
     <string name="subscription_free_trial_with_price">%1$s gratuit, puis %2$s</string>
     <string name="subscription_then_price">puis %1$s</string>
-    <string name="astro_expand_your_universe_title">Augmentez votre Univers</string>
+    <string name="astro_expand_your_universe_title">Élargissez vos horizons</string>
     <string name="purchases_feature_desc_astronomy">Explorez le ciel nocturne grâce à une carte hors ligne et à un catalogue des astres. Planifiez vos observations à l\'aide de graphiques de visibilité intelligents, d\'horaires quotidiens et d\'un mode RA interactif.</string>
-    <string name="astro_expand_your_universe_description">Accédez à la base de données étendue comprenant des catalogues du ciel profond, des articles Wikipédia et le mode de réalité augmentée hors ligne.</string>
+    <string name="astro_expand_your_universe_description">Accédez à la base de données étendue regroupant les catalogues du ciel profond, les articles Wikipédia et le mode AR hors ligne.</string>
     <string name="astro_offline_knowledge_base_title">Base de connaissances hors ligne</string>
-    <string name="astro_offline_knowledge_base_description">Téléchargez la base de données étendue pour accéder aux articles de Wikipédia et aux catalogues du ciel profond hors ligne.</string>
+    <string name="astro_offline_knowledge_base_description">Téléchargez la base de données étendue pour accéder, hors ligne, aux articles Wikipédia et aux catalogues du ciel profond.</string>
     <string name="astro_schedule_next_day_note">⁺¹ Le lendemain.</string>
     <string name="astro_visibility_show_today">Afficher la visibilité d\'aujourd\'hui</string>
     <string name="astro_schedule_show_current_week">Afficher la semaine en cours</string>
@@ -6135,4 +6135,15 @@
     <string name="ais_display_own_position_description">En règle générale, OsmAnd affiche votre position. L\'affichage supplémentaire de votre objet AIS peut prêter à confusion et peut être désactivé ici.</string>
     <string name="ais_receive_in_background">Recevoir les données AIS même lorsque OsmAnd est en pause.</string>
     <string name="ais_receive_in_background_description">Lorsque cette option est activée, le récepteur AIS fonctionne même si OsmAnd est en pause ou s\'exécute en arrière-plan. Si l\'option est désactivée, aucun message AIS n\'est reçu lorsque OsmAnd s\'exécute en arrière-plan.</string>
+    <string name="shared_string_recent">Récentes</string>
+    <string name="sort_by_nearest_to_map_center">Proximité du centre de la carte</string>
+    <string name="last_week">Semaine dernière</string>
+    <string name="history_is_turned_off">L\'historique est désactivé</string>
+    <string name="search_around_my_location_description">Rechercher autour de votre position</string>
+    <string name="sort_by_relevance">Pertinence</string>
+    <string name="search_and_navigation_history_disabled_descr">Les historiques de recherche et de navigation sont désactivés. Pour afficher l\'activité récente ici, activer l\'historique dans les paramètres.</string>
+    <string name="open_history_settings">Ouvrir les paramètres d\'historique</string>
+    <string name="search_around">Rechercher autour</string>
+    <string name="search_around_map_center_description">À %1$s de votre position</string>
+    <string name="search_around_my_location">Ma position</string>
 </resources>

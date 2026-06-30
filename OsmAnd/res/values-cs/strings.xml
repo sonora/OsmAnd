@@ -5330,7 +5330,7 @@
     <string name="key_assignment_add_key">Přidat klávesu</string>
     <string name="show_debug_info_description">Zobrazit grafické informace o umístění jednotlivých textů mapy</string>
     <string name="upward_gradient">Sklon vzhůru</string>
-    <string name="change_default_tracks_appearance_confirmation">Použít změny na stávající stopy ve složce, nebo pouze na nové?</string>
+    <string name="change_default_tracks_appearance_confirmation">Použít změny na existující skladby ve složce nebo pouze na nové?</string>
     <string name="backup_error_failed_to_transfer_file">Přenos souborů v cloudu se nezdařil.</string>
     <string name="contact_support_retry">Zkuste to znovu nebo kontaktujte podporu</string>
     <string name="clear_all_key_shortcuts_summary">Všechny přiřazené klávesy pro vybraný typ budou odstraněny.</string>
@@ -6137,7 +6137,7 @@
     <string name="astro_filter_naked_eye">Viditelné pouhým okem</string>
     <string name="astro_filter_visible_tonight">Viditelné dnes večer</string>
     <string name="astro_filter_visible_now">Viditelné teď</string>
-    <string name="astro_filter_show_all">Ukázat vše</string>
+    <string name="astro_filter_show_all">Zobrazit vše</string>
     <string name="obd_alt_battery_voltage_desc">Zobrazuje úroveň napětí na adaptéru OBD</string>
     <string name="shared_string_world_weather_map">Světová mapa počasí</string>
     <string name="open_till_short">Do</string>
@@ -6157,7 +6157,7 @@
     <string name="astro_sort_brightest_first">Nejjasnější jako první</string>
     <string name="astro_search_empty_description">Zkuste změnit filtry nebo čas pozorování.</string>
     <string name="astro_search_input_hint">Zadejte text</string>
-    <string name="astro_explore_my_data">Moje údaje</string>
+    <string name="astro_explore_my_data">Moje data</string>
     <string name="astro_explore_schedule_subtitle">Nadcházející astronomické události</string>
     <string name="astro_explore_schedule">Plán</string>
     <string name="astro_explore_watch_now_subtitle">Podívejte se, co je dnes na obloze</string>

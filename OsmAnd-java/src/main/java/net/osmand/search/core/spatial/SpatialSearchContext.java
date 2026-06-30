@@ -15,6 +15,7 @@ import net.osmand.binary.BinaryMapAddressReaderAdapter.CityBlocks;
 import net.osmand.binary.Abbreviations;
 import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.NameIndexReader;
+import net.osmand.binary.NameIndexReader.NameIndexReaderBytes;
 import net.osmand.binary.NameIndexReader.PrefixNameValue;
 import net.osmand.binary.NameIndexReader.ValueFreq;
 import net.osmand.binary.OsmandOdb.AddressNameIndexDataAtom;
@@ -61,6 +62,11 @@ public class SpatialSearchContext {
 		
 		public Timer step3Sort = new Timer();
 		
+		public long readTableBytes = 0;
+		public long readAtomsBytes = 0;
+		public long skipTableBytes = 0;
+		public long skipAtomsBytes = 0;
+		
 		public boolean doTiming = true;
 		public boolean printLogs = true;
 	
@@ -88,9 +94,10 @@ public class SpatialSearchContext {
 		@Override
 		public String toString() {
 			return String.format(
-					"Search Stats %.1f ms - %.1f ms %,d atoms (read %.1f, match %.1f), "
+					"Search Stats %.1f ms (table %,d KB, atom %,d KB) - %.1f ms %,d atoms (read %.1f, match %.1f), "
 					+ "%.1f ms compute %,d (loadBld %.1f, read %.1f)",
-					requestTime.ms(), step1Atoms.ms(), tokenObjs,  sub1FileAtomsTime.ms(), sub1MatchTime.ms(),
+					requestTime.ms(), readTableBytes / 1024, readAtomsBytes / 1024,
+					step1Atoms.ms(), tokenObjs,  sub1FileAtomsTime.ms(), sub1MatchTime.ms(),
 					step2Compute.ms(), maxCombinations, sub2LoadObjectsBldTime.ms(), sub2ReadObjTime.ms());
 		}
 
@@ -171,8 +178,14 @@ public class SpatialSearchContext {
 			SpatialSearchFileCache iCache = internalFile.get(fileInd);
 			BinaryMapIndexReader b = files.get(fileInd);
 			for (NameIndexReader indx : iCache.indexReaders) {
+				indx.resetBytesStat();
 				readAtoms(tokens, b, indx, indxInd);
 				indxInd++;
+				NameIndexReaderBytes bytesStat = indx.getBytesStat();
+				stats.readAtomsBytes += bytesStat.readAtomBytes;
+				stats.skipAtomsBytes += bytesStat.skipAtomBytes;
+				stats.readTableBytes += (bytesStat.readTableBytes - bytesStat.skipTableBytes);
+				stats.skipTableBytes += bytesStat.skipTableBytes;
 			}
 		}
 		if (stats.printLogs) {

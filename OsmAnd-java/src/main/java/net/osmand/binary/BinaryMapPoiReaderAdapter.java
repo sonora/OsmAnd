@@ -394,6 +394,7 @@ public class BinaryMapPoiReaderAdapter {
 				long length = readInt();
 				long oldLimit = codedIS.pushLimitLong((long) length);
 				pi.setTablePointer(codedIS.getTotalBytesRead());
+				pi.readTableBytes(length);
 				map.readNameIndexInspector(null, pi);
 				codedIS.popLimit(oldLimit);
 				break;

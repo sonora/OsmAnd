@@ -49,11 +49,20 @@ public class NameIndexReader {
 	private Map<String, ValueFreq> commonStatsValues = null;
 	
 	// stats
+	private NameIndexReaderBytes bytesStat = new NameIndexReaderBytes();
 	private SuffixesStat suffixesStat;
 	private StreetsIndexStat streetsStat;
 	private BoundariesIndexStat bndsStat;
 	
 	NameIndexReaderQuery query = null; // read all
+	
+	
+	public static class NameIndexReaderBytes {
+		public long readTableBytes;
+		public long skipTableBytes;
+		public long readAtomBytes;
+		public long skipAtomBytes;
+	}
 	
 	public static class NameIndexReaderMatcher {
 
@@ -850,7 +859,29 @@ public class NameIndexReader {
 			}
 		}
 	}
-
 	
+	public void resetBytesStat() {
+		bytesStat = new NameIndexReaderBytes();
+	}
+	
+	public NameIndexReaderBytes getBytesStat() {
+		return bytesStat;
+	}
 
+	public void readTableBytes(long bytes) {
+		bytesStat.readTableBytes += bytes;		
+	}
+	
+	public void skipTableBytes(long bytes) {
+		bytesStat.skipTableBytes += bytes;
+	}
+
+	public void readAtomsBytes(int bytes) {
+		bytesStat.readAtomBytes += bytes;		
+	}
+	
+	public void skipAtomsBytes(long bytes) {
+		bytesStat.skipAtomBytes += bytes;		
+	}
+	
 }

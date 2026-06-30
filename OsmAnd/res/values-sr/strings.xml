@@ -6212,4 +6212,15 @@
     <string name="ais_display_own_position_description">Обично сопствену позицију приказује ОсмАнд. Додатни приказ сопственог АИС објекта може бити збуњујући и може се овде онемогућити.</string>
     <string name="ais_receive_in_background">Примајте АИС податке чак и ако је ОсмАнд паузиран.</string>
     <string name="ais_receive_in_background_description">Ако је омогућено, АИС слушалац порука остаје у функцији ако је ОсмАнд паузиран или у позадини. Ако је онемогућено, поруке се не примају ако је ОсмАнд у позадини.</string>
+    <string name="shared_string_recent">Недавно</string>
+    <string name="sort_by_nearest_to_map_center">Најближе центру мапе</string>
+    <string name="last_week">Прошле недеље</string>
+    <string name="history_is_turned_off">Историја је искључена</string>
+    <string name="search_and_navigation_history_disabled_descr">Историја претраге и навигације је онемогућена. Омогућите их у подешавањима да бисте видели недавне активности овде.</string>
+    <string name="open_history_settings">Отвори подешавања историје</string>
+    <string name="search_around">Претражи около</string>
+    <string name="search_around_map_center_description">%1$s удаљено од ваше локације</string>
+    <string name="search_around_my_location">Моја локација</string>
+    <string name="search_around_my_location_description">Претражите око своје локације</string>
+    <string name="sort_by_relevance">Релевантност</string>
 </resources>

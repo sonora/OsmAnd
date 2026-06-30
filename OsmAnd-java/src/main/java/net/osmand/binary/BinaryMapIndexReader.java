@@ -2783,7 +2783,9 @@ public class BinaryMapIndexReader {
 				if (match) {
 					readNameIndexInspector(key, inspector);
 				} else {
-					codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
+					long skip = codedIS.getBytesUntilLimit();
+					inspector.skipTableBytes(skip);
+					codedIS.skipRawBytes(skip);
 				}
 				codedIS.popLimit(oldLim);
 				break;

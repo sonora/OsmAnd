@@ -6272,4 +6272,15 @@
     <string name="ais_display_own_position_description">Normalt viser OsmAnd ens egen position. Den ekstra visning af ens eget AIS-objekt kan være forvirrende og kan deaktiveres her.</string>
     <string name="ais_receive_in_background">Modtag AIS-data, selvom OsmAnd er sat på pause.</string>
     <string name="ais_receive_in_background_description">Hvis denne funktion er aktiveret, fortsætter AIS-meddelelseslytteren med at køre, selvom OsmAnd er sat på pause eller kører i baggrunden. Hvis funktionen er deaktiveret, modtages der ingen meddelelser, når OsmAnd kører i baggrunden.</string>
+    <string name="shared_string_recent">Seneste</string>
+    <string name="sort_by_nearest_to_map_center">Tættest på kortets midte</string>
+    <string name="last_week">Sidste uge</string>
+    <string name="history_is_turned_off">Historik er slået fra</string>
+    <string name="search_and_navigation_history_disabled_descr">Søge- og navigationshistorikken er deaktiveret. Aktiver dem i indstillingerne for at se den seneste aktivitet her.</string>
+    <string name="open_history_settings">Åbn indstillinger for historik</string>
+    <string name="search_around">Søg omkring</string>
+    <string name="search_around_map_center_description">%1$s væk fra din placering</string>
+    <string name="search_around_my_location">Min placering</string>
+    <string name="search_around_my_location_description">Søg i området omkring din position</string>
+    <string name="sort_by_relevance">Relevans</string>
 </resources>

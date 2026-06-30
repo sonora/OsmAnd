@@ -247,6 +247,10 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		return rating;
 	}
 	
+	public long compareKey() {
+		return compareKey(this);
+	}
+	
 	private static long addCompareKey(long key, int bits, int value) {
 		int max = (1 << bits) - 1;
 		if(value < 0) {
@@ -262,9 +266,9 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		key = addCompareKey(key, 6, -o.parent.tCount); // 6 bit - 64
 		key = addCompareKey(key, 6, o.objs.size()); // 6 bit - 64
 		key = addCompareKey(key, 3, -o.surplusWords); // 3 bit - 8
-		key = addCompareKey(key, 2, Math.min(o.sumOther(), 3)); // 3 bit - 3
-		key = addCompareKey(key, 6, o.getRating() / 64); // 6 bit - 64 - group by 64 bucket
-		key = addCompareKey(key, 12, o.sumTypeOrder()); // 12 bit - 4096
+		key = addCompareKey(key, 3, Math.min(o.sumOther(), 3)); // 3 bit - 3
+		key = addCompareKey(key, 6, -o.getRating() / 64); // 6 bit - 64 - group by 64 bucket
+		key = addCompareKey(key, 6, -o.sumTypeOrder()); // 6 bit - 64
 		// total 6+6+3+5+6+12 = 35
 		return key;
 	}

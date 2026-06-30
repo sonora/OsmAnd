@@ -24,18 +24,21 @@ import net.osmand.util.SearchAlgorithms;
 // TESTING Slow 'New York 4 av' - 7.5s (1M), 'New York st' - 2s (700k) - OPTIMAL 
 // TESTING 11-nuon leons, Húns Huns 39a-MLN 8832kd, 
 // TESTING Filter results boundaries, <Salt Lake City>
-// TESTING Sokak 2 Show more
 // TESTING Ignore same embedded boundary city / county - deduplicate on the fly (new york x4)
 // NOT FIXED Combine regions.ocbf (boundary)? - will be wikidata id not combined for now
 
 ////////// IN PROGRESS //////////
 
-// FIXME POI Categories + top poi categories
-// FIXME Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
-// TODO POI Categories translations / synonyms
+// TODO 2 Sokak sorting - Show more
+// TODO Cannaregio 539D Campo Saffa - Double 539D???
+// TODO Venezia sort
 
 // TODO Bratislava Billa - too many POI intersection results
 // TODO Filter Public transport stops, City&Bike - New york - analyze poi name consists of street name?
+
+// FIXME POI Categories + top poi categories
+// FIXME Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
+// TODO POI Categories translations / synonyms
 
 // TODO ? test: merge boundaries bbox - extend incomplete boundary same id...
 // TODO Inspector stats index_words_dashboard.html
@@ -141,7 +144,6 @@ public class SpatialSearchTestAndDocs {
 		
 		// Grainau Am Eibsee 1 36799292
 		// Grainau Seehäuser Eibsee 2 - 242903848 //  Seehäuser Grainau 2, Seehäuser Eibsee 2  
-		
 		// Weberstraße (33164748) 49.2041 10.7035,  Von-Weber-Straße (4648613942) 49.5609 10.8685
 //		query = "Weber Straße"; // +4648613942, +33164748
 //		query = "WeberStraße";  // +33164748, +4648613942
@@ -167,6 +169,7 @@ public class SpatialSearchTestAndDocs {
 //		query = "Pennsylvania Avenue Philadelphia PA USA"; 
 //		query = "Pennsylvania Avenue Philadelphia Philadelphia County Pennsylvania USA";
 //		query = "Pennsylvania Avenue White Oak Allegheny County Pennsylvania USA"; // 11947214
+		query = "173 Liberty Valley Road Danville";
 		
 		// Street ref "pa 75" (not stored), house "pa-75" (data)
 //		query = "PA 75 27193"; // Data 'PA-75', 27193  4472676432
@@ -178,11 +181,11 @@ public class SpatialSearchTestAndDocs {
 //		query = "Vaduz ";
 //		query = "Jugendheim Malbun";
 
-		pattern = "Netherlands_";
+//		pattern = "Netherlands_";
 //		query = "1186RZ Logger 324D Amstelveen";
 //		query = "Farm";
 //		query = "Huns Huns 39a-MLN 8832kd"; // Húns Húns 37482484
-		query = "11-NUON leons";
+//		query = "11-NUON leons";
 		
 //		pattern = "Turkey_";
 //		query = "Sokak 23018. Balikesir"; // OK
@@ -237,13 +240,13 @@ public class SpatialSearchTestAndDocs {
 //		query = "Holmby Melbourne 18B";
 		
 //		pattern = "Us_new-york_new"; // new-york, new-jersey
-		pattern = "Us_new-"; 
+//		pattern = "Us_new-"; 
 		
 //		location = new LatLon(40.78035, -73.96572); // central park
-		location = new LatLon(40.64946, -74.00682); // brooklyn
+//		location = new LatLon(40.64946, -74.00682); // brooklyn
 //		location = new LatLon(40.64946, -73.50682);
 //		query = "New York The plaza";
-		query = "New York plaza";
+//		query = "New York plaza";
 //		query = "New York st"; // 'NY s.' - 0.5s 100k, 'NY st' - 2s (700k)
 		// 40.64946, -74.00682 - unit test '4th av', '4 ave', '4th avenue' 241843204, 247910224, 85393997 (..) brooklyn - not 48
 		// 40.78035, -73.96572 - unit test '4th av', '4 ave', '4th avenue'  - 85393997 Park avenue
@@ -258,9 +261,12 @@ public class SpatialSearchTestAndDocs {
 		// Japan addr:quarter, addr:neighbourhood, addr:block_number
 		// See test - [8-8 Kinshi 3 Kinshi Sumida Tokyo], Rivière Tsumura
 		// India - Satyam node/2296788005#map=18/17.805646/83.356818
+		// +[Venezia, Cannaregio, 539D , Campo Saffa], +[Venezia Cannaregio 539D ] -[Venezia 539D  Campo Saffa] - expected
+		pattern = "Italy_ven";
+		query = "Venezia Cannaregio 539D ";
 		
-		// Venezia
-		// +[Venezia, Cannaregio, 359D, Campo Saffa], +[Venezia Cannaregio 359D] -[Venezia 359D Campo Saffa] - expected 
+//		pattern = "Slovakia";
+//		query = "Bratislava Billa";
 		
 //		pattern = "France_ile-de-france_eu";
 //		query = "Rue Bouchardon 2BIS"; // '2bis' OK, '2 BIS' OK , '2' OK, '2-BIS'

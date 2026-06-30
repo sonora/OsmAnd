@@ -6210,4 +6210,15 @@
     <string name="ais_display_own_position_description">Obično sopstvenu poziciju prikazuje OsmAnd. Dodatni prikaz sopstvenog AIS objekta može biti zbunjujući i može se ovde onemogućiti.</string>
     <string name="ais_receive_in_background">Primajte AIS podatke čak i ako je OsmAnd pauziran.</string>
     <string name="ais_receive_in_background_description">Ako je omogućeno, AIS slušalac poruka ostaje u funkciji ako je OsmAnd pauziran ili u pozadini. Ako je onemogućeno, poruke se ne primaju ako je OsmAnd u pozadini.</string>
+    <string name="shared_string_recent">Nedavno</string>
+    <string name="sort_by_nearest_to_map_center">Najbliže centru mape</string>
+    <string name="last_week">Prošle nedelje</string>
+    <string name="history_is_turned_off">Istorija je isključena</string>
+    <string name="search_and_navigation_history_disabled_descr">Istorija pretrage i navigacije je onemogućena. Omogućite ih u podešavanjima da biste videli nedavne aktivnosti ovde.</string>
+    <string name="open_history_settings">Otvori podešavanja istorije</string>
+    <string name="search_around">Pretraži okolo</string>
+    <string name="search_around_map_center_description">%1$s udaljeno od vaše lokacije</string>
+    <string name="search_around_my_location">Moja lokacija</string>
+    <string name="search_around_my_location_description">Pretražite oko svoje lokacije</string>
+    <string name="sort_by_relevance">Relevantnost</string>
 </resources>

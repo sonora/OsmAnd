@@ -944,8 +944,10 @@ public class SearchUICore {
 		}
 		
 		if (stat != null) {
-			LOG.info(stat.toDetailedString());
-			LOG.info("API search total <" + phrase + ", time=" + totalTime);
+			if (!stat.isBatch) {
+				LOG.info(stat.toDetailedString());
+			}
+			LOG.info("API search total <" + phrase + ">, time=" + totalTime);
 		}
 	}
 

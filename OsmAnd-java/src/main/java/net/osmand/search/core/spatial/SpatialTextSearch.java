@@ -387,19 +387,24 @@ public class SpatialTextSearch {
 		ctx.stats.requestTime.finish();
 		if (res.mainResults != null && res.mainResults.size() > 0) {
 			System.out.println("--------");
-			System.out.println("Main: " + res.combinations.get(0));
+			System.out.printf("Main: %s\n", res.combinations.get(0));
 			int all = res.mainResults.size();
 			int level = 0;
+			int sz = 0;
 			for (SpatialSearchResult r : res.mainResults) {
+				sz++;
 				if (r.visibleLevel != level) {
 					level++;
-					System.out.println("### LEVEL " + level);
+					System.out.printf("### %d - NEXT LEVEL %d (%s). "
+							+ " Format - 75(words) 02(objects) 0(surplus) 1(sum other) 52(rating) 72(sum types)\n",
+							sz, level, Long.toOctalString(r.compareKey()));
+					sz = 0;
 				}
 				if (limitPrint-- < 0) {
 					System.out.println(".............");
 					break;
 				}
-				System.out.printf("Result %d - %s\n", r.matchedTokens(), r);
+				System.out.printf("Result %d (%s) - %s\n", r.matchedTokens(), Long.toOctalString(r.compareKey()), r);
 			}
 			System.out.printf("------ ALL %d results ------- \n ", all);
 			System.out.println("---------------------------------------");
