@@ -64,6 +64,7 @@ public class SpatialSearchContext {
 		
 		public long readTableBytes = 0;
 		public long readAtomsBytes = 0;
+		public long readObjsBytes = 0;
 		public long skipTableBytes = 0;
 		public long skipAtomsBytes = 0;
 		
@@ -94,9 +95,9 @@ public class SpatialSearchContext {
 		@Override
 		public String toString() {
 			return String.format(
-					"Search Stats %.1f ms (table %,d KB, atom %,d KB) - %.1f ms %,d atoms (read %.1f, match %.1f), "
+					"Search Stats %.1f ms (read %,d KB) - %.1f ms %,d atoms (read %.1f, match %.1f), "
 					+ "%.1f ms compute %,d (loadBld %.1f, read %.1f)",
-					requestTime.ms(), readTableBytes / 1024, readAtomsBytes / 1024,
+					requestTime.ms(), (readTableBytes + readAtomsBytes + readObjsBytes) / 1024,
 					step1Atoms.ms(), tokenObjs,  sub1FileAtomsTime.ms(), sub1MatchTime.ms(),
 					step2Compute.ms(), maxCombinations, sub2LoadObjectsBldTime.ms(), sub2ReadObjTime.ms());
 		}
@@ -433,7 +434,10 @@ public class SpatialSearchContext {
 			}
 		}
 		stats.sub2ReadObjTime.start();
-		files.get(c.fileInd).readAmenityBboxes(nameIndex.poiRegion, tiles);
+		BinaryMapIndexReader bmir = files.get(c.fileInd);
+		long bytesRead = bmir.getBytesRead();
+		bmir.readAmenityBboxes(nameIndex.poiRegion, tiles);
+		stats.readObjsBytes += (bmir.getBytesRead() - bytesRead);
 		stats.sub2ReadObjTime.finish();
 	}
 	
@@ -467,7 +471,9 @@ public class SpatialSearchContext {
 		}
 
 		stats.sub2ReadObjTime.start();
-		List<Amenity> lst = files.get(c.fileInd).readAmenityBlock(nameIndex.poiRegion, shift, poiInd);
+		BinaryMapIndexReader bmir = files.get(c.fileInd);
+		long bytesRead = bmir.getBytesRead();
+		List<Amenity> lst = bmir.readAmenityBlock(nameIndex.poiRegion, shift, poiInd);
 		if (cache != null) {
 			long ofirstid = oid - (poiInd << SHIFT_FILE_IND);
 			for (int i = 0; i < lst.size(); i++) {
@@ -475,6 +481,7 @@ public class SpatialSearchContext {
 			}
 		}
 		MapObject amenity = lst.get(poiInd);
+		stats.readObjsBytes += (bmir.getBytesRead() - bytesRead);
 		stats.sub2ReadObjTime.finish();
 		return amenity;
 	}
@@ -500,7 +507,8 @@ public class SpatialSearchContext {
 				break;
 			}
 		}		
-		
+		BinaryMapIndexReader bmir = files.get(c.fileInd);
+		long bytesRead = bmir.getBytesRead();
 		stats.sub2ReadObjTime.start();
 		MapObject obj;
 		if (pid != 0) {
@@ -515,12 +523,13 @@ public class SpatialSearchContext {
 				city = (City) cache.get(opid);
 			}
 			if (city == null) {
-				city = files.get(c.fileInd).readCityObject(nameIndex.addressRegion, pshift);
+				city = bmir.readCityObject(nameIndex.addressRegion, pshift);
 			}
-			obj = files.get(c.fileInd).readStreetObject(nameIndex.addressRegion, city, shift);
+			obj = bmir.readStreetObject(nameIndex.addressRegion, city, shift);
 		} else  {
-			obj = files.get(c.fileInd).readCityObject(nameIndex.addressRegion, shift);
+			obj = bmir.readCityObject(nameIndex.addressRegion, shift);
 		}
+		stats.readObjsBytes += (bmir.getBytesRead() - bytesRead);
 		stats.sub2ReadObjTime.finish();
 		return obj;
 	}

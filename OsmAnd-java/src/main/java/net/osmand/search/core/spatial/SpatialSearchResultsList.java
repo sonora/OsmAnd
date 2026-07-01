@@ -37,7 +37,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	int MIN_ELO_RATING = Amenity.DEFAULT_ELO;
 	
 	public static long PARTIAL_ID_MATCH = -4; // special flag for building partial match
-	public static long SURPLUS_ID_MATCH = -16; // special flag for building partial match
+	public static long SURPLUS_ID_MATCH = -16; // special flag for building partial match (11-NUON)
 
 	// NameIndexAtom[][] -- should be double array to store list of combinations
 	List<NameIndexAtom> linearResults = new ArrayList<>();
@@ -311,7 +311,6 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	}
 	
 	
-	
 	private Building checkBuilding(Street street, String bld) {
 		Building interpolation = null;
 		Building partial2 = null;
@@ -328,7 +327,9 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 //				System.out.println(street + " " + original + " ?= " + cmp);
 				if (bldSet.equals(query)) {
 					// exact match but could be duplicates 8-8
-					if (tempBuildNames2.size() > bldSet.size() && !tempBuildNames2.equals(tempBuildNames1)) {
+					// duplicate could be in query or in house number
+					if ((tempBuildNames2.size() > bldSet.size() || tempBuildNames1.size() > query.size()) 
+							&& !tempBuildNames2.equals(tempBuildNames1)) {
 						partial1 = b;
 					} else {
 						return b;
@@ -348,6 +349,9 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			}
 		}
 		if (partial1 != null) {
+			if (tempBuildNames1.size() > query.size()) {
+				partial1.setId(PARTIAL_ID_MATCH);
+			}
 			return partial1;
 		}
 		if (interpolation != null) {
@@ -490,6 +494,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				if (level > limitIntersection) {
 					return;
 				}
+//				System.out.println(atom + " " + parent.getRawAtoms(parentIndx));
 				boolean acceptIntersection = acceptIntersection(ctx, parent, parentIndx, token, atom, typeIntersection);
 				if (acceptIntersection) {
 					TIntArrayList c = intersections[level];
@@ -609,11 +614,13 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 		// 2. Duplicate words in query
 		for (int i = 0; parent != null && i < parent.tCount; i++) {
 			NameIndexAtom pa = parent.linearResults.get(pindx * parent.tCount + i);
-			if (pa.id == a.id && tokens[0].word.equals(tokens[i + 1].word)) {
+			if (pa.id == a.id && tokens[0].word.equals(tokens[i + 1].word) && 
+					!pa.isBuilding() && !a.isBuilding()) {
 				// NameIndexAtom supports "<word> <...> <word>" but it's not present in DATA now
 				int indexOf = a.name.indexOf(tokens[0].word, pindx);
 				if (indexOf != -1 && a.name.indexOf(tokens[0].word, indexOf + 1) >= 0) {
 					// duplicate name in object
+//					System.out.println("Duplicate word  " + a.name);
 				} else {
 					return false;
 				}

@@ -920,7 +920,7 @@ public class BinaryMapAddressReaderAdapter {
 				long oldLimit = codedIS.pushLimitLong((long) length);
 				res = readNameIndexInternal(nameIndex);
 				codedIS.popLimit(oldLimit);
-				break;
+				return res;
 			default:
 				skipUnknownField(t);
 				break;

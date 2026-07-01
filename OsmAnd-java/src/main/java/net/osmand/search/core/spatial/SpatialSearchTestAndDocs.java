@@ -16,22 +16,20 @@ import net.osmand.util.SearchAlgorithms;
 
 
 //////////// TESTING //////////
-// SLOW QUERY: 'New York 4 av' - 7.5s (2M), 'New York st' - 2s (700k),
-// SLOW OTHER: 'New York s. ' 0.5s (100k), 'Sokak 2' - 0.5s (500K), 'Lima Calle 2' - 0.5s (25K)
 // REVIEW UI FILTER_MIN_WORDS_COUNT - 'New york plaza' ('the'), Issues Nova poshta Kharkiv 
 // TESTING Building interpolation, Street intersection match, bis matching
-// TESTING 'LangeStraße' (Data 'Lange Straße'), 'Daimler strasse' (Data 'daimlerstraße')
 // TESTING Slow 'New York 4 av' - 7.5s (1M), 'New York st' - 2s (700k) - OPTIMAL 
 // TESTING 11-nuon leons, Húns Huns 39a-MLN 8832kd, 
 // TESTING Filter results boundaries, <Salt Lake City>
 // TESTING Ignore same embedded boundary city / county - deduplicate on the fly (new york x4)
-// NOT FIXED Combine regions.ocbf (boundary)? - will be wikidata id not combined for now
+// TESTING Duplicate words W&W
 
 ////////// IN PROGRESS //////////
-
+// TODO enlarge USA search boxes
 // TODO 2 Sokak sorting - Show more
 // TODO Cannaregio 539D Campo Saffa - Double 539D???
 // TODO Venezia sort
+// TODO not found Manhattan 57th street
 
 // TODO Bratislava Billa - too many POI intersection results
 // TODO Filter Public transport stops, City&Bike - New york - analyze poi name consists of street name?
@@ -46,11 +44,13 @@ import net.osmand.util.SearchAlgorithms;
 // TO DO Ivan
 // TODO Review / implement similarity radius - similarityRadius = 50000 ... Route Id
 // TODO Unite RouteArticle, POI by wikidata id ? - DEPTH_TO_CHECK_SAME_SEARCH_RESULTS = 20;...
-// TODO Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them
-// TODO Unit / Slow analysis tests (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
+// TODO Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
+// TODO Unit tests (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
+// TODO Auto tests - Slow analysis
 
 // TO DO - RZR
 // TODO WEB Add url / coordinates parsing
+// TODO WEB display results std way: house, interpolation results, poi...
 // TODO Progress / cancel
 // TODO Not forget to include regions.ocbf on client
 // TODO Test memory on Android device for slowest query
@@ -136,11 +136,15 @@ public class SpatialSearchTestAndDocs {
 		File folder = new File(System.getProperty("maps.dir"));
 		LatLon location = null;
 		String pattern = "Germany_b";
+//		pattern = "Map";
 		String pattern2 = ".....";
 		String query = "Berlin hauptstrasse"; // slow
 //		query = "Kelterstraße Kernen im Remstal";
 //		query = "Germany Kelter. Kernen im Remstal";
 		query = "3 Hofäckerstraße Kernen im Remstal";
+		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
+		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
+		query = "21 Heilbronner Straße Stuttgart";
 		
 		// Grainau Am Eibsee 1 36799292
 		// Grainau Seehäuser Eibsee 2 - 242903848 //  Seehäuser Grainau 2, Seehäuser Eibsee 2  
@@ -156,7 +160,7 @@ public class SpatialSearchTestAndDocs {
 //		Search Stats 778.5 ms - read 754.6 ms atoms (tokens 442.4 ms, obj 1.8 ms), match 281.5 ms, comp 26.4 ms
 //		Search Stats 925.5 ms - read 799.8 ms atoms (tokens 442.5 ms, obj 16.3 ms), match 280.5 ms, comp 149.5 ms
 		
-		pattern = "Us_";
+//		pattern = "Us_";
 //		pattern = "Map";
 //		query = "Salt Lake City Pennsylvania Place 123 UT USA";
 //		query = "Salt Lake City Elephant";
@@ -169,7 +173,10 @@ public class SpatialSearchTestAndDocs {
 //		query = "Pennsylvania Avenue Philadelphia PA USA"; 
 //		query = "Pennsylvania Avenue Philadelphia Philadelphia County Pennsylvania USA";
 //		query = "Pennsylvania Avenue White Oak Allegheny County Pennsylvania USA"; // 11947214
-		query = "173 Liberty Valley Road Danville";
+//		query = "173 Liberty Valley Road Danville";
+//		query = "151 Molleystown Road Pine Grove";
+//		query = "36 Wilson Drive"; // Pine City
+		
 		
 		// Street ref "pa 75" (not stored), house "pa-75" (data)
 //		query = "PA 75 27193"; // Data 'PA-75', 27193  4472676432
@@ -262,8 +269,8 @@ public class SpatialSearchTestAndDocs {
 		// See test - [8-8 Kinshi 3 Kinshi Sumida Tokyo], Rivière Tsumura
 		// India - Satyam node/2296788005#map=18/17.805646/83.356818
 		// +[Venezia, Cannaregio, 539D , Campo Saffa], +[Venezia Cannaregio 539D ] -[Venezia 539D  Campo Saffa] - expected
-		pattern = "Italy_ven";
-		query = "Venezia Cannaregio 539D ";
+//		pattern = "Italy_ven";
+//		query = "Venezia Cannaregio 539D ";
 		
 //		pattern = "Slovakia";
 //		query = "Bratislava Billa";

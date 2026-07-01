@@ -29,15 +29,14 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		this.parentInd = parentInd;
 		this.parent = parentList;
 		this.preciseLatlon = preciseLatlon;
-		int incomplete = 0;
+		int surplusWords = 0;
 		for (int i = 0; i < parent.tCount; i++) {
 			NameIndexAtom atom = parent.linearResults.get(parentInd * parentList.tCount + i);
-			if (atom.object != null && atom.object.getId() != null) {
-				if(atom.object.getId().longValue() == SpatialSearchResultsList.PARTIAL_ID_MATCH) {
-					incomplete--;
-				} else if(atom.bldObject != null //&& atom.bldObject.getId().longValue() == SpatialSearchResultsList.SURPLUS_ID_MATCH
-						) {
-					incomplete++;
+			if (atom.bldObject != null && atom.bldObject.getId() != null) {
+				if(atom.bldObject.getId().longValue() == SpatialSearchResultsList.PARTIAL_ID_MATCH) {
+					surplusWords--;
+				} else if(atom.bldObject.getId().longValue() == SpatialSearchResultsList.SURPLUS_ID_MATCH) {
+					surplusWords++;
 				}
 			}
 			SpatialSearchToken token = parent.tokens[i];
@@ -65,7 +64,7 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 			}
 			ref.tokens.add(token);
 		}
-		this.surplusWords = incomplete;
+		this.surplusWords = surplusWords;
 		sortObjects();
 	}
 	

@@ -2668,11 +2668,11 @@ public class OsmandAidlApi {
 	}
 
 	private static boolean hasUnsafeCopyPath(@Nullable String destinationDir, @Nullable String fileName) {
-		if (Algorithms.isEmpty(fileName) || fileName.contains("/")) {
+		if (Algorithms.isEmpty(fileName) || fileName.contains("/") || fileName.equals("..")) {
 			return true;
 		}
 		return Algorithms.isNotEmpty(destinationDir) && (destinationDir.contains("/../")
-				|| destinationDir.startsWith("../") || destinationDir.endsWith("/.."));
+				|| destinationDir.startsWith("../") || destinationDir.endsWith("/..") || destinationDir.equals(".."));
 	}
 
 	private static class GpxAsyncLoaderTask extends AsyncTask<Void, Void, GpxFile> {

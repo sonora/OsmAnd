@@ -310,24 +310,43 @@ public class SpatialSearchToken {
 				decodeBBox(addr.hasBbox() ? addr.getBbox() : null);
 			}
 		}
+		
+		public void enlargeBbox31(double mult) {
+			// TODO only for boundaries and only for non-large like countries, state... 
+			int w = (int) ((bbox31[2] - bbox31[0]) * mult), h = (int) ((bbox31[3] - bbox31[1]) * mult);
+			int xleft = Math.max(Math.min(bbox31[0], bbox31[0] - w), 0);
+			int xright = Math.max(bbox31[2] + w, bbox31[0]);
+			int ytop = Math.max(Math.min(bbox31[1], bbox31[1] - h), 0);
+			int ybottom = Math.max(bbox31[3] + h, bbox31[1]);;
+			bbox31[0] = xleft;
+			bbox31[2] = xright;
+			bbox31[1] = ytop;
+			bbox31[3] = ybottom;
+			calcTileFromBbox();
+		}
 
 		private void decodeBBox(ByteString bbox) {
 			if (bbox != null) {
 				bbox31 = SearchAlgorithms.decodeBboxForNameAtomsBytes(bbox, x16, y16);
-				if (bbox31 != null) {
-					int z = 31;
-					int xleft = bbox31[0], xright = Math.max(bbox31[2], bbox31[0]);
-					int ytop = bbox31[1], ybottom = Math.max(bbox31[3], bbox31[3]);;
-					while (xleft != xright || ytop != ybottom) {
-						z--;
-						xleft >>= 1;
-						xright >>= 1;
-						ytop >>= 1;
-						ybottom >>= 1;
-					}
-					bboxTileZoom = z;
-					bboxTileId = HashQuadTree.encodeTileId(z, xleft, ytop);
+				calcTileFromBbox();
+			}
+		}
+
+		private void calcTileFromBbox() {
+			if (bbox31 != null) {
+				int z = 31;
+				// for 180 lat check max  
+				int xleft = bbox31[0], xright = Math.max(bbox31[2], bbox31[0]);
+				int ytop = bbox31[1], ybottom = Math.max(bbox31[3], bbox31[1]);;
+				while (xleft != xright || ytop != ybottom) {
+					z--;
+					xleft >>= 1;
+					xright >>= 1;
+					ytop >>= 1;
+					ybottom >>= 1;
 				}
+				bboxTileZoom = z;
+				bboxTileId = HashQuadTree.encodeTileId(z, xleft, ytop);
 			}
 		}
 

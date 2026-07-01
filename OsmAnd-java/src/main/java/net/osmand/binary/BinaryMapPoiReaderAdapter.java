@@ -456,7 +456,7 @@ public class BinaryMapPoiReaderAdapter {
 				long oldLimit = codedIS.pushLimitLong((long) length);
 				res = readNameIndexInternal(nameIndexReader);
 				codedIS.popLimit(oldLimit);
-				break;
+				return res;
 			default:
 				skipUnknownField(t);
 				break;
