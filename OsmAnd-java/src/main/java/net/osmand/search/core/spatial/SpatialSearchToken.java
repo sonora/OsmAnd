@@ -138,10 +138,14 @@ public class SpatialSearchToken {
 	
 	void removeAtom(NameIndexAtom atom) {
 		NameIndexAtom na = index.get(atom.id);
-		int indexOf = atoms.indexOf(na);
-		if (indexOf != -1) {
-			deletedAtoms.add(indexOf);
-		}
+		deletedAtoms.add(na.indexInToken);
+	}
+
+	void enlargeBbox(NameIndexAtom atom, double mult) {
+		NameIndexAtom na = index.get(atom.id);
+		quadTree.delete(atom.coords.bboxTileZoom, atom.coords.bboxTileId, na.indexInToken);
+		atom.coords.enlargeBbox31(mult);
+		quadTree.put(atom.coords.bboxTileZoom, atom.coords.bboxTileId, na.indexInToken);
 	}
 	
 	void addAtom(NameIndexAtom atom) {
@@ -170,6 +174,7 @@ public class SpatialSearchToken {
 		index.put(atom.id, atom);
 		atoms.add(atom);
 		int indx = atoms.size() - 1;
+		atom.indexInToken = indx;
 		quadTree.put(atom.coords.bboxTileZoom, atom.coords.bboxTileId, indx);
 	}
 
@@ -311,19 +316,6 @@ public class SpatialSearchToken {
 			}
 		}
 		
-		public void enlargeBbox31(double mult) {
-			// TODO only for boundaries and only for non-large like countries, state... 
-			int w = (int) ((bbox31[2] - bbox31[0]) * mult), h = (int) ((bbox31[3] - bbox31[1]) * mult);
-			int xleft = Math.max(Math.min(bbox31[0], bbox31[0] - w), 0);
-			int xright = Math.max(bbox31[2] + w, bbox31[0]);
-			int ytop = Math.max(Math.min(bbox31[1], bbox31[1] - h), 0);
-			int ybottom = Math.max(bbox31[3] + h, bbox31[1]);;
-			bbox31[0] = xleft;
-			bbox31[2] = xright;
-			bbox31[1] = ytop;
-			bbox31[3] = ybottom;
-			calcTileFromBbox();
-		}
 
 		private void decodeBBox(ByteString bbox) {
 			if (bbox != null) {
@@ -357,6 +349,38 @@ public class SpatialSearchToken {
 			bboxTileId = HashQuadTree.encodeTileId(bboxTileZoom, x16, y16);
 			decodeBBox(poi.hasBbox() ? poi.getBbox() : null);
 		}
+		
+		public void enlargeBbox31(double mult) {
+			if (bbox31 != null) {
+				int w = (int) ((bbox31[2] - bbox31[0]) * mult), h = (int) ((bbox31[3] - bbox31[1]) * mult);
+				bbox31[0] = Math.max(Math.min(bbox31[0], bbox31[0] - w), 0); // xleft
+				bbox31[2] = Math.max(bbox31[2] + w, bbox31[0]); // xright
+				bbox31[1] = Math.max(Math.min(bbox31[1], bbox31[1] - h), 0); // ytop
+				bbox31[3] = Math.max(bbox31[3] + h, bbox31[1]); // ybottom
+			} else {
+				int w = (int) Math.ceil(mult);
+				bbox31 = new int[4];
+				bbox31[0] = Math.max((x16 - w) << 15, 0); // xleft
+				bbox31[2] = Math.max((x16 + w) << 15, bbox31[0]); // xright
+				bbox31[1] = Math.max((y16 - w) << 15, 0); // ytop
+				bbox31[3] = Math.max((y16 + w) << 15, bbox31[1]); // ybottom
+			}
+			calcTileFromBbox();
+		}
+
+		public double dimensionInM() {
+			int xleft = x16 << 15, xright = (x16 + 1) << 15;
+			int ytop = y16 << 15, ybottom = (y16 + 1) << 15;
+			if (bbox31 != null) {
+				xleft = bbox31[0];
+				xright = bbox31[2];
+				ytop = bbox31[1];
+				ybottom = bbox31[3];
+			}
+			return MapUtils.getDistance(MapUtils.get31LatitudeY(ytop), MapUtils.get31LongitudeX(xleft),
+					MapUtils.get31LatitudeY(Math.max(ytop, ybottom)),
+					MapUtils.get31LongitudeX(Math.max(xleft, xright)));
+		}
 
 		
 
@@ -370,10 +394,14 @@ public class SpatialSearchToken {
 		final int type; //
 		final long id; // used to read object
 		final long parentid; // used to read object
+		
 		MapObject object; // same for all
 		MapObject bldObject; // same for all
+		
 		int otherWordsCnt; // added before intersection
 		int otherFoundCnt;
+		
+		int indexInToken;
 		final boolean cityAsStreet;
 		final NameIndexAtomXY coords; 
 		final int buildingInd; // added before intersection
@@ -477,6 +505,7 @@ public class SpatialSearchToken {
 
 
 	}
+
 
 
 }

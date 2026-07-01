@@ -36,6 +36,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	
 	int MIN_ELO_RATING = Amenity.DEFAULT_ELO;
 	
+	public static long DEFAULT_BLD_ID = -0; // special flag for building partial match
 	public static long PARTIAL_ID_MATCH = -4; // special flag for building partial match
 	public static long SURPLUS_ID_MATCH = -16; // special flag for building partial match (11-NUON)
 
@@ -172,11 +173,12 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				}
 			}
 		}
-		if (first != null && second != null) {
+		if (first != null && first.object instanceof Street s1 && second != null
+				&& second.object instanceof Street s2) {
 			LatLon insLoc = null; 
 			if (insLoc == null) {
-				for (Street ins : ((Street) first.object).getIntersectedStreets()) {
-					if (ins.getName().equals(second.object.getName())) {
+				for (Street ins : s1.getIntersectedStreets()) {
+					if (ins.getName().equals(s2.getName())) {
 						insLoc = ins.getLocation();
 //						System.out.printf("INTERSECTION x1 %.4f, %.4f %s (%s) x %s\n", insLoc.getLatitude(),
 //								insLoc.getLongitude(), second.toString(), ins.getName(), first.toString());
@@ -185,8 +187,8 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				}
 			}
 			if (insLoc == null) {
-				for (Street ins : ((Street) second.object).getIntersectedStreets()) {
-					if (ins.getName().equals(first.object.getName())) {
+				for (Street ins : s2.getIntersectedStreets()) {
+					if (ins.getName().equals(s1.getName())) {
 						insLoc = ins.getLocation();
 //						System.out.printf("INTERSECTION x2 %.4f, %.4f %s (%s) x %s\n", ins.getLocation().getLatitude(),
 //								ins.getLocation().getLongitude(), first.toString(), ins.getName(), second.toString());
@@ -194,14 +196,19 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 					}
 				}
 			}
-			if (insLoc == null && ctx.settings.ALLOW_VIRTUAL_STREET_INTERSECTIONS) {
-				LatLon l1 = first.object.getLocation();
-				LatLon l2 = second.object.getLocation();
+			if (insLoc == null && ctx.settings.ALLOW_VIRTUAL_STREET_INTERSECTIONS && 
+					s2.getIntersectedStreets().size() > 0 && s1.getIntersectedStreets().size() > 0) {
+				// some virtual streets from addr:place end up without names and with 0 intersected streets Venezia
+				LatLon l1 = s1.getLocation();
+				LatLon l2 = s2.getLocation();
 				insLoc = new LatLon(l1.getLatitude() / 2 + l2.getLatitude() / 2, l1.getLongitude() / 2 + l2.getLongitude() / 2);
 // 				System.out.printf("INTERSECTION NO %.4f %.4f %s x %s\n", insLoc.getLatitude(),
 //						insLoc.getLongitude(), first.toString(), second.toString());
 			}
-			if (insLoc != null) {
+			if (insLoc != null && !first.isCityStreetName() && !second.isCityStreetName()) {
+				if (second.object.getName().equals("Cannaregio")) {
+					System.out.println(first + " " + second + " " + insLoc);
+				}
 				preciseLocations.put(indx, insLoc);
 			} else {
 				skipResults.put(indx, true);
@@ -332,11 +339,12 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 							&& !tempBuildNames2.equals(tempBuildNames1)) {
 						partial1 = b;
 					} else {
+						b.setId(DEFAULT_BLD_ID);
 						return b;
 					}
 				}
-				if (bldSet.size() == query.size() + 1) {
-					// case data only 18-B present, 18 searched
+				if (bldSet.size() == query.size() + 1 || bldSet.size() == query.size() + 2) {
+					// case data only 18-B present, 18 searched (151 + unit Upper level)
 					if (bldSet.containsAll(query)) {
 						partial1 = b;
 					}
@@ -349,12 +357,14 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			}
 		}
 		if (partial1 != null) {
+			partial1.setId(DEFAULT_BLD_ID);
 			if (tempBuildNames1.size() > query.size()) {
 				partial1.setId(PARTIAL_ID_MATCH);
 			}
 			return partial1;
 		}
 		if (interpolation != null) {
+			interpolation.setId(DEFAULT_BLD_ID);
 			return interpolation;
 		}
 		if (partial2 != null) {

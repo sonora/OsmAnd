@@ -23,30 +23,32 @@ import net.osmand.util.SearchAlgorithms;
 // TESTING Filter results boundaries, <Salt Lake City>
 // TESTING Ignore same embedded boundary city / county - deduplicate on the fly (new york x4)
 // TESTING Duplicate words W&W
+// TESTING enlarge USA search boxes
+// TESTING test: merge boundaries bbox - extend incomplete boundary same id ... - npt fixed as we anyway enlarge
+// TESTING Cannaregio 539D Campo Saffa - Double 539D
+// TESTING Manhattan 57th street
 
 ////////// IN PROGRESS //////////
-// TODO enlarge USA search boxes
-// TODO 2 Sokak sorting - Show more
-// TODO Cannaregio 539D Campo Saffa - Double 539D???
-// TODO Venezia sort
-// TODO not found Manhattan 57th street
 
+// TODO "2 South 2nd Street Saint Clair";  street matched twice
 // TODO Bratislava Billa - too many POI intersection results
 // TODO Filter Public transport stops, City&Bike - New york - analyze poi name consists of street name?
 
+// TO DO POI Categories 
 // FIXME POI Categories + top poi categories
 // FIXME Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
 // TODO POI Categories translations / synonyms
-
-// TODO ? test: merge boundaries bbox - extend incomplete boundary same id...
 // TODO Inspector stats index_words_dashboard.html
 
-// TO DO Ivan
+// TO DO Ivan / Gateway
 // TODO Review / implement similarity radius - similarityRadius = 50000 ... Route Id
 // TODO Unite RouteArticle, POI by wikidata id ? - DEPTH_TO_CHECK_SAME_SEARCH_RESULTS = 20;...
+// TODO Venezia - No place=city in POI is it on purpose ? 2 Wikidataids! Rating not merged. POI - relation/44741 (Q641), CITY - way/64778090 (Q33723961).
 // TODO Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
 // TODO Unit tests (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
-// TODO Auto tests - Slow analysis
+// TODO Auto tests - Slow analysis (Auto test New york)
+// TODO Analyze synonyms (abbrevations 1st=first) list make a list
+// TODO Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
 
 // TO DO - RZR
 // TODO WEB Add url / coordinates parsing
@@ -68,6 +70,7 @@ import net.osmand.util.SearchAlgorithms;
 // TODO Sugggestion-correction
 // TODO English postcodes
 // TODO Precise Boundary 'Chernihiv sport life' mostly Kyiv - check precise boundary for filter
+// TODO Short word split "Ro-ki" vs "Roki" 
 
 public class SpatialSearchTestAndDocs {
 
@@ -160,7 +163,8 @@ public class SpatialSearchTestAndDocs {
 //		Search Stats 778.5 ms - read 754.6 ms atoms (tokens 442.4 ms, obj 1.8 ms), match 281.5 ms, comp 26.4 ms
 //		Search Stats 925.5 ms - read 799.8 ms atoms (tokens 442.5 ms, obj 16.3 ms), match 280.5 ms, comp 149.5 ms
 		
-//		pattern = "Us_";
+		pattern = "Us_penn";
+		pattern2 = "Us_new-york_syracuse";
 //		pattern = "Map";
 //		query = "Salt Lake City Pennsylvania Place 123 UT USA";
 //		query = "Salt Lake City Elephant";
@@ -175,8 +179,16 @@ public class SpatialSearchTestAndDocs {
 //		query = "Pennsylvania Avenue White Oak Allegheny County Pennsylvania USA"; // 11947214
 //		query = "173 Liberty Valley Road Danville";
 //		query = "151 Molleystown Road Pine Grove";
-//		query = "36 Wilson Drive"; // Pine City
-		
+//		query = "6 Kent Road Pine City";
+//		query = "36 Wilson Drive  Pine City"; 
+//		query = "301 East Second Street Corning"; // "301 East 2nd Street Corning"
+//		query = "763 Ro-Ki Boulevard Nichols"; // NO FIX yet: Roki is very short to be fixed same as Weber-Strasse
+//		query = "2 South 2nd Street Saint Clair"; // to fix street matched twice
+//		query = "151 Weber Way Selinsgrove"; // Fixed: 2 word - addr:unit 
+//		query = "1544 PA-61 Pottsville"; // NO FIX: as pa-61 street not a house number leave as it ison 4th place
+//		query = "17815 PA-35 Port Royal"; // CHECK!
+//		location = new LatLon(42.101486, -76.669075); // order of results based on location
+//		query = "2032 Ridge Road Lowman";
 		
 		// Street ref "pa 75" (not stored), house "pa-75" (data)
 //		query = "PA 75 27193"; // Data 'PA-75', 27193  4472676432
@@ -247,9 +259,9 @@ public class SpatialSearchTestAndDocs {
 //		query = "Holmby Melbourne 18B";
 		
 //		pattern = "Us_new-york_new"; // new-york, new-jersey
-//		pattern = "Us_new-"; 
+		pattern = "Us_new-"; 
 		
-//		location = new LatLon(40.78035, -73.96572); // central park
+		location = new LatLon(40.78035, -73.96572); // central park
 //		location = new LatLon(40.64946, -74.00682); // brooklyn
 //		location = new LatLon(40.64946, -73.50682);
 //		query = "New York The plaza";
@@ -259,6 +271,7 @@ public class SpatialSearchTestAndDocs {
 		// 40.78035, -73.96572 - unit test '4th av', '4 ave', '4th avenue'  - 85393997 Park avenue
 //		query = "New York 4 av"; 
 //		query = "New York 4 av 8"; // 160947243
+//		query = "57th street"; // central park - 265345338 east, 86216906 west, ()66926268 (west)?), 
 //		query = "4th ave"; //  unit '4 ave'   
 //		query = "4th ave 8 paterson"; //  wrong city...
 		// Result 4 - 40.8407, -74.0954 [[4th, 8] Building 2 4th Street (26238417818) 40.8441 -74.0910 , [ave, paterson] STREET_TYPE Paterson Avenue (651531238) 40.8374 -74.0997 ]
@@ -270,7 +283,8 @@ public class SpatialSearchTestAndDocs {
 		// India - Satyam node/2296788005#map=18/17.805646/83.356818
 		// +[Venezia, Cannaregio, 539D , Campo Saffa], +[Venezia Cannaregio 539D ] -[Venezia 539D  Campo Saffa] - expected
 //		pattern = "Italy_ven";
-//		query = "Venezia Cannaregio 539D ";
+//		pattern2 = "World_basemap_2";
+//		query = "Cannaregio 539D Campo Saffa "; // no double 539d (no intersectoin)
 		
 //		pattern = "Slovakia";
 //		query = "Bratislava Billa";
@@ -283,12 +297,15 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "World_basemap_2";
 //		pattern2 = "Ukraine";
+//		pattern = "Italy_";
 //		query = "о. Пасхи"; // o
 //		query = "остров Пасхи"; // o. -> остров - not supported data need to be updated
 //		query = "New york";
 //		query  = "Madeira"; // short_name	Madeira
 //		query  = "Everest";
 //		query  = "Rio de Janeiro";
+//		location = new LatLon(44.0194, 10.2025);
+//		query = "Venezia"; // no place - city
 
 //		pattern = "Spain_aragon_europe_";
 //		query = "Basílica de Nuestra Señora del Pilar";
