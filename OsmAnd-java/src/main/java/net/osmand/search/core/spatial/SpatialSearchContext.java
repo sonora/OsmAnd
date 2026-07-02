@@ -628,7 +628,7 @@ public class SpatialSearchContext {
 						} else {
 							other = wordInd < b.getOtherWordsCountCount() ? b.getOtherWordsCount(wordInd) : 0;
 						}
-						addObject(t, name, type, cid, pid, obj, other, new NameIndexAtomXY(a, b), allTokens);
+						addObject(t, name, type, cid, pid, obj, other, new NameIndexAtomXY(a, b, settings), allTokens);
 					}
 					wordInd++;
 					name = "";
@@ -660,7 +660,7 @@ public class SpatialSearchContext {
 			} else {
 				other = wordInd < b.getOtherWordsCountCount() ? b.getOtherWordsCount(wordInd) : 0;
 			}
-			addObject(t, name, type, cid, pid, obj, other, new NameIndexAtomXY(a, b), allTokens);
+			addObject(t, name, type, cid, pid, obj, other, new NameIndexAtomXY(a, b, settings), allTokens);
 		}
 	}
 

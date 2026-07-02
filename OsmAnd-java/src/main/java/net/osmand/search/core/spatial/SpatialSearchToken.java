@@ -15,12 +15,15 @@ import net.osmand.binary.BinaryMapAddressReaderAdapter.CityBlocks;
 import net.osmand.binary.NameIndexReader.NameIndexReaderMatcher;
 import net.osmand.binary.ObfConstants;
 import net.osmand.binary.OsmandOdb.AddressNameIndexDataAtom;
+import net.osmand.binary.OsmandOdb.CityBlockIndex;
 import net.osmand.binary.OsmandOdb.OsmAndPoiNameIndexDataAtom;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.Street;
+import net.osmand.search.AmenitySearcher.Settings;
 import net.osmand.search.core.HashQuadTree;
 import net.osmand.search.core.spatial.SpatialSearchContext.SpatialSearchStats;
+import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.Algorithms;
 import net.osmand.util.MapUtils;
 import net.osmand.util.SearchAlgorithms;
@@ -243,9 +246,10 @@ public class SpatialSearchToken {
 		int bboxTileZoom;
 		int x16, y16;
 		
-		public NameIndexAtomXY(AddressNameIndexDataAtom a, OsmAndPoiNameIndexDataAtom b) {
+		public NameIndexAtomXY(AddressNameIndexDataAtom a, OsmAndPoiNameIndexDataAtom b, 
+				SpatialTextSearchSettings settings) {
 			if (a != null) {
-				init(a);
+				init(a, settings);
 			} else {
 				init(b);
 			}
@@ -309,7 +313,7 @@ public class SpatialSearchToken {
 					+ MapUtils.deinterleaveY(bboxTileId);
 		}
 
-		private void init(AddressNameIndexDataAtom addr) {
+		private void init(AddressNameIndexDataAtom addr, SpatialTextSearchSettings settings) {
 			if (addr.getXy16Count() >= 1) {
 				int xy16 = addr.getXy16(0);
 				this.x16 = (xy16 >>> 16);
@@ -317,6 +321,9 @@ public class SpatialSearchToken {
 				bboxTileZoom = 15;
 				bboxTileId = HashQuadTree.encodeTileId(bboxTileZoom, x16 / 2, y16 / 2);
 				decodeBBox(addr.hasBbox() ? addr.getBbox() : null);
+				if (addr.hasType() && addr.getType() == CityBlocks.VILLAGES_TYPE.index) {
+					enlargeBbox31(settings.ENLARGE_VILLAGE_BBOX_DEFAULT);
+				}
 			}
 		}
 		
