@@ -243,8 +243,8 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 					searchKey += " " + tokens[i].word;
 				}
 				bldCheckMap.put(str, searchKey);
-			} else {
-				if (noBldStreet == null && bld.isStreet()) {
+			} else if (bld.isStreet()) {
+				if (noBldStreet == null) {
 					noBldStreet = bld;
 				}
 			}
@@ -283,7 +283,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				} else {
 					bldObj = checkBuilding((Street) str.object, bldName);
 					if (bldObj == null) {
-//						System.out.printf("No building '%s': %s\n", bldName, str.object);
+//						System.out.printf("No building '%s': %s\n", bldName, str.object + " " + ((Street) str.object).getBuildings());
 					} else {
 //						System.out.printf("Building found '%s' -'%s': %s\n", bldObj, bldName, str.object);
 						if (surplus > 0) {
@@ -496,7 +496,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			}
 			int originalLimit = limitIntersection;
 			int[] typeIntersection = new int[] { 0 };
-			iterateIntersection(parent, token, (parentIndx, atom,  indxAtom) -> { 
+			iterateIntersection(parent, token, (parentIndx, atom,  indxAtom) -> {
 				if (token.deletedAtoms.contains(indxAtom)) {
 					return;
 				}
@@ -504,8 +504,8 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				if (level > limitIntersection) {
 					return;
 				}
-//				System.out.println(atom + " " + parent.getRawAtoms(parentIndx));
 				boolean acceptIntersection = acceptIntersection(ctx, parent, parentIndx, token, atom, typeIntersection);
+//				System.out.println(atom + " " + parent.getRawAtoms(parentIndx) + " == " + acceptIntersection);
 				if (acceptIntersection) {
 					TIntArrayList c = intersections[level];
 					if (typeIntersection[0] == 2) {
@@ -684,13 +684,19 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			Iterator<NameIndexAtom> it = objects.values().iterator();
 			NameIndexAtom a1 = it.next();
 			NameIndexAtom a2 = it.next();
+			// if one object is same as city name don't intersect with street poi...
+			if (a1.sameNameAreaObj != null || a2.sameNameAreaObj != null) {
+				return false;
+			}
 			if ((a1.isStreetBuilding() != a2.isStreetBuilding()) && !it.hasNext()) {
 				typeIntersection[0] = 1;
 			} else {
 				typeIntersection[0] = 2;
-				if (!settings.SEARCH_STREET_INTERSECTIONS && a1.isStreetBuilding() && a2.isStreetBuilding()) {
+				boolean twoStreets = a1.isStreetBuilding() && a2.isStreetBuilding();
+				boolean twoPOIs = !a1.isStreetBuilding() && !a2.isStreetBuilding();
+				if (!settings.SEARCH_STREET_INTERSECTIONS && twoStreets) {
 					return false;
-				} else if (!settings.SEARCH_POI_INTERSECTIONS && !a1.isStreetBuilding() && !a2.isStreetBuilding()) {
+				} else if (!settings.SEARCH_POI_INTERSECTIONS && twoPOIs) {
 					return false;
 				}
 			}
