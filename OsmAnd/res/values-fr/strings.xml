@@ -5142,7 +5142,7 @@
     <string name="ais_receive_in_background">Recevoir les données AIS même lorsque OsmAnd est en pause.</string>
     <string name="ais_receive_in_background_description">Lorsque cette option est activée, le récepteur AIS fonctionne même si OsmAnd est en pause ou s\'exécute en arrière-plan. Si l\'option est désactivée, aucun message AIS n\'est reçu lorsque OsmAnd s\'exécute en arrière-plan.</string>
     <string name="shared_string_recent">Récentes</string>
-    <string name="sort_by_nearest_to_map_center">Proximité du centre de la carte</string>
+    <string name="sort_by_nearest_to_map_center">Plus proche du centre de la carte</string>
     <string name="last_week">Semaine dernière</string>
     <string name="history_is_turned_off">L\'historique est désactivé</string>
     <string name="search_around_my_location_description">Rechercher autour de votre position</string>

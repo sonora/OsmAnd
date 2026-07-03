@@ -321,8 +321,9 @@ public class SpatialSearchToken {
 				bboxTileZoom = 15;
 				bboxTileId = HashQuadTree.encodeTileId(bboxTileZoom, x16 / 2, y16 / 2);
 				decodeBBox(addr.hasBbox() ? addr.getBbox() : null);
-				if (addr.hasType() && addr.getType() == CityBlocks.VILLAGES_TYPE.index) {
-					enlargeBbox31(settings.ENLARGE_VILLAGE_BBOX_DEFAULT);
+				if (addr.hasType() && addr.getType() != CityBlocks.STREET_TYPE.index) {
+					double val = settings.evalEnlargeBoundary(settings.DEF_ENLARGE_BOUNDARIES, dimensionInM());
+					enlargeBbox31(val);
 				}
 			}
 		}
@@ -362,6 +363,9 @@ public class SpatialSearchToken {
 		}
 		
 		public void enlargeBbox31(double mult) {
+			if (mult == 0) {
+				return;
+			}
 			if (bbox31 != null) {
 				int w = (int) ((bbox31[2] - bbox31[0]) * mult), h = (int) ((bbox31[3] - bbox31[1]) * mult);
 				bbox31[0] = Math.max(Math.min(bbox31[0], bbox31[0] - w), 0); // xleft

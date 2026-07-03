@@ -180,7 +180,7 @@ public class SpatialSearchTestAndDocs {
 //		query = "Pennsylvania Avenue Philadelphia PA USA"; 
 //		query = "Pennsylvania Avenue Philadelphia Philadelphia County Pennsylvania USA";
 //		query = "Pennsylvania Avenue White Oak Allegheny County Pennsylvania USA"; // 11947214
-//		query = "173 Liberty Valley Road Danville";
+//		query = "173 Liberty Valley Road Danville"; // enlarged
 //		query = "151 Molleystown Road Pine Grove";
 //		query = "6 Kent Road Pine City";
 //		query = "36 Wilson Drive  Pine City"; 
@@ -204,10 +204,11 @@ public class SpatialSearchTestAndDocs {
 //		query = "76 North Street Waverly"; // same
 //		query = "1098 Long Run Road Pine Grove"; // 2.5 enlarge 40.5943782, -76.2609811
 //		query = "312 East 14th Street Elmira"; // no fix locations too close
+		query = "3374 Lower Maple Avenue Elmira";
 		
 		// Street ref "pa 75" (not stored), house "pa-75" (data)
-//		query = "PA 75 27193"; // Data 'PA-75', 27193  4472676432
-//		query = "PA 75"; // Yes - ('PA 75', 'PA-75'), no - 'PA75' 
+//		query = "PA 75 27193"; //'PA75'  Data 'PA-75', 27193  4472676432
+//		query = "PA 75"; // Yes - ('PA 75', 'PA-75'), YES - 'PA75' 
 		// data "PA 75" - see "M-2, 2 M" example
 
 //		pattern = "Liechtenstein_europe.obf";

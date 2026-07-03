@@ -107,9 +107,23 @@ public class SpatialTextSearch {
 //		public int MAX_ELO_RATING = 4300; // not used now
 		
 		// > 300 km - x0, for 50km-300km - x0.5, 10-50km - x1.5, 10km - x3sorted!
-		public double ENLARGE_VILLAGE_BBOX_DEFAULT = 2.5;
+		public Map<Integer, Double> DEF_ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
+				Map.of(-50_000, 0.3, -5_000, 1.0, -2_000, 3.0));
 		public Map<Integer, Double> ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
 				Map.of(-300_000, 0.5, -100_000, 1.5, -10_000, 3.0, -1_000, 20.0));
+		
+		public double evalEnlargeBoundary(Map<Integer, Double> mp, double dim) {
+			Iterator<Entry<Integer, Double>> it = mp.entrySet().iterator();
+			double val = 0;
+			while (it.hasNext()) {
+				Entry<Integer, Double> e = it.next();
+				if (dim > -e.getKey()) {
+					break;
+				}
+				val = e.getValue();
+			}
+			return val;
+		}
 		
 	}
 
@@ -295,16 +309,8 @@ public class SpatialTextSearch {
 		for (SpatialSearchToken t : tokens) {
 			for (NameIndexAtom a : t.atoms) {
 				if (a.isBoundary() || a.isCityVillage()) {
-					double dim = a.coords.dimensionInM();
-					Iterator<Entry<Integer, Double>> it = ctx.settings.ENLARGE_BOUNDARIES.entrySet().iterator();
-					double val = 0;
-					while (it.hasNext()) {
-						Entry<Integer, Double> e = it.next();
-						if (dim > -e.getKey()) {
-							break;
-						}
-						val = e.getValue();
-					}
+					double val = ctx.settings.evalEnlargeBoundary(ctx.settings.ENLARGE_BOUNDARIES, 
+							a.coords.dimensionInM());
 					if (val > 0) {
 //						System.out.println("Enlarge " + a.name + " " + a.type + " x" + val);
 						t.enlargeBbox(a, val);
