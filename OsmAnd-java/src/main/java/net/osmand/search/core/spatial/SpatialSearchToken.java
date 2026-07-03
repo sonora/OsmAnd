@@ -171,9 +171,18 @@ public class SpatialSearchToken {
 		if (aa != null) {
 			if (aa != atom) {
 				// select shortest available version
-				if (atom.otherWordsCnt < aa.otherWordsCnt) {
-					aa.otherWordsCnt = atom.otherWordsCnt;
-					aa.otherFoundCnt = atom.otherFoundCnt;
+				boolean replace = false;
+				if (atom.otherWordsCnt < aa.otherWordsCnt
+						|| (atom.otherWordsCnt == aa.otherWordsCnt && aa.otherFoundCnt > atom.otherFoundCnt)) {
+					replace = true;
+				}
+				if (aa.isBuilding() && !atom.isBuilding()) {
+					replace = true;
+				}
+				if (replace) {
+					atom.indexInToken = aa.indexInToken;
+					index.put(atom.id, atom);
+					atoms.set(atom.indexInToken, atom);
 				}
 			}
 			return;

@@ -252,13 +252,20 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		return (key << bits) + value;
 	}
 	
+	public static String compareKeyString(SpatialSearchResult o) {
+		int e = (o.getRating() - o.parent.MIN_ELO_RATING) / 64;
+		String elo = e > 0 ? "-"+e+"elo" : "";
+		return String.format("t%d-w%d+%d-oth%d%s-tp%d", o.parent.tCount, o.objs.size(), o.surplusWords,
+				Math.min(o.sumOther(), 3), elo, o.sumTypeOrder());
+	}
+	
 	public static long compareKey(SpatialSearchResult o) {
 		long key = 0;
 		key = addCompareKey(key, 6, -o.parent.tCount); // 6 bit - 64
 		key = addCompareKey(key, 6, o.objs.size()); // 6 bit - 64
 		key = addCompareKey(key, 3, -o.surplusWords); // 3 bit - 8
 		key = addCompareKey(key, 3, Math.min(o.sumOther(), 3)); // 3 bit - 3
-		key = addCompareKey(key, 6, -o.getRating() / 64); // 6 bit - 64 - group by 64 bucket
+		key = addCompareKey(key, 6, -(o.getRating() - o.parent.MIN_ELO_RATING) / 64); // 6 bit - 64 - group by 64 bucket
 		key = addCompareKey(key, 6, -o.sumTypeOrder()); // 6 bit - 64
 		// total 6+6+3+5+6+12 = 35
 		return key;
@@ -293,6 +300,9 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 			double d1 = o1.getLatLon() == null ? 0 : MapUtils.getDistance(center, o1.getLatLon());
 			double d2 = o2.getLatLon() == null ? 0 : MapUtils.getDistance(center, o2.getLatLon());
 			res = Double.compare(d1, d2);
+			if (res != 0) {
+				return res;
+			}
 		}
 		if (o1.getFirstObject() instanceof Amenity a1 && o2.getFirstObject() instanceof Amenity a2) {
 			int i1 = FILTER_DUPLICATE_POI_SUBTYPE.indexOf(a1.getSubType());
@@ -302,7 +312,6 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 				return res;
 			}
 		}
-		
 		if (res != 0) {
 			return res;
 		}

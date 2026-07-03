@@ -37,7 +37,7 @@ import net.osmand.util.SearchAlgorithms;
 
 public class SpatialSearchContext {
 
-	private static int SHIFT_FILE_IND = 12; // maximum files 4096
+	private static int SHIFT_FILE_IND = 12; // maxism files 4096
 	private static int SHIFT_POI_IND = 10; // maximum poi 1024
 
 	final List<BinaryMapIndexReader> files;
@@ -693,19 +693,19 @@ public class SpatialSearchContext {
 		List<SpatialSearchToken> otherTokens = null;
 		boolean streetCity = false;
 		boolean numericNotMatch = false;
-		boolean possiblyMultiword = name.indexOf(' ') != -1;
+		List<String> split = null;
+		if (name.indexOf(' ') != -1) {
+			split = SearchAlgorithms.splitAndNormalize(name, false);
+		}
 		// split '-' to allow search 'M-42' as 'M 42'
-		if (name.indexOf('-') != -1) {
-			possiblyMultiword = true;
-			name = name.replace('-', ' ');
+		if (name.indexOf('-') != -1 && !t.word.contains("-")) {
+			split = SearchAlgorithms.splitAndNormalize(name.replace('-', ' '), false);
 		}
-		// 2.Sokak
+		// '2.Sokak'
 		if (name.indexOf('.') != -1) {
-			possiblyMultiword = true;
-			name = name.replace('.', ' ');
+			split = SearchAlgorithms.splitAndNormalize(name.replace('.', ' '), false);
 		}
-		if (possiblyMultiword) {
-			List<String> split = SearchAlgorithms.splitAndNormalize(name, false);
+		if (split != null) {
 			for (int k = 1; k < split.size(); k++) {
 				String otherName = split.get(k);
 				boolean numeric = SearchAlgorithms.isNumber2Letters(otherName);

@@ -3,6 +3,7 @@ package net.osmand.data;
 import net.osmand.osm.edit.Entity;
 import net.osmand.osm.edit.OSMSettings.OSMTagKey;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -128,6 +129,26 @@ public class City extends MapObject {
 	
 	public int[] getBbox31() {
 		return bbox31;
+	}
+	
+	public boolean updateBbox31WithLoc(LatLon location) {
+		if (bbox31 != null) {
+			int x = MapUtils.get31TileNumberX(location.getLongitude());
+			int y = MapUtils.get31TileNumberY(location.getLatitude());
+			if (y > bbox31[3] || y < bbox31[1] || x > bbox31[2] || x < bbox31[0]) {
+				bbox31[0] = Math.min(x, bbox31[0]);
+				bbox31[1] = Math.min(y, bbox31[1]);
+				bbox31[2] = Math.max(x, bbox31[2]);
+				bbox31[3] = Math.max(y, bbox31[3]);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public void setBbox31(QuadRect bbox) {
+		this.bbox31 = new int[] { MapUtils.get31TileNumberX(bbox.left), MapUtils.get31TileNumberY(bbox.top),
+				MapUtils.get31TileNumberX(bbox.right), MapUtils.get31TileNumberY(bbox.bottom) };
 	}
 	
 	public void setBbox31(int[] bbox31) {

@@ -107,8 +107,10 @@ public class SpatialTextSearch {
 //		public int MAX_ELO_RATING = 4300; // not used now
 		
 		// > 300 km - x0, for 50km-300km - x0.5, 10-50km - x1.5, 10km - x3sorted!
+//		public Map<Integer, Double> DEF_ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
+//				Map.of(-50_000, 0.3, -5_000, 1.0, -2_000, 3.));
 		public Map<Integer, Double> DEF_ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
-				Map.of(-50_000, 0.3, -5_000, 1.0, -2_000, 3.0));
+				Map.of(-50_000, 0.0, -5_000, 0.0, -2_000, 0.));
 		public Map<Integer, Double> ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
 				Map.of(-300_000, 0.5, -100_000, 1.5, -10_000, 3.0, -1_000, 20.0));
 		
@@ -457,14 +459,14 @@ public class SpatialTextSearch {
 					level++;
 					System.out.printf("### %d - NEXT LEVEL %d (%s). "
 							+ " Format - 75(words) 02(objects) 0(surplus) 1(sum other) 52(rating) 72(sum types)\n",
-							sz, level, Long.toOctalString(r.compareKey()));
+							sz, level, SpatialSearchResult.compareKeyString(r));
 					sz = 0;
 				}
 				if (limitPrint-- < 0) {
 					System.out.println(".............");
 					break;
 				}
-				System.out.printf("Result %d (%s) - %s\n", r.matchedTokens(), Long.toOctalString(r.compareKey()), r);
+				System.out.printf("Result %d (%s) - %s\n", r.matchedTokens(), SpatialSearchResult.compareKeyString(r), r);
 			}
 			System.out.printf("------ ALL %d results ------- \n ", all);
 			System.out.println("---------------------------------------");

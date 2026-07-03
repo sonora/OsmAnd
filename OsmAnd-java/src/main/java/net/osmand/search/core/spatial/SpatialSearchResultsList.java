@@ -27,6 +27,7 @@ import net.osmand.data.Street;
 import net.osmand.search.core.HashQuadTree;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
+import net.osmand.util.MapUtils;
 import net.osmand.util.SearchAlgorithms;
 
 
@@ -281,7 +282,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				if (bldCheckCache.containsKey(cacheKey)) {
 					bldObj = bldCheckCache.get(cacheKey);
 				} else {
-					bldObj = checkBuilding((Street) str.object, bldName);
+					bldObj = checkBuilding(ctx, (Street) str.object, bldName);
 					if (bldObj == null) {
 //						System.out.printf("No building '%s': %s\n", bldName, str.object + " " + ((Street) str.object).getBuildings());
 					} else {
@@ -318,10 +319,13 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	}
 	
 	
-	private Building checkBuilding(Street street, String bld) {
+	private Building checkBuilding(SpatialSearchContext ctx, Street street, String bld) {
 		Building interpolation = null;
 		Building partial2 = null;
+		double distPartial1 = 0;
 		Building partial1 = null;
+		double distExact = 0;
+		Building exact = null;
 		Set<String> query = SearchAlgorithms.getBuildingCompareSet(bld, tempBuildNames1);
 		for (Building b : street.getBuildings()) {
 			if (b.isInterpolation()) {
@@ -337,16 +341,32 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 					// duplicate could be in query or in house number
 					if ((tempBuildNames2.size() > bldSet.size() || tempBuildNames1.size() > query.size()) 
 							&& !tempBuildNames2.equals(tempBuildNames1)) {
-						partial1 = b;
+						double d = ctx.location == null ? 0 : MapUtils.getDistance(ctx.location, b.getLocation());
+						// just for tests makes sense
+						if (distPartial1 == 0 || d < distPartial1) {
+							partial1 = b;
+							distPartial1 = d;
+						}
 					} else {
 						b.setId(DEFAULT_BLD_ID);
-						return b;
+						// just for tests makes sense
+						double d = ctx.location == null ? 0 : MapUtils.getDistance(ctx.location, b.getLocation());
+						if (distExact == 0 || d < distExact) {
+							exact = b;
+							distExact = d;
+						}
+//						return b;
 					}
 				}
 				if (bldSet.size() == query.size() + 1 || bldSet.size() == query.size() + 2) {
 					// case data only 18-B present, 18 searched (151 + unit Upper level)
 					if (bldSet.containsAll(query)) {
-						partial1 = b;
+						double d = ctx.location == null ? 0 : MapUtils.getDistance(ctx.location, b.getLocation());
+						// just for tests makes sense
+						if (distPartial1 == 0 || d < distPartial1) {
+							partial1 = b;
+							distPartial1 = d;
+						}
 					}
 				} else if (bldSet.size() + 1 == query.size()) {
 					// case data only 18 present, 18-B searched 
@@ -355,6 +375,9 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 					}
 				}
 			}
+		}
+		if (exact != null) {
+			return exact;
 		}
 		if (partial1 != null) {
 			partial1.setId(DEFAULT_BLD_ID);
@@ -665,8 +688,9 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			if (pa.id == a.id) {
 				continue;
 			}
-			if (parent.tokens[i].index.containsKey(a.id) && !tokens[0].word.equals(parent.tokens[i].word)) {
-				// ignore every object that has this name already (except duplicate words)
+			NameIndexAtom existing = parent.tokens[i].index.get(a.id);
+			if (existing != null && !existing.isBuilding() && !tokens[0].word.equals(parent.tokens[i].word)) {
+				// ignore every object that has this name already (except duplicate words && numbers assigned to building)
 				return false;
 			}
 			if (pa.atomicObject()) {
