@@ -33,13 +33,16 @@ import net.osmand.util.SearchAlgorithms;
 // TESTING Filter / group some categories: Public transport stops, City&Bike - New york?
 // TESTING 25 Школа владим.
 // TESTING 25 Садова вулиця! 2 Нова вулиця! 2 га Нова вулиця ! 25 та садова вулиця, 25 вулиця 2 вулиця
+// TESTING delete default enlarge and enlarge data
+// TESTING Venezia city Street / Place  -  <City Street> ('<Salt Lake City>') with Street ('Pennsylvania street') 
+// TESTING find check that token is reused in parent - and ignore intersection for complete mattch
 
 ////////// IN PROGRESS //////////
-// TODO delete default enlarge and enlarge data
 
 // FIXME POI Categories + top poi categories
 // FIXME Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
 // TODO POI Categories translations / synonyms
+// TODO query = "Catedral-Basílica de Nuestra Señora del Pilar"; - poi category
 
 // TODO Analyze stats slow queries
 // TODO Inspector stats index_words_dashboard.html
@@ -47,14 +50,16 @@ import net.osmand.util.SearchAlgorithms;
 // TO DO Ivan / Gateway
 // TODO DEDUPLICATE: Review / implement similarity radius - similarityRadius = 50000 ... Route Id
 // TODO DEDUPLICATE: Unite RouteArticle, POI by wikidata id ? - DEPTH_TO_CHECK_SAME_SEARCH_RESULTS = 20;...
-// TODO DEDUPLICATE: Venezia - No place=city in POI is it on purpose ? 2 Wikidataids! Rating not merged. POI - relation/44741 (Q641), CITY - way/64778090 (Q33723961).
+// TODO DEDUPLICATE: Venezia ? - No place=city in POI is it on purpose ? 2 Wikidataids! Rating not merged. POI - relation/44741 (Q641), CITY - way/64778090 (Q33723961).
 // TODO DEDUPLICATE: review osm route id  combine by?
 // TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
-// TODO DEDUPLICATE: Test wiki / travel maps, seamarks map 
+// TODO DEDUPLICATE: Test wiki / travel maps, seamarks map
+// TODO DEDUPLICATE: same location (5-10m) 2 streets different cities 
 // TODO UNIT TESTS: (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
 // TODO UNIT TESTS: Auto tests - Slow analysis (Auto test New york)
 // TODO UNIT TESTS: Analyze Abbrefvations / common skip (abbrevations 1st=first) 
 // TODO UNIT TESTS: Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
+// TODO inspector doesn't show suffixes
 
 // TO DO - RZR
 // TODO WEB PRODUCTION: display results std way: house, interpolation results, poi...
@@ -78,6 +83,7 @@ import net.osmand.util.SearchAlgorithms;
 // TODO English postcodes
 // TODO Precise Boundary 'Chernihiv sport life' mostly Kyiv - check precise boundary for filter
 // TODO Short word split "Ro-ki" vs "Roki" 
+// TODO Support postcode search - 14871 Pennsylvania Avenue Pine City
 
 public class SpatialSearchTestAndDocs {
 
@@ -162,8 +168,8 @@ public class SpatialSearchTestAndDocs {
 //		query = "Weber Straße"; // +4648613942, +33164748
 //		query = "WeberStraße";  // +33164748, +4648613942
 //		query = "Von Weberstraße"; // +4648613942
-		location = new LatLon(48.8315, 9.3155 );
-		query = "53 Langestraße Waiblingen"; // OK - 48.8315 9.3155 !
+//		location = new LatLon(48.8315, 9.3155 );
+//		query = "53 Langestraße Waiblingen"; // OK - 48.8315 9.3155 !
 //		query = "69 Daimler Straße Stuttgart"; //  (Daimlerstraße) 107868593 48.8015 9.2224 // 69
 		
 
@@ -171,10 +177,12 @@ public class SpatialSearchTestAndDocs {
 //		Search Stats 778.5 ms - read 754.6 ms atoms (tokens 442.4 ms, obj 1.8 ms), match 281.5 ms, comp 26.4 ms
 //		Search Stats 925.5 ms - read 799.8 ms atoms (tokens 442.5 ms, obj 16.3 ms), match 280.5 ms, comp 149.5 ms
 		
+		pattern = "Us_utah";
 //		pattern = "Us_penn";
 //		pattern2 = "Us_new-york_syracuse";
-		pattern = "Map";
-//		query = "Salt Lake City Pennsylvania Place 123 UT USA";
+		pattern2 = "Us_virg";
+//		pattern = "Map";
+		query = "Salt Lake City Pennsylvania Place UT USA";
 //		query = "Salt Lake City Elephant";
 //		query = "Salt Lake City Lake";
 //		query = "Salt Lake City Pennsylvania Street";
@@ -191,8 +199,8 @@ public class SpatialSearchTestAndDocs {
 //		query = "36 Wilson Drive  Pine City"; 
 //		query = "301 East Second Street Corning"; // "301 East 2nd Street Corning"
 //		query = "763 Ro-Ki Boulevard Nichols"; // NO FIX yet: Roki is very short to be fixed same as Weber-Strasse
-//		query = "276 East End Centre Wilkes-Barre"; // NO FIX broken data 2888
-//		query = "2 South 2nd Street Saint Clair"; // to fix street matched twice 40.7194 -76.1904 // FIXME
+		// Important unit test
+//		query = "2 South 2nd Street Saint Clair"; // to fix street matched twice 40.7194 -76.1904 // UNIT TEST !!! (25 street)
 //		query = "South 2nd Street 2 Saint Clair"; // to fix street matched twice
 //		query = "226 Wilkes-Barre Township Boulevard Wilkes-Barre"; // fixed type order
 //		query = "5676 US-15 Montgomery"; // Test 3 matched (not 2)
@@ -200,20 +208,22 @@ public class SpatialSearchTestAndDocs {
 //		query = "38 Orange Street Waverly";
 //		query = "441 Cook Road Addison";
 //		location = new LatLon(42.0258945, -77.2365078);
-		query = "7910 County Route 5 Addison"; // Addison too far away from town
+//		query = "7910 County Route 5 Addison"; // Addison too far away from town
 //		query = "1000 Fillmore Road State College"; // default enlarge 
 		
 //		query = "151 Weber Way Selinsgrove"; // Fixed: 2 word - addr:unit 
 //		query = "1544 PA-61 Pottsville"; // FIXED
 //		query = "138 138 Scott Avenue Bellefonte";
 //		query = "17815 PA-35 Port Royal"; // CHECK!
-//		query = "2032 Ridge Road Lowman"; // extend bbox hamlet // 822981342 45734
+//		query = "2039 Ridge Road Lowman"; // extend bbox hamlet // 822981342  -- unit test!
 		// test default enlarge 1 -> 2.5
 //		query = "1503 Stewart Road Addison"; // 
 //		query = "76 North Street Waverly"; // same
 //		query = "1098 Long Run Road Pine Grove"; // 2.5 enlarge 40.5943782, -76.2609811
 //		query = "312 East 14th Street Elmira"; // no fix locations too close
 //		query = "3374 Lower Maple Avenue Elmira";
+//		query = "3760 State Route 225 Dornsife"; // red cross? unit test
+//		query = "11954 East Hill Road Pine City";
 		
 		// Street ref "pa 75" (not stored), house "pa-75" (data)
 //		query = "PA 75 27193"; //'PA75'  Data 'PA-75', 27193  4472676432
@@ -254,6 +264,7 @@ public class SpatialSearchTestAndDocs {
 //		query = "2 га Нова вулиця"; // unit test '2га' +, '2-га', '2', '2 га' (partial) unit test (260537333, 104438019)
 //		query = "2га Нова вулиця"; 
 //		query = "2 нова вулиця"; // '"25-та вулиця", "25та вулиця", "25 та вулиця", "25 вулиця" (NOT FIRST) - '25-та Садова вулиця' 150768561
+//		query = "25 садова вулиця";
 //		query = "саксаг. 63 28"; // 129-Б, 129б 63/28, 63, 63-28  +'саксаг. 63 28'
 //		query = "саксаг. 63/28, 2";
 //		query = "саксаг. 63/28 подъезд 2";
@@ -311,11 +322,12 @@ public class SpatialSearchTestAndDocs {
 		// See test - [8-8 Kinshi 3 Kinshi Sumida Tokyo], Rivière Tsumura
 		// India - Satyam node/2296788005#map=18/17.805646/83.356818
 		// +[Venezia, Cannaregio, 539D , Campo Saffa], +[Venezia Cannaregio 539D ] -[Venezia 539D  Campo Saffa] - expected
-//		pattern = "Italy_ven";
+		pattern = "Italy_ven";
+//		pattern = "Map";
 //		pattern2 = "World_basemap_2";
-//		query = "Cannaregio 539D Campo Saffa "; // no double 539d (no intersectoin)
-		
-		
+		// ! unit test - search full address ! no double 539d (no intersectoin)
+		query = "Cannaregio 539D Campo Saffa ";
+//		query = "Campo Saffa";
 		
 //		pattern = "France_ile-de-france_eu";
 //		query = "Rue Bouchardon 2BIS"; // '2bis' OK, '2 BIS' OK , '2' OK, '2-BIS'
@@ -334,6 +346,7 @@ public class SpatialSearchTestAndDocs {
 //		query  = "Rio de Janeiro";
 //		location = new LatLon(44.0194, 10.2025);
 //		query = "Venezia"; // no place - city
+//		query = "Венец."; 
 
 //		pattern = "Spain_aragon_europe_";
 //		query = "Basílica de Nuestra Señora del Pilar";

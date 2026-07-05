@@ -4874,7 +4874,7 @@
     <string name="average_slope">Pendenza media</string>
     <string name="shared_string_last_uphill">Ultima salita</string>
     <string name="shared_string_last_downhill">Ultima discesa</string>
-    <string name="marine_renderer">Matittimo</string>
+    <string name="marine_renderer">Marittimo</string>
     <string name="requires_internet_connection">Richiede una connessione a internet</string>
     <string name="quick_action_weather_layers">Un pulsante per mostrare o nascondere i livelli meteo sulla mappa.</string>
     <string name="quick_action_wind_animation_layer">Un pulsante per mostrare o nascondere il livello di animazione del vento sulla mappa.</string>

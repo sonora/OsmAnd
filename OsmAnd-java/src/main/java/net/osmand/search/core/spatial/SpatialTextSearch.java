@@ -107,12 +107,8 @@ public class SpatialTextSearch {
 //		public int MAX_ELO_RATING = 4300; // not used now
 		
 		// > 300 km - x0, for 50km-300km - x0.5, 10-50km - x1.5, 10km - x3sorted!
-//		public Map<Integer, Double> DEF_ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
-//				Map.of(-50_000, 0.3, -5_000, 1.0, -2_000, 3.));
-		public Map<Integer, Double> DEF_ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
-				Map.of(-50_000, 0.0, -5_000, 0.0, -2_000, 0.));
 		public Map<Integer, Double> ENLARGE_BOUNDARIES = new TreeMap<Integer, Double>(
-				Map.of(-300_000, 0.5, -100_000, 1.5, -10_000, 3.0, -1_000, 20.0));
+				Map.of(-300_000, 0.2, -100_000, 0.5, -10_000, 1.0, -1_000, 20.0));
 		
 		public double evalEnlargeBoundary(Map<Integer, Double> mp, double dim) {
 			Iterator<Entry<Integer, Double>> it = mp.entrySet().iterator();

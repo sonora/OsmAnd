@@ -132,9 +132,9 @@ public class City extends MapObject {
 	}
 	
 	public boolean updateBbox31WithLoc(LatLon location) {
+		int x = MapUtils.get31TileNumberX(location.getLongitude());
+		int y = MapUtils.get31TileNumberY(location.getLatitude());
 		if (bbox31 != null) {
-			int x = MapUtils.get31TileNumberX(location.getLongitude());
-			int y = MapUtils.get31TileNumberY(location.getLatitude());
 			if (y > bbox31[3] || y < bbox31[1] || x > bbox31[2] || x < bbox31[0]) {
 				bbox31[0] = Math.min(x, bbox31[0]);
 				bbox31[1] = Math.min(y, bbox31[1]);
@@ -142,6 +142,15 @@ public class City extends MapObject {
 				bbox31[3] = Math.max(y, bbox31[3]);
 				return true;
 			}
+		} else {
+			int cx = MapUtils.get31TileNumberX(getLocation().getLongitude());
+			int cy = MapUtils.get31TileNumberY(getLocation().getLatitude());
+			bbox31 = new int[4];
+			bbox31[0] = Math.min(x, cx);
+			bbox31[1] = Math.min(y, cy);
+			bbox31[2] = Math.max(x, cx);
+			bbox31[3] = Math.max(y, cy);
+			return true;
 		}
 		return false;
 	}

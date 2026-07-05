@@ -15,12 +15,10 @@ import net.osmand.binary.BinaryMapAddressReaderAdapter.CityBlocks;
 import net.osmand.binary.NameIndexReader.NameIndexReaderMatcher;
 import net.osmand.binary.ObfConstants;
 import net.osmand.binary.OsmandOdb.AddressNameIndexDataAtom;
-import net.osmand.binary.OsmandOdb.CityBlockIndex;
 import net.osmand.binary.OsmandOdb.OsmAndPoiNameIndexDataAtom;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.Street;
-import net.osmand.search.AmenitySearcher.Settings;
 import net.osmand.search.core.HashQuadTree;
 import net.osmand.search.core.spatial.SpatialSearchContext.SpatialSearchStats;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
@@ -176,7 +174,11 @@ public class SpatialSearchToken {
 						|| (atom.otherWordsCnt == aa.otherWordsCnt && aa.otherFoundCnt > atom.otherFoundCnt)) {
 					replace = true;
 				}
-				if (aa.isBuilding() && !atom.isBuilding()) {
+				// '2 south 2nd street' vs '25 садова вулиця' (25-та) -
+				if (aa.isBuilding() && !atom.isBuilding() 
+						&& atom.otherWordsCnt <= aa.otherWordsCnt
+						&& aa.otherFoundCnt < atom.otherFoundCnt) {
+					// replace street (has number in name) with building
 					replace = true;
 				}
 				if (replace) {
@@ -327,12 +329,22 @@ public class SpatialSearchToken {
 				int xy16 = addr.getXy16(0);
 				this.x16 = (xy16 >>> 16);
 				this.y16 = (xy16 & ((1 << 16) - 1));
-				bboxTileZoom = 15;
-				bboxTileId = HashQuadTree.encodeTileId(bboxTileZoom, x16 / 2, y16 / 2);
 				decodeBBox(addr.hasBbox() ? addr.getBbox() : null);
-				if (addr.hasType() && addr.getType() != CityBlocks.STREET_TYPE.index) {
-					double val = settings.evalEnlargeBoundary(settings.DEF_ENLARGE_BOUNDARIES, dimensionInM());
-					enlargeBbox31(val);
+				if (bbox31 == null) {
+					// not needed as we calculate on server for all cities
+//					if (addr.getType() != CityBlocks.STREET_TYPE.index) {
+//						// possibly needs to be calculated on server
+//						int shift = (1 << (16 - 12)); // extend 12th tile
+//						bbox31 = new int[4];
+//						bbox31[0] = (x16 - shift) << 15;
+//						bbox31[2] = (x16 + shift) << 15;
+//						bbox31[1] = (y16 - shift) << 15;
+//						bbox31[3] = (y16 + shift) << 15;
+//						calcTileFromBbox();
+//					} else {
+						bboxTileZoom = 15;
+						bboxTileId = HashQuadTree.encodeTileId(bboxTileZoom, x16 / 2, y16 / 2);
+//					}
 				}
 			}
 		}
@@ -350,7 +362,7 @@ public class SpatialSearchToken {
 				int z = 31;
 				// for 180 lat check max  
 				int xleft = bbox31[0], xright = Math.max(bbox31[2], bbox31[0]);
-				int ytop = bbox31[1], ybottom = Math.max(bbox31[3], bbox31[1]);;
+				int ytop = bbox31[1], ybottom = Math.max(bbox31[3], bbox31[1]);
 				while (xleft != xright || ytop != ybottom) {
 					z--;
 					xleft >>= 1;

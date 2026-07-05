@@ -5228,4 +5228,17 @@
     <string name="ais_display_own_position_description">OsmAnd štandardne zobrazuje vlastnú polohu. Dodatočné zobrazenie aj vlastného objektu AIS môže byť mätúce a je možné ho tu vypnúť.</string>
     <string name="ais_receive_in_background">Prijímať údaje AIS aj keď je OsmAnd pozastavený.</string>
     <string name="ais_receive_in_background_description">Ak je zapnuté, prijímač správ AIS zostane zapnutý aj ak je OsmAnd pozastavený alebo na pozadí. Ak je vypnuté, OsmAnd na pozadí nebude prijímať žiadne správy.</string>
+    <string name="shared_string_recent">Nedávne</string>
+    <string name="sort_by_nearest_to_map_center">Najbližšie k stredu mapy</string>
+    <string name="last_week">Minulý týždeň</string>
+    <string name="history_is_turned_off">História je vypnutá</string>
+    <string name="search_and_navigation_history_disabled_descr">História vyhľadávania a navigácie je vypnutá. Zapnite ich v nastaveniach, aby ste tu videli nedávnu aktivitu.</string>
+    <string name="open_history_settings">Otvoriť nastavenia histórie</string>
+    <string name="show_discount_bottom_sheet"></string>
+    <string name="search_around">Hľadať okolo</string>
+    <string name="routing_attr_motor_type_ethanol_name">Etanol</string>
+    <string name="search_around_map_center_description">%1$s od vašej polohy</string>
+    <string name="search_around_my_location">Moja poloha</string>
+    <string name="search_around_my_location_description">Hľadať okolo vašej polohy</string>
+    <string name="sort_by_relevance">Relevantnosť</string>
 </resources>

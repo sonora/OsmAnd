@@ -5152,4 +5152,5 @@
     <string name="search_around">Rechercher autour</string>
     <string name="search_around_map_center_description">À %1$s de votre position</string>
     <string name="search_around_my_location">Ma position</string>
+    <string name="routing_attr_motor_type_ethanol_name">Éthanol</string>
 </resources>

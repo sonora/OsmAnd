@@ -5279,4 +5279,5 @@
     <string name="search_around_my_location">Min placering</string>
     <string name="search_around_my_location_description">Søg i området omkring din position</string>
     <string name="sort_by_relevance">Relevans</string>
+    <string name="routing_attr_motor_type_ethanol_name">Ethanol</string>
 </resources>
