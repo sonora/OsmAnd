@@ -223,7 +223,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	}
 	
 	private void calcBuilding(SpatialSearchContext ctx, int indx, Map<String, Building> bldCheckCache) {
-		Map<NameIndexAtom, String> bldCheckMap = null;
+		Map<NameIndexAtom, String> bldCheckMap = null; // mostly single key-value map, value accumulated
 		boolean noBuildings = true;
 		NameIndexAtom noBldStreet = null; 
 		for (int i = 0; i < tCount; i++) {
@@ -250,7 +250,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				}
 				bldCheckMap.put(str, searchKey);
 			} else if (bld.isStreet()) {
-				if (noBldStreet == null) {
+				if (noBldStreet == null || bld.isCityStreetName()) {
 					noBldStreet = bld;
 				}
 			}

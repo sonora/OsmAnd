@@ -326,7 +326,8 @@ public class SpatialSearchTestAndDocs {
 //		pattern = "Map";
 //		pattern2 = "World_basemap_2";
 		// ! unit test - search full address ! no double 539d (no intersectoin)
-		query = "Cannaregio 539D Campo Saffa ";
+		// Cannaregio 539D Campo Saffa, Venezia Cannaregio Campo Saffa  , 
+		query = "Venezia Cannaregio Campo Saffa ";
 //		query = "Campo Saffa";
 		
 //		pattern = "France_ile-de-france_eu";
