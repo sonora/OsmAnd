@@ -27,6 +27,9 @@ import net.osmand.util.MapUtils;
 import net.osmand.util.SearchAlgorithms;
 
 public class SpatialSearchToken {
+	public static final int ALL_CITY_TYPE = -10;
+	
+	public static final int POI_CATEGORY_TYPE = -5;
 	public static final int BUILDING_TYPE = -2;
 	public static final int POI_TYPE = -1;
 	public static final int STREET_TYPE = CityBlocks.STREET_TYPE.index;
@@ -41,6 +44,7 @@ public class SpatialSearchToken {
 	String originalWord;
 	String word;
 	String wordAligned;
+	String wordNoDot;
 	Set<String> bldWordSplit;
 	
 	List<NameIndexAtom> atoms = new ArrayList<>();
@@ -50,6 +54,7 @@ public class SpatialSearchToken {
 	Set<Integer> deletedAtoms = new HashSet<Integer>();
 
 	CollatorStringMatcher collatorMain;
+	CollatorStringMatcher noDotCollatorMain;
 	// cache for popular split
 	String wordSpacePrefixCache;
 	CollatorStringMatcher wordSpaceCollatorSuffix;
@@ -57,28 +62,31 @@ public class SpatialSearchToken {
 	int mainNumber = -1;
 	CollatorStringMatcher[] otherMatch;
 
-	public SpatialSearchToken(int MIN_CHAR_INCOMPLETE, String w, String original, int order) {
+	
+
+	public SpatialSearchToken(int MIN_CHAR_INCOMPLETE, String ow, String original, int order) {
 		this.MIN_CHAR_INCOMPLETE = MIN_CHAR_INCOMPLETE;
 		originalWord = original;
-		word = w;
-		wordAligned = CollatorStringMatcher.alignChars(word);
+		word = ow;
+		wordAligned = SearchAlgorithms.alignChars(word);
 		bldWordSplit = SearchAlgorithms.getBuildingCompareSet(word, null);
 		originalOrder = order;
-		String noDot = w;
-		if (w.endsWith(DOT_INCOMPLETE_STRING)) {
+		String noDot = wordAligned;
+		if (wordAligned.endsWith(DOT_INCOMPLETE_STRING)) {
 			incomplete = true;
-			noDot = w.substring(0, w.length() - 1);
+			noDot = wordAligned.substring(0, wordAligned.length() - 1);
 		}
+		this.wordNoDot = noDot;
+		// . already in collator w.endsWith(DOT_INCOMPLETE_STRING)
+		collatorMain = new CollatorStringMatcher(wordAligned, StringMatcherMode.CHECK_EQUALS_FROM_SPACE);
 		if (incomplete && word.length() <= MIN_CHAR_INCOMPLETE + 1) {
-			collatorMain = new CollatorStringMatcher(noDot, StringMatcherMode.CHECK_EQUALS_FROM_SPACE);
+			noDotCollatorMain = new CollatorStringMatcher(noDot, StringMatcherMode.CHECK_EQUALS_FROM_SPACE);
 		} else {
 			if (SearchAlgorithms.letters(noDot) == 0) {
 				// pos case '4', '#4' query should match 4th, wrong case token '4' should not match '48th'
 				// we use number to compare if we use is isNumber2Letters to many weird results on '2B'
 				mainNumber = Algorithms.extractFirstIntegerNumber(noDot);
 			}
-			// . already in collator w.endsWith(DOT_INCOMPLETE_STRING)
-			collatorMain = new CollatorStringMatcher(w, StringMatcherMode.CHECK_EQUALS_FROM_SPACE);
 		}
 		String abbr = Abbreviations.getSearchabbreviations().get(noDot);
 		if (abbr != null) {
@@ -96,7 +104,7 @@ public class SpatialSearchToken {
 		return bldWordSplit;
 	}
 	
-	public CollatorStringMatcher getCollator() {
+	public CollatorStringMatcher getMainCollator() {
 		return collatorMain;
 	}
 	
@@ -109,13 +117,14 @@ public class SpatialSearchToken {
 		return String.format("%d. %s - %d atoms", sortedOrder, originalWord, atoms.size());
 	}
 	
+	
 	NameIndexReaderMatcher getPrefixMatcher(SpatialSearchStats stats) {
 		return new NameIndexReaderMatcher(word) {
 			
 			@Override
 			public boolean matchKey(String key) {
 				stats.sub1MatchTime.start();
-				String alignedKey = CollatorStringMatcher.alignChars(key);
+				String alignedKey = SearchAlgorithms.alignChars(key);
 				// could be empty after align so match = true! ("''" -> "")
 				boolean matched = matchAlignedKey(alignedKey);
 				if (!matched && mainNumber > 0) {
@@ -211,14 +220,14 @@ public class SpatialSearchToken {
 				}
 			}
 		}
-		if (collatorMain.matches(name)) {
+		if ((noDotCollatorMain == null ? collatorMain : noDotCollatorMain).matches(name)) {
 			return true;
 		}
 		// wordAligned without space but input name with space
 		// query 'weberstrasse' matches 'weber straße': works for popular suffixes
 		int space = name.indexOf(' ');
 		if (space != -1) {
-			String namePrefix = CollatorStringMatcher.alignChars(name.substring(0, space));
+			String namePrefix = SearchAlgorithms.alignChars(name.substring(0, space));
 			if (wordAligned.length() > space && collatorMain.getCollator().equals(namePrefix, wordAligned.substring(0, space))) {
 				if (!namePrefix.equals(wordSpacePrefixCache)) {
 					wordSpacePrefixCache = namePrefix;
@@ -235,7 +244,7 @@ public class SpatialSearchToken {
 	}
 	
 	String[] matchSplitName(String name) {
-		name = CollatorStringMatcher.alignChars(name);
+		name = SearchAlgorithms.alignChars(name);
 		String[] res = null;
 		if (wordAligned.length() < name.length()
 				&& collatorMain.getCollator().equals(name.substring(0, wordAligned.length()), wordAligned)) {
@@ -261,8 +270,12 @@ public class SpatialSearchToken {
 				SpatialTextSearchSettings settings) {
 			if (a != null) {
 				init(a, settings);
-			} else {
+			} else if(b != null){
 				init(b);
+			} else {
+				// full world
+				bboxTileZoom = 0;
+				bboxTileId = 0;
 			}
 		}
 
@@ -475,6 +488,10 @@ public class SpatialSearchToken {
 			return type == STREET_TYPE || type == BUILDING_TYPE;
 		}
 		
+		public boolean isPoiCategory() {
+			return type == POI_CATEGORY_TYPE;
+		}
+		
 		public boolean isPostcode() {
 			return type == CityBlocks.POSTCODES_TYPE.index;
 		}
@@ -509,7 +526,9 @@ public class SpatialSearchToken {
 
 		String typeStr() {
 			String typeS = "";
-			if (isPOI()) {
+			if (isPoiCategory()) {
+				typeS = "POI_TYPE";
+			} else if (isPOI()) {
 				typeS = "POI";
 			} else if (isBuilding()) {
 				typeS = "Building";

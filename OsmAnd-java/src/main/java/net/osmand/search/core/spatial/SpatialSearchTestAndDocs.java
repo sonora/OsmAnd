@@ -10,6 +10,7 @@ import net.osmand.data.City;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.map.OsmandRegions;
+import net.osmand.osm.MapPoiTypes;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchResults;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.SearchAlgorithms;
@@ -39,13 +40,16 @@ import net.osmand.util.SearchAlgorithms;
 
 ////////// IN PROGRESS //////////
 
-// FIXME POI Categories + top poi categories
-// FIXME Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
+// TESTING POI Categories + top poi categories
+
+// TODO API to return result
+// TODO accept intersection POI Category /\ POI - deduplicate?
+// TODO Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
 // TODO POI Categories translations / synonyms
 // TODO query = "Catedral-Basílica de Nuestra Señora del Pilar"; - poi category
 
 // TODO Analyze stats slow queries
-// TODO Inspector stats index_words_dashboard.html
+// TODO INSPECTOR stats index_words_dashboard.html
 
 // TO DO Ivan / Gateway
 // TODO DEDUPLICATE: Review / implement similarity radius - similarityRadius = 50000 ... Route Id
@@ -59,7 +63,7 @@ import net.osmand.util.SearchAlgorithms;
 // TODO UNIT TESTS: Auto tests - Slow analysis (Auto test New york)
 // TODO UNIT TESTS: Analyze Abbrefvations / common skip (abbrevations 1st=first) 
 // TODO UNIT TESTS: Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
-// TODO inspector doesn't show suffixes
+// TODO INSPECTOR : doesn't show suffixes
 
 // TO DO - RZR
 // TODO WEB PRODUCTION: display results std way: house, interpolation results, poi...
@@ -157,9 +161,9 @@ public class SpatialSearchTestAndDocs {
 		String query = "Berlin hauptstrasse"; // slow
 //		query = "Kelterstraße Kernen im Remstal";
 //		query = "Germany Kelter. Kernen im Remstal";
-		query = "3 Hofäckerstraße Kernen im Remstal";
-		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
-		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
+//		query = "3 Hofäckerstraße Kernen im Remstal";
+//		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
+//		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
 		
 		
 		// Grainau Am Eibsee 1 36799292
@@ -177,12 +181,12 @@ public class SpatialSearchTestAndDocs {
 //		Search Stats 778.5 ms - read 754.6 ms atoms (tokens 442.4 ms, obj 1.8 ms), match 281.5 ms, comp 26.4 ms
 //		Search Stats 925.5 ms - read 799.8 ms atoms (tokens 442.5 ms, obj 16.3 ms), match 280.5 ms, comp 149.5 ms
 		
-		pattern = "Us_utah";
+//		pattern = "Us_utah";
 //		pattern = "Us_penn";
 //		pattern2 = "Us_new-york_syracuse";
-		pattern2 = "Us_virg";
+//		pattern2 = "Us_virg";
 //		pattern = "Map";
-		query = "Salt Lake City Pennsylvania Place UT USA";
+//		query = "Salt Lake City Pennsylvania Place UT USA";
 //		query = "Salt Lake City Elephant";
 //		query = "Salt Lake City Lake";
 //		query = "Salt Lake City Pennsylvania Street";
@@ -253,7 +257,11 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "regions.ocbf" ;
 		
-//		pattern = "Ukraine_";
+		pattern = "Ukraine_";
+//		pattern = "Ukraine_kyiv-";
+		query = "Caf.";
+//		query = "Veg.";
+//		query = "Mcdon.";
 //		query = "Kyiv Глушкова 1"; // vs 'Kyiv 1'
 //		query = "нова пошта Бульварно Кудрявська";
 //		query = "Бульварно-кудрявс.";
@@ -297,6 +305,7 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "Slovakia";
 //		query = "Bratislava Billa";
+//		query = "Shell";
 		
 //		pattern = "Us_new-york_new"; // new-york, new-jersey
 //		pattern = "Us_new-"; 
@@ -311,23 +320,26 @@ public class SpatialSearchTestAndDocs {
 		// 40.78035, -73.96572 - unit test '4th av', '4 ave', '4th avenue'  - 85393997 Park avenue
 //		query = "New York 4 av 8"; 
 //		query = "New York 4 av 8"; // 160947243
-//		query = "57th street"; // central park - 265345338 east, 86216906 west, ()66926268 (west)?), 
+//		query = "57th street"; // central park - 265345338 east, 86216906 west, ()66926268 (west)?),
+//		query = "new york 57th street manhattan";
 //		query = "4th ave"; //  unit '4 ave'   
 //		query = "4th ave 8 paterson"; //  wrong city...
 		// Result 4 - 40.8407, -74.0954 [[4th, 8] Building 2 4th Street (26238417818) 40.8441 -74.0910 , [ave, paterson] STREET_TYPE Paterson Avenue (651531238) 40.8374 -74.0997 ]
-
+		
+//		query = "2 street"; // poi types
+		
 //		query = "blvd"; //  unit test  'blvd', 'boulevard' - 248280132
 		
 		// Japan addr:quarter, addr:neighbourhood, addr:block_number
 		// See test - [8-8 Kinshi 3 Kinshi Sumida Tokyo], Rivière Tsumura
 		// India - Satyam node/2296788005#map=18/17.805646/83.356818
 		// +[Venezia, Cannaregio, 539D , Campo Saffa], +[Venezia Cannaregio 539D ] -[Venezia 539D  Campo Saffa] - expected
-		pattern = "Italy_ven";
+//		pattern = "Italy_ven";
 //		pattern = "Map";
 //		pattern2 = "World_basemap_2";
 		// ! unit test - search full address ! no double 539d (no intersectoin)
 		// Cannaregio 539D Campo Saffa, Venezia Cannaregio Campo Saffa  , 
-		query = "Venezia Cannaregio Campo Saffa ";
+//		query = "Venezia Cannaregio Campo Saffa ";
 //		query = "Campo Saffa";
 		
 //		pattern = "France_ile-de-france_eu";
@@ -373,7 +385,8 @@ public class SpatialSearchTestAndDocs {
 
 //		settings.OPTIM_DELETE_EMBEDDED_BOUNDARIES = false;
 //		settings.DEDUPLICATE_RES = false;
-		SpatialSearchContext searchContext = new SpatialSearchContext(settings, ls, location);
+		SpatialPoiSearch poiSearch = new SpatialPoiSearch(MapPoiTypes.getDefault());
+		SpatialSearchContext searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
 		SpatialSearchResults rs = a.searchTest(query, searchContext, 10);
 		SpatialSearchResult mainResult = rs.getFirstResult();
 		if (mainResult != null && mainResult.matchedTokens() < rs.tokens.size() - 2) {
@@ -392,7 +405,7 @@ public class SpatialSearchTestAndDocs {
 		}
 		settings.OPTIM_DELETE_POI_SAME_AS_CITY_STREET = false;
 //		settings.DEDUPLICATE_RES = true;
-		searchContext = new SpatialSearchContext(settings, ls, location);
+		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
 		a.searchTest(query, searchContext, 8000);
 	}
 	

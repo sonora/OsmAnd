@@ -171,6 +171,18 @@ public class SearchAlgorithms {
         return s.replace("«", "").replace("»", "");
     }
     
+    public static String alignChars(String fullText) {
+		if (ArabicNormalizer.isSpecialArabic(fullText)) {
+			String normalized = ArabicNormalizer.normalize(fullText);
+			fullText = normalized == null ? fullText : normalized;
+		}
+		fullText = removeApostrophes(fullText);
+		fullText = replaceGermanSS(fullText);
+		fullText = removeQuotes(fullText);
+		fullText = UnicodeDiacritics.getInstance().stripDiacritics(fullText);
+		return fullText;
+	}
+    
     public static String removeApostrophes(String s) {
         if (!Algorithms.containsChar(s, APOSTROPHES)) {
             return s;
@@ -442,6 +454,6 @@ public class SearchAlgorithms {
 		}
 		return resultSet;
 	}
-	
+
 }
 

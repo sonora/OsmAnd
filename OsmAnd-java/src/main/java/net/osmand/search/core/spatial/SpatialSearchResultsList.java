@@ -96,10 +96,10 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				poiBboxes.get(indInd).add(HashQuadTree.encodeTileId31(BinaryMapPoiReaderAdapter.EVAL_TAG_GROUP_ZOOM,
 						a.coords.x16 << 15, a.coords.y16 << 15));
 			}
-			if (a.type == type || (type == -2 && a.type != SpatialSearchToken.POI_TYPE
-					&& a.type != SpatialSearchToken.STREET_TYPE)) {
+			if (a.type == type || (type == SpatialSearchToken.ALL_CITY_TYPE && a.type != SpatialSearchToken.POI_TYPE
+					&& a.type != SpatialSearchToken.STREET_TYPE && a.type != SpatialSearchToken.POI_CATEGORY_TYPE)) {
 				lstMap.put(a.id, a.parentid);
-			} else if(type == -2 && a.type == SpatialSearchToken.STREET_TYPE) {
+			} else if(type == SpatialSearchToken.ALL_CITY_TYPE && a.type == SpatialSearchToken.STREET_TYPE) {
 				lstMap.put(a.parentid, (long) 0);
 			}
 		}
@@ -128,7 +128,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 		TLongObjectHashMap<MapObject> cache = new TLongObjectHashMap<MapObject>();
 		loadObjects(ctx, SpatialSearchToken.POI_TYPE, cache);
 		cache.clear();
-		loadObjects(ctx, -2, cache);
+		loadObjects(ctx, SpatialSearchToken.ALL_CITY_TYPE, cache);
 		loadObjects(ctx, SpatialSearchToken.STREET_TYPE, cache);
 	}
 	
@@ -693,14 +693,23 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			return false;
 		}
 		// 4. New intersection check the limits
-		HashMap<Long, NameIndexAtom> objects = new HashMap<>(4);
+		HashMap<Long, NameIndexAtom> atomObjs = new HashMap<>(4);
 		if (a.atomicObject()) {
-			objects.put(a.id, a);
+			atomObjs.put(a.id, a);
 		}
+		NameIndexAtom poiType = a.isPoiCategory() ? a : null;
 		for (int i = 0; parent != null && i < parent.tCount; i++) {
 			NameIndexAtom pa = parent.linearResults.get(pindx * parent.tCount + i);
 			if (pa.id == a.id) {
 				continue;
+			}
+			if (pa.isPoiCategory()) {
+				if (poiType == null || pa.id == a.id) {
+					poiType = pa;
+				} else {
+					// no 2 poi categories
+					return false;
+				}
 			}
 			// check that token is reused in parent
 			// ignore every object that has this name already (except duplicate words && numbers assigned to building)
@@ -715,9 +724,9 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				}
 			}
 			if (pa.atomicObject()) {
-				objects.put(pa.id, pa);
+				atomObjs.put(pa.id, pa);
 			}
-			if (objects.size() > settings.LIMIT_ATOMIC_OBJECTS) {
+			if (atomObjs.size() > settings.LIMIT_ATOMIC_OBJECTS) {
 				return false;
 			}
 			// allow intersection for Buildings associated with place
@@ -726,8 +735,11 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 //				return false;
 //			}
 		}
-		if (objects.size() > 1) {
-			Iterator<NameIndexAtom> it = objects.values().iterator();
+		if (poiType != null && atomObjs.size() > 0) {
+			return false;
+		}
+		if (atomObjs.size() > 1) {
+			Iterator<NameIndexAtom> it = atomObjs.values().iterator();
 			NameIndexAtom a1 = it.next();
 			NameIndexAtom a2 = it.next();
 			// if one object is same as city name don't intersect with street poi...

@@ -1,9 +1,11 @@
 package net.osmand.search.core;
 
+import net.osmand.CollatorStringMatcher;
 import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiSubType;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
+import net.osmand.util.SearchAlgorithms;
 
 import java.util.Objects;
 
@@ -66,6 +68,7 @@ public class TopIndexFilter implements BinaryMapIndexReader.SearchPoiAdditionalF
 	}
 
 	public static String getValueKey(String value) {
+		value = SearchAlgorithms.alignChars(value);
 		return value.toLowerCase().replace(':', '_').replaceAll("\'", "").replace(' ', '_').replaceAll("\"", "");
 	}
 

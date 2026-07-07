@@ -37,20 +37,20 @@ import net.osmand.util.SearchAlgorithms;
 
 public class SpatialSearchContext {
 
-	private static int SHIFT_FILE_IND = 12; // maxism files 4096
+	private static int SHIFT_FILE_IND = 14; // maxism files 16K
 	private static int SHIFT_POI_IND = 10; // maximum poi 1024
 
 	final List<BinaryMapIndexReader> files;
 	final List<SpatialSearchFileCache> internalFile = new ArrayList<>();
 	final LatLon location; // could be null
 	final int[][] limitLocationBboxes;
-
-	List<SpatialSearchToken> tokens;
-	SpatialSearchStats stats = new SpatialSearchStats();
-	SpatialTextSearchSettings settings;
-
 	
+	final SpatialPoiSearch poiSearch;
+	final SpatialTextSearchSettings settings;
+	final SpatialSearchStats stats = new SpatialSearchStats();
 	
+	List<SpatialSearchToken> tokens = null; // non initiatilized
+
 	public static class SpatialSearchStats {
 		public Timer requestTime = new Timer();
 		public Timer step1Atoms = new Timer();
@@ -108,8 +108,11 @@ public class SpatialSearchContext {
 
 	}
 
-	public SpatialSearchContext(SpatialTextSearchSettings settings, List<BinaryMapIndexReader> files, LatLon location) {
+	public SpatialSearchContext(SpatialTextSearchSettings settings, List<BinaryMapIndexReader> files,
+			SpatialPoiSearch poiSearch, LatLon location) {
 		this.files = files;
+		// SpatialPoiSearch will be passed as parameter
+		this.poiSearch = poiSearch;
 		this.location = location;
 		this.settings = settings;
 		limitLocationBboxes = new int[settings.OPTIM_LIMIT_RADIUS.length][];
@@ -153,7 +156,7 @@ public class SpatialSearchContext {
 		return stats;
 	}
 
-	public void initFiles(SpatialSearchGlobalCache cache) {
+	public void initFiles(SpatialSearchGlobalCache cache) throws IOException {
 		int indexInd = 0;
 		int fileInd = 0;
 		for (BinaryMapIndexReader bir : files) {
@@ -167,17 +170,41 @@ public class SpatialSearchContext {
 			this.internalFile.add(fc);
 			indexInd += fc.indexReaders.size();
 			fileInd++;
+			boolean initPoi = false;
+			if (fc.poiFrequencies != null || fc.poiSearch != poiSearch) {
+				fc.poiFrequencies = new HashMap<String, Integer>();
+				fc.poiSearch = poiSearch;
+				initPoi = true;
+			}
 			for (NameIndexReader r : fc.indexReaders) {
+				if (r.poiRegion != null) {
+					long bRead = bir.getBytesRead();
+					bir.initCategories(r.poiRegion);
+					if (initPoi) {
+						poiSearch.init(cache, fc, bir, r.poiRegion);
+					}
+					stats.readAtomsBytes += (bir.getBytesRead() - bRead);
+				}
 				r.gcPrefixes(settings.AUTO_CLEAR_PREFIX_CACHE_LIMIT);
 			}
 		}
 	}
 	
 	
-
-	void readAtoms(List<SpatialSearchToken> tokens) throws IOException {
-		int indxInd = 0;
+	public void setTokens(List<SpatialSearchToken> tokens) {
 		this.tokens = tokens;
+	}
+
+	
+	void processPoiCategories() throws IOException {
+		if (settings.SEARCH_POI_CATEGORIES) {
+			poiSearch.processPoiCategories(this, tokens);
+		}
+	}
+
+	void readAtoms() throws IOException {
+		int indxInd = 0;
+		
 		for (int fileInd = 0; fileInd < files.size(); fileInd++) {
 			SpatialSearchFileCache iCache = internalFile.get(fileInd);
 			BinaryMapIndexReader b = files.get(fileInd);
@@ -205,6 +232,7 @@ public class SpatialSearchContext {
 		}
 		
 	}
+	
 
 	private void assignPoiFlagGeo(Map<TIntArrayList, List<AtomByTokens>> cities, List<SpatialSearchToken> tokens) {
 		Map<TIntArrayList, List<AtomByTokens>> streets = groupAtomsByTokens(tokens, t -> t.isStreet()); // check performance
@@ -425,6 +453,14 @@ public class SpatialSearchContext {
 				parseAtomSuffixes(t, indxInd, indx, prefix, tokens);
 			}
 		}
+	}
+	
+	static boolean checkPoiTypeId(int poiTypeId) {
+		// first 2^8 - 256 bytes not possible to be used by file
+		if (poiTypeId > (1 << (SHIFT_FILE_IND + 8))) {
+			throw new IllegalStateException("Possible overlap with addr / poi id");
+		}
+		return true;
 	}
 
 	private long makeAddrId(int fileInd, long shiftToIndex) {
@@ -766,6 +802,5 @@ public class SpatialSearchContext {
 
 	}
 
-
-
+	
 }

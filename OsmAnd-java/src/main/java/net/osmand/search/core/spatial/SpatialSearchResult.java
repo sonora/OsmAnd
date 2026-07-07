@@ -76,6 +76,12 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		});
 	}
 
+	public SpatialSearchResultRef getFirstRef() {
+		if (objs.size() > 0) {
+			return objs.get(0);
+		}
+		return null;
+	}
 	
 	public MapObject getFirstObject() {
 		if (objs.size() > 0) {
@@ -105,8 +111,10 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 		if (preciseLatlon != null) {
 			return preciseLatlon;
 		}
-		if (objs.size() > 0) {
-			return objs.get(0).atom.getResultLocation();
+		for (SpatialSearchResultRef r : objs) {
+			if (!r.atom.isPoiCategory()) {
+				return r.atom.getResultLocation();
+			}
 		}
 		return null;
 	}
@@ -159,13 +167,15 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 				return 0;
 			} else if (atom.isStreet()) {
 				return 1;
-			} else if(atom.isPostcode()) {
+			} else if (atom.isPoiCategory()) {
 				return 2;
+			} else if(atom.isPostcode()) {
+				return 3;
 			} else if(atom.isBoundary()) {
-				return min < 3 ? 3 : MAX_TYPE_ORDER;
+				return min < 4 ? 4 : MAX_TYPE_ORDER;
 			}
 			// all cities, villages, hamlets
-			return 3;
+			return 4;
 		}
 		
 		@Override
@@ -183,13 +193,15 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 				} else if (atom.object instanceof Amenity a) {
 					type += " " + a.getSubTypeStr();
 					if (a.getTravelEloNumber() > Amenity.DEFAULT_ELO) {
-						type += " " + a.getTravelEloNumber() ;//" " + a.getCityFromTagGroups("");
+						type += " " + a.getTravelEloNumber();// " " + a.getCityFromTagGroups("");
 					}
 				}
 				LatLon resLoc = atom.getResultLocation();
-				return String.format("\"%s\" [%s] '%s' %s (%.4f %.4f)", words.toString().trim(), type, name,  
-						"" + ObfConstants.getOsmObjectId(idObject) + " " + (atom.id % 0xffff), 
-						resLoc.getLatitude(), resLoc.getLongitude());
+				return String.format("\"%s\" [%s] '%s' %s (%.4f %.4f)", words.toString().trim(), type, name,
+						"" + ObfConstants.getOsmObjectId(idObject) + " " + (atom.id % 0xffff), resLoc.getLatitude(), resLoc.getLongitude());
+			} else if(atom.isPoiCategory()) {
+				return String.format("\"%s\" [%s] '%s' id=%d, obj=%,d ", words.toString().trim(), atom.typeStr(), atom.name,
+						atom.id, atom.otherWordsCnt );
 			}
 			return atom.simpleName(words.toString()); 
 		}

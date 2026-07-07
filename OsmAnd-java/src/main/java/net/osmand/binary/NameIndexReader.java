@@ -71,7 +71,7 @@ public class NameIndexReader {
 		protected Collator collator;
 		
 		public NameIndexReaderMatcher(String query) {
-			queryAligned = CollatorStringMatcher.alignChars(query);
+			queryAligned = SearchAlgorithms.alignChars(query);
 			collator = OsmAndCollator.primaryCollator();
 			if (query.endsWith(CollatorStringMatcher.INCOMPLETE_DOT + "")) {
 				queryIncomplete = query.substring(0, query.length() - 1);
@@ -79,7 +79,7 @@ public class NameIndexReader {
 		}
 		
 		public boolean matchKey(String key) {
-			String alignedKey = CollatorStringMatcher.alignChars(key);
+			String alignedKey = SearchAlgorithms.alignChars(key);
 			return matchAlignedKey(alignedKey);
 		}
 

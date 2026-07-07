@@ -68,6 +68,10 @@ public class BinaryMapPoiReaderAdapter {
 		//int estiatedSize;
 		public List<String> possibleValues = null;
 		public TIntArrayList possibleValuesFreqs = null;
+		
+		public boolean isTopIndex() {
+			return name.startsWith(MapPoiTypes.TOP_INDEX_ADDITIONAL_PREFIX);
+		}
 	}
 
 	public static class PoiRegion extends BinaryIndexPart {
@@ -535,8 +539,6 @@ public class BinaryMapPoiReaderAdapter {
 					}
 				}
 
-//				LOG.info("Searched poi structure in " + (System.currentTimeMillis() - time) +
-//						"ms. Found " + offKeys.length + " subtrees");
 				for (int j = 0; j < offKeys.length; j++) {
 					if (metrics != null) metrics.beginLoadObject(codedIS);
 					codedIS.seek(offKeys[j] + indexOffset);
@@ -553,8 +555,6 @@ public class BinaryMapPoiReaderAdapter {
 						return;
 					}
 				}
-//				LOG.info("Whole poi by name search is done in " + (System.currentTimeMillis() - time) +
-//						"ms. Found " + req.getSearchResults().size());
 				codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
 				req.endSubSearchStats(subStart, BinaryMapIndexReaderStats.BinaryMapIndexReaderApiName.POI_BY_NAME,
 						BinaryMapIndexReaderStats.BinaryMapIndexReaderSubApiName.POI_NAME_OBJECTS, 
@@ -776,6 +776,7 @@ public class BinaryMapPoiReaderAdapter {
 	protected void searchPoiIndex(int left31, int right31, int top31, int bottom31,
 			SearchRequest<Amenity> req, PoiRegion region) throws IOException {
 		long indexOffset = codedIS.getTotalBytesRead();
+		long nt = System.nanoTime();
 		TLongHashSet skipTiles = null;
 		if (req.zoom >= 0 && req.zoom < 16) {
 			skipTiles = new TLongHashSet();
@@ -803,13 +804,13 @@ public class BinaryMapPoiReaderAdapter {
 				break;
 			case OsmandOdb.OsmAndPoiIndex.POIDATA_FIELD_NUMBER:
 				int[] offsets = offsetsMap.keys();
+//				System.out.printf("%,d keys %s %.1f ms\n", offsets.length, region.getName(), 
+//						(System.nanoTime() - nt) / 1e6);
 				// also offsets can be randomly skipped by limit
 				Arrays.sort(offsets);
 				if (skipTiles != null) {
 					skipTiles.clear();
 				}
-//				LOG.info("Searched poi structure in " + (System.currentTimeMillis() - time) + " ms. Found "
-//						+ offsets.length + " subtrees");
 				for (int j = 0; j < offsets.length; j++) {
 					long skipVal = offsetsMap.get(offsets[j]);
 					if (skipTiles != null && skipVal != -1) {
@@ -839,13 +840,14 @@ public class BinaryMapPoiReaderAdapter {
 				codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
 				req.endSubSearchStats(subStart, BinaryMapIndexReaderStats.BinaryMapIndexReaderApiName.POI_BY_TYPE,
 						BinaryMapIndexReaderStats.BinaryMapIndexReaderSubApiName.POI_NAME_OBJECTS, map.getFile().getName(), codedIS.getBytesCounter() - bytes);
-
+//				System.out.printf("%,d read keys %.1f ms\n", offsets.length, (System.nanoTime() - nt) / 1e6);
 				return;
 			default:
 				skipUnknownField(t);
 				break;
 			}
 		}
+		
 	}
 
 	void readPoiData(CollatorStringMatcher matcher, SearchRequest<Amenity> req, PoiRegion region,

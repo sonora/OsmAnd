@@ -1845,8 +1845,11 @@ public class BinaryMapIndexReader {
 	}
 
 	public static interface SearchPoiAdditionalFilter {
+		
 		public boolean accept(PoiSubType poiSubType, String value);
+		
 		String getName();
+		
 		String getIconResource();
 	}
 
