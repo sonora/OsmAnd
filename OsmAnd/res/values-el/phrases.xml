@@ -620,7 +620,7 @@
     <string name="poi_beachvolleyball">Πετοσφαίριση επί άμμου</string>
     <string name="poi_bmx">Ποδήματα BMX</string>
     <string name="poi_canadian_football">Καναδικό ποδόσφαιρο</string>
-    <string name="poi_canoe">Κανόε</string>
+    <string name="poi_canoe">Κανό</string>
     <string name="poi_chess">Σκάκι</string>
     <string name="poi_climbing">Αναρρίχηση</string>
     <string name="poi_cricket">Κρίκετ</string>
@@ -4659,4 +4659,25 @@
     <string name="poi_us_maps_recreation_area_activity_target_shooting">Σκοποβολή στόχου</string>
     <string name="poi_us_maps_recreation_area_activity_visitor_centers">Κέντρα επισκεπτών</string>
     <string name="poi_courier">Υπηρεσία ταχυμεταφορών</string>
+    <string name="poi_rapids_grade_0">0 (ήρεμα νερά)</string>
+    <string name="poi_rapids_grade_1">1 (εύκολη)</string>
+    <string name="poi_rapids_grade_2">2 (αρχάρια)</string>
+    <string name="poi_rapids_grade_3">3 (ενδιάμεση)</string>
+    <string name="poi_rapids_grade_4">4 (προχωρημένη)</string>
+    <string name="poi_rapids_grade_5">5 (ειδική)</string>
+    <string name="poi_rapids_grade_6">6 (ακραία)</string>
+    <string name="poi_rapids_grade_x">X (δεν συνίσταται)</string>
+    <string name="poi_route_activity_type_canoe">Κανό</string>
+    <string name="poi_canoe_put_in">Ρίψη κανό</string>
+    <string name="poi_canoe_egress">Έξοδος κανό</string>
+    <string name="poi_canoe_put_in_egress">Ρίψη και έξοδος κανό</string>
+    <string name="poi_us_maps_recreation_area_facility_boat_launch">Ρίψη βάρκας</string>
+    <string name="poi_us_maps_recreation_area_facility_boat_ramp">Ράμπα βάρκας</string>
+    <string name="poi_us_maps_recreation_area_facility_boat_takeout">Έξοδος βάρκας</string>
+    <string name="poi_border_zone">Συνοριακή ζώνη</string>
+    <string name="poi_checkpoint_cycling">Σημείο ελέγχου διέλευσης ποδηλασίας</string>
+    <string name="poi_healthcare_speciality_pain_control">Διαχείριση πόνου</string>
+    <string name="poi_healthcare_speciality_denturist">Προσθετολόγος</string>
+    <string name="poi_toy_library">Βιβλιοθήκη παιχνιδιών</string>
+    <string name="poi_hospice">Κέντρο περίθαλψης</string>
 </resources>

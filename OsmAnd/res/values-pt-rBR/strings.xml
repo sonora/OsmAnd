@@ -5601,4 +5601,13 @@
     <string name="ais_display_own_position_description">Normalmente, a posição do usuário é exibida pelo OsmAnd. A exibição adicional do próprio objeto AIS pode causar confusão e pode ser desativada aqui.</string>
     <string name="ais_receive_in_background">Receba dados AIS mesmo que o OsmAnd esteja em pausa.</string>
     <string name="ais_receive_in_background_description">Se ativado, o receptor de mensagens AIS continua em execução mesmo que o OsmAnd esteja em pausa ou em segundo plano. Se desativado, nenhuma mensagem é recebida quando o OsmAnd está em segundo plano.</string>
+    <string name="shared_string_recent">Recente</string>
+    <string name="sort_by_nearest_to_map_center">Mais próximo do centro do mapa</string>
+    <string name="last_week">Na semana passada</string>
+    <string name="history_is_turned_off">O histórico está desativado</string>
+    <string name="search_and_navigation_history_disabled_descr">O histórico de pesquisa e navegação está desativado. Ative-os nas configurações para ver as atividades recentes aqui.</string>
+    <string name="open_history_settings">Abrir configurações do Histórico</string>
+    <string name="search_around_my_location">Minha localização</string>
+    <string name="sort_by_relevance">Relevância</string>
+    <string name="routing_attr_motor_type_ethanol_name">Etanol</string>
 </resources>

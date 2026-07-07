@@ -371,9 +371,13 @@ public class MoveMediaFilesTask extends AsyncTask<Void, Object, Map<String, Pair
 		}
 		app.getFavoritesHelper().saveCurrentPointsIntoFile(true, new FavoritesListener() {
 			@Override
-			public void onSavingFavoritesFinished() {
-				// Only delete the originals once favorites are written with the new links.
-				deleteMovedSources(callback);
+			public void onSavingFavoritesFinished(boolean success) {
+				if (success) {
+					// Only delete the originals once favorites are written with the new links.
+					deleteMovedSources(callback);
+				} else {
+					callback.processResult(false);
+				}
 			}
 		});
 	}

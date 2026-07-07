@@ -487,7 +487,7 @@ object GpxUtilities {
 			if (file != null) {
 				serializer.setOutput(file)
 			} else if (stream != null) {
-				serializer.setOutput(stream.buffer())
+				serializer.setOutput(stream)
 			} else {
 				throw KException("Output file or stream is not defined")
 			}

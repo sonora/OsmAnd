@@ -485,7 +485,7 @@ public class FavoriteFolderFragment extends BaseFavoriteListFragment
 	}
 
 	@Override
-	public void onSavingFavoritesFinished() {
+	public void onSavingFavoritesFinished(boolean success) {
 		updateContent();
 	}
 

@@ -5367,4 +5367,7 @@
     <string name="set_step_size_summary">Pilih ukuran langkah untuk mengelompokkan trek.</string>
     <string name="shared_string_step">Langkah</string>
     <string name="shared_string_unlock">Buka</string>
+    <string name="shared_string_recent">Terbaru</string>
+    <string name="sort_by_nearest_to_map_center">Terdekat ke pusat peta</string>
+    <string name="last_week">Minggu lalu</string>
 </resources>
