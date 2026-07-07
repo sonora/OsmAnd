@@ -260,10 +260,7 @@ public class IndexItem extends DownloadItem implements Comparable<IndexItem> {
 	}
 
 	public boolean isOutdated() {
-		return outdated
-				&& getType() != DownloadActivityType.HILLSHADE_FILE
-				&& getType() != DownloadActivityType.SLOPE_FILE
-				&& getType() != DownloadActivityType.GEOTIFF_FILE;
+		return outdated;
 	}
 
 	public void setOutdated(boolean outdated) {

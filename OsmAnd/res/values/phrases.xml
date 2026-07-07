@@ -3662,7 +3662,7 @@
 	<string name="poi_couloir">Couloir</string>
 	<string name="poi_mountain_area">Mountain area</string>
 
-	<string name="poi_surface_clay">Clay</string>
+	<string name="poi_surface_clay">Surface: clay</string>
 	<string name="poi_surface_tartan">Tartan</string>
 	<string name="poi_surface_artificial_turf">Artificial turf</string>
 	<string name="poi_surface_decoturf">DecoTurf</string>
@@ -5772,5 +5772,7 @@
 	<string name="poi_rapids_grade_x">X (not runnable)</string>
 
 	<string name="poi_water_lake">Lake</string>
+
+	<string name="poi_surface_laterite">Surface: laterite</string>
 
 </resources>
