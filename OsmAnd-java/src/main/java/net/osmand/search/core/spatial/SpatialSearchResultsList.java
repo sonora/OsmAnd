@@ -56,6 +56,8 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	
 	List<String> tempBuildNames1 = new ArrayList<String>();
 	List<String> tempBuildNames2 = new ArrayList<String>();
+	Map<String, SpatialSearchResult> extraIdsResults = new HashMap<>();
+	TLongObjectHashMap<SpatialSearchResult> uniqueIdsResults = new TLongObjectHashMap<>();
 	
 	public SpatialSearchResultsList() {
 		this(null, null, null);
@@ -462,16 +464,37 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	public List<SpatialSearchResult> sortResults(SpatialSearchContext ctx, List<SpatialSearchResult> finalResult, boolean deduplicate) {
 		Collections.sort(finalResult, (o1, o2) -> SpatialSearchResult.compare(o1, o2, ctx.location));
 		if (deduplicate) {
-			List<SpatialSearchResult> res = new ArrayList<SpatialSearchResult>();
-			TLongHashSet duplicateIds = new TLongHashSet();
+			uniqueIdsResults.clear();
+			extraIdsResults.clear();
+			List<SpatialSearchResult> result = new ArrayList<>();
+
 			for (SpatialSearchResult s : finalResult) {
-				long filterId = s.getIdDeduplication();
-				if (filterId > 0 && !duplicateIds.add(filterId)) {
-					continue;
+				boolean isUniq = true;
+				long uniqueId = s.getIdDeduplication();
+				if (uniqueIdsResults.containsKey(uniqueId)) {
+					SpatialSearchResult unique = uniqueIdsResults.get(uniqueId);
+					unique.addExtraResult(s, ctx.settings.LANG_DEDUPLICATE);
+					isUniq = false;
+				} else if (uniqueId != -1) {
+					uniqueIdsResults.put(uniqueId, s);
 				}
-				res.add(s);
+				List<String> extraDuplicateKeys = s.extraDeduplicateKeys();
+				if (extraDuplicateKeys != null) {
+					for (String key : extraDuplicateKeys) {
+						if (extraIdsResults.containsKey(key)) {
+							SpatialSearchResult unique = extraIdsResults.get(key);
+							unique.addExtraResult(s, ctx.settings.LANG_DEDUPLICATE);
+							isUniq = false;
+						} else {
+							extraIdsResults.put(key, s);
+						}
+					}
+				}
+				if (isUniq) {
+					result.add(s);
+				}
 			}
-			finalResult = res;
+			finalResult = result;
 		}
 		return finalResult;
 	}

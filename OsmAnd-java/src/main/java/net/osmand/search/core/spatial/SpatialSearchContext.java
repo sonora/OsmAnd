@@ -27,6 +27,7 @@ import net.osmand.data.Amenity;
 import net.osmand.data.City;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
+import net.osmand.data.QuadRect;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtomXY;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchFileCache;
@@ -48,9 +49,9 @@ public class SpatialSearchContext {
 	final SpatialPoiSearch poiSearch;
 	final SpatialTextSearchSettings settings;
 	final SpatialSearchStats stats = new SpatialSearchStats();
-	
-	List<SpatialSearchToken> tokens = null; // non initiatilized
 
+	List<SpatialSearchToken> tokens = null; // non initiatilized
+	
 	public static class SpatialSearchStats {
 		public Timer requestTime = new Timer();
 		public Timer step1Atoms = new Timer();
@@ -71,6 +72,11 @@ public class SpatialSearchContext {
 		public long readObjsBytes = 0;
 		public long skipTableBytes = 0;
 		public long skipAtomsBytes = 0;
+		
+		// separate api
+		public Timer poiByTypeTime = new Timer();
+		public long poiByTypeBytes = 0;
+		public long poiByTypeBboxes = 0;
 		
 		public boolean doTiming = true;
 		public boolean printLogs = true;
@@ -138,17 +144,16 @@ public class SpatialSearchContext {
 	}
 	
 	public static int[] calculateBbox(int radiusMeters, LatLon l) {
-		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
-		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
+		QuadRect qr = MapUtils.calculateBbox(radiusMeters, l);
 		int[] bbox31 = new int[4];
 //		System.out.printf("Bbox limit: %.4f %.4f - %.4f %.4f\n", northWest.getLatitude(), northWest.getLongitude(),
 //				southEast.getLatitude(), southEast.getLongitude());
 //		int xleft = bbox31[0], xright = bbox31[2];
 //		int ytop = bbox31[1], ybottom = bbox31[3];
-		bbox31[1]= MapUtils.get31TileNumberY(northWest.getLatitude());
-		bbox31[0] = MapUtils.get31TileNumberX(northWest.getLongitude());
-		bbox31[3]= MapUtils.get31TileNumberY(southEast.getLatitude());
-		bbox31[2] = MapUtils.get31TileNumberX(southEast.getLongitude());
+		bbox31[1] = (int) qr.top;
+		bbox31[0] = (int) qr.left;
+		bbox31[3] = (int) qr.bottom;
+		bbox31[2] = (int) qr.right;
 		return bbox31;
 	}
 	
@@ -802,5 +807,6 @@ public class SpatialSearchContext {
 
 	}
 
-	
+
+
 }

@@ -37,18 +37,19 @@ import net.osmand.util.SearchAlgorithms;
 // TESTING delete default enlarge and enlarge data
 // TESTING Venezia city Street / Place  -  <City Street> ('<Salt Lake City>') with Street ('Pennsylvania street') 
 // TESTING find check that token is reused in parent - and ignore intersection for complete mattch
+// TESTING TODO WEB ! POI Categories + top poi categories !! RZR
+// TESTING POI CATEGORY Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
+// TESTING BUG: numbers obj- filter cafe & rest  + incorrect PrivatBank counts
+// TESTING: check additional filter not stored old
 
 ////////// IN PROGRESS //////////
 
-// TESTING POI Categories + top poi categories
+// TODO POI: Sort maps poi categories API search (sort bboxes?)
 
-// TODO API to return result
-// TODO accept intersection POI Category /\ POI - deduplicate?
-// TODO Specific Healthcare specialties (Vegan) - https://github.com/osmandapp/OsmAnd/issues/24941
-// TODO POI Categories translations / synonyms
-// TODO query = "Catedral-Basílica de Nuestra Señora del Pilar"; - poi category
+// TODO POI Categories translations / synonyms (WEB) - Стоматол., Dentist, Stomatology 
+// TODO query = "Catedral-Basílica de Nuestra Señora del Pilar"; -  POI_TYPE /\ POI
+// TODO Review if poi doesn't have bbox don't intersect or add bbox! - Shell 2 Rožňavská
 
-// TODO Analyze stats slow queries
 // TODO INSPECTOR stats index_words_dashboard.html
 
 // TO DO Ivan / Gateway
@@ -58,12 +59,20 @@ import net.osmand.util.SearchAlgorithms;
 // TODO DEDUPLICATE: review osm route id  combine by?
 // TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
 // TODO DEDUPLICATE: Test wiki / travel maps, seamarks map
-// TODO DEDUPLICATE: same location (5-10m) 2 streets different cities 
+// TODO DEDUPLICATE: same location (5-10m) 2 streets different cities
+// TODO DEDUPLICATE: brand langs - 'Поїхали з нами' / 'Поехали с нами'
 // TODO UNIT TESTS: (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
 // TODO UNIT TESTS: Auto tests - Slow analysis (Auto test New york)
 // TODO UNIT TESTS: Analyze Abbrefvations / common skip (abbrevations 1st=first) 
 // TODO UNIT TESTS: Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
 // TODO INSPECTOR : doesn't show suffixes
+
+// LARGE IMPORTANT TASKS
+// TODO ANALYZE: find slow queries on Autotests
+// TODO ANALYZE: too many wiki places on streets?
+// TODO ANALYZE: Germany POI words - . (115,158, 115,158), und (97,839, 97,839), - not common? - bach (56,475, 56,475) - could be common?
+// TODO POI CATEGORY Bboxes too large - test size OsmAndPoiNameIndexDataAtom, quad tree (90% < 10K) add rare categories 
+// TODO ANALYZE: Large Geo atoms "Berlin" 
 
 // TO DO - RZR
 // TODO WEB PRODUCTION: display results std way: house, interpolation results, poi...
@@ -151,7 +160,7 @@ public class SpatialSearchTestAndDocs {
 	 *    That's an issue for 'Weberstrasse' -> Weber strasse, Hemauerstraße -> Hemauer straße.
 	 *    Possible solution is to prepare 2 variation during indexing 
 	 */
-	public static void main(String[] args) throws IOException, InterruptedException {
+	public static void main(String[] args) throws IOException, InterruptedException {				
 		SpatialTextSearchSettings settings = new SpatialTextSearchSettings();
 		File folder = new File(System.getProperty("maps.dir"));
 		LatLon location = null;
@@ -165,6 +174,12 @@ public class SpatialSearchTestAndDocs {
 //		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
 //		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
 		
+		// poi filter
+//		location = new LatLon(52.50805, 13.38176);
+//		settings.SEARCH_POI = false;
+//		settings.DEV_PRINT_POI_CAT_LIMIT = 100; 
+//		settings.DEV_PRINT_POI_CAT_RADIUS_KM = 10;
+//		query = "Gynae.";
 		
 		// Grainau Am Eibsee 1 36799292
 		// Grainau Seehäuser Eibsee 2 - 242903848 //  Seehäuser Grainau 2, Seehäuser Eibsee 2  
@@ -257,11 +272,22 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "regions.ocbf" ;
 		
-		pattern = "Ukraine_";
-//		pattern = "Ukraine_kyiv-";
-		query = "Caf.";
-//		query = "Veg.";
-//		query = "Mcdon.";
+		pattern = "Ukraine_kyiv-city";
+//		pattern = "Test_Ukraine_kyiv-city_europe_12.obf";
+//		pattern = "Ukraine_";
+		// poi types
+//		location = new LatLon(50.439, 30.516);
+		settings.SEARCH_POI = false;
+		settings.DEV_PRINT_POI_CAT_LIMIT = 100000; 
+		settings.DEV_PRINT_POI_CAT_RADIUS_KM = 1000;
+		query = "п.";
+		query = "New york.";
+//		query = "Cafe";
+//		query = "Aquarium.";
+//		query = "Vegeterian";
+//		query = "Mcdonald's";
+//		query = "Stomat.";
+		
 //		query = "Kyiv Глушкова 1"; // vs 'Kyiv 1'
 //		query = "нова пошта Бульварно Кудрявська";
 //		query = "Бульварно-кудрявс.";
@@ -305,7 +331,8 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "Slovakia";
 //		query = "Bratislava Billa";
-//		query = "Shell";
+//		settings.DEDUPLICATE_RES = false;
+//		query = "Shell 2 Rožňavská";
 		
 //		pattern = "Us_new-york_new"; // new-york, new-jersey
 //		pattern = "Us_new-"; 
@@ -403,10 +430,52 @@ public class SpatialSearchTestAndDocs {
 				System.out.println("Suggest search other region - " + bbox);
 			}
 		}
-		settings.OPTIM_DELETE_POI_SAME_AS_CITY_STREET = false;
+//		settings.OPTIM_DELETE_POI_SAME_AS_CITY_STREET = false;
 //		settings.DEDUPLICATE_RES = true;
-		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
-		a.searchTest(query, searchContext, 8000);
+//		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
+//		a.searchTest(query, searchContext, 8000);
+	}
+
+	private static void testDeduplication(String[] args) throws IOException, InterruptedException {
+		SpatialTextSearchSettings settings = new SpatialTextSearchSettings();
+		File folder = new File(System.getProperty("maps.dir"));
+		LatLon location = null;
+		String pattern = "Italy_";
+		String pattern2 = "World";		
+		String query = "Torrente Capraia"; // deduplicate by name and similarityRadius
+		settings.LANG_DEDUPLICATE = "en";
+		query = "Anello di Capraia e Montelupo"; // deduplicate by route_id 
+		
+		pattern = "Ukraine_";
+		pattern2 = "Ukraine_";
+		query = "Софійський"; // deduplicate by osmId and wikidata
+		query = "Ярославів Вал";
+
+		long t = System.nanoTime();
+
+		List<BinaryMapIndexReader> ls = new ArrayList<BinaryMapIndexReader>();
+		for (File f : folder.listFiles()) {
+			if (f.getName().startsWith(pattern) || f.getName().startsWith(pattern2)) {
+				SpatialTextSearch.initFile(ls, f);
+			} else if(f.getName().equals(OsmandRegions.REGIONS_OCBF)){
+				SpatialTextSearch.initFile(ls, f);
+			}
+		}
+		SpatialTextSearch a = new SpatialTextSearch();
+		System.out.println(String.format("Index files %.1f ms", (System.nanoTime() - t) / 1e6));
+		SpatialPoiSearch poiSearch = new SpatialPoiSearch(MapPoiTypes.getDefault());
+		SpatialSearchContext searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
+		SpatialSearchResults rs = a.searchTest(query, searchContext, 1000);
+		if (rs.mainResults != null) {
+			for (SpatialSearchResult s : rs.mainResults) {
+				MapObject unitedObject = s.unitedObject;
+				String out = s.toString();
+				if (unitedObject != null) {
+					out += " United:" + unitedObject.toString();
+				}
+				System.out.println(out);
+			}
+		}
 	}
 	
 }

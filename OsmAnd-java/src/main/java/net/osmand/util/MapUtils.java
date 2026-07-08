@@ -444,7 +444,9 @@ public class MapUtils {
 	public static String buildShortOsmUrl(double latitude, double longitude, int zoom) {
 		return BASE_SHORT_OSM_URL + createShortLinkString(latitude, longitude, zoom) + "?m";
 	}
-
+	
+	// Zoom represents 1 pixel (256x256) in the tile of the given zoom
+	// 1 symbol - (z=-5), 2 symbols (z=-2), 3 symbols (z=1), 4 symbols (z=4), 5 symbols (z=7)
 	public static String createShortLinkString(double latitude, double longitude, int zoom) {
 		long lat = (long) (((latitude + 90d)/180d)*(1L << 32));
 		long lon = (long) (((longitude + 180d)/360d)*(1L << 32));
@@ -966,5 +968,15 @@ public class MapUtils {
 		// clamp Y/latitude [-90,90]
 		bbox.top = Math.max(-90.0, Math.min(90.0, bbox.top));
 		bbox.bottom = Math.max(-90.0, Math.min(90.0, bbox.bottom));
+	}
+	
+	public static QuadRect calculateBbox(int radiusMeters, LatLon l) {
+		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
+		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
+		int top = MapUtils.get31TileNumberY(northWest.getLatitude());
+		int left = MapUtils.get31TileNumberX(northWest.getLongitude());
+		int bottom = MapUtils.get31TileNumberY(southEast.getLatitude());
+		int right = MapUtils.get31TileNumberX(southEast.getLongitude());
+		return new QuadRect(left, top, right, bottom);
 	}
 }

@@ -22,6 +22,7 @@ import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiRegion;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiSubType;
 import net.osmand.data.Amenity;
 import net.osmand.data.LatLon;
+import net.osmand.data.QuadRect;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
@@ -32,6 +33,7 @@ import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtomXY;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchFileCache;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchGlobalCache;
+import net.osmand.util.MapUtils;
 import net.osmand.util.SearchAlgorithms;
 
 public class SpatialPoiSearch {
@@ -147,7 +149,8 @@ public class SpatialPoiSearch {
 			fc.poiFrequencies.put(cats.get(i), f);
 			for (int j = 0; j < lst.size(); j++) {
 				int ft = subcatFreqs != null && i < subcatFreqs.size() && j < subcatFreqs.get(i).size() ? subcatFreqs.get(i).get(j) : 0;
-				fc.poiFrequencies.put(lst.get(j), ft);
+				String vkey = lst.get(j);
+				fc.poiFrequencies.put(vkey, ft);
 			}
 		}
 		
@@ -172,6 +175,10 @@ public class SpatialPoiSearch {
 						addToIndex(topValueName, topValue);
 					}
 					int freq = subType.possibleValuesFreqs != null && k < subType.possibleValuesFreqs.size() ? subType.possibleValuesFreqs.get(k) : 0;
+					Integer fit = fc.poiFrequencies.get(topValue.key);
+					if (fit != null) {
+						freq += fit;
+					}
 					fc.poiFrequencies.put(topValue.key, freq);
 				}
 			}
@@ -223,6 +230,23 @@ public class SpatialPoiSearch {
 							if (freq != null) {
 								total += freq;
 							}
+							if (a.singleType instanceof PoiFilter pf) {
+								for (PoiType p : pf.getPoiTypes()) {
+									freq = l.poiFrequencies.get(p.getKeyName());
+									if (freq != null) {
+										total += freq;
+									}
+								}
+							}
+							// additional could be on top
+//							if (a.parentTypes != null) {
+//								for (AbstractPoiType p : a.parentTypes) {
+//									freq = l.poiFrequencies.get(p.getKeyName());
+//									if (freq != null) {
+//										total += freq;
+//									}
+//								}
+//							}
 						}
 					}
 //					System.out.println(a.names + " " + a.key + " " + total);
@@ -264,14 +288,11 @@ public class SpatialPoiSearch {
 	}
 
 
-	public List<Amenity> loadPOIObjects(SpatialSearchContext ctx, long id, LatLon latLon, 
-			int lim) throws IOException {
+	public List<Amenity> loadPOIObjects(SpatialSearchContext ctx, long id, LatLon latLon, int radMeters, int limit)
+			throws IOException {
 		final SpatialPoiType spt = byId.get((int) id);
 		List<Amenity> results = new ArrayList<Amenity>();
-		// TODO not sorted 
-		// TODO slow on many maps...
-		int[] limit = new int[] { lim };
-		
+		int[] alimit = new int[] { limit };
 		if (spt != null && ctx.files != null) {
 			SearchPoiTypeFilter typeFilter = spt.poiAdditional != null ? null : new SearchPoiTypeFilter() {
 
@@ -326,8 +347,8 @@ public class SpatialPoiSearch {
 							return false;
 						}
 					}
-					if (limit[0] > 0) {
-						limit[0]--;
+					if (alimit[0] > 0) {
+						alimit[0]--;
 					}
 					results.add(object);
 					return false;
@@ -335,13 +356,23 @@ public class SpatialPoiSearch {
 
 				@Override
 				public boolean isCancelled() {
-					return limit[0] == 0;
+					return alimit[0] == 0;
 				}
 			};
-			SearchRequest<Amenity> req = BinaryMapIndexReader.buildSearchPoiRequest(0, Integer.MAX_VALUE, 0,
-					Integer.MAX_VALUE, -1, typeFilter, addFilter, matcher);
+			SearchRequest<Amenity> req = BinaryMapIndexReader.buildSearchPoiRequest(
+					0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, -1, typeFilter, addFilter, matcher);
+			if (latLon != null) {
+				QuadRect qr = MapUtils.calculateBbox(radMeters, latLon);
+				req = BinaryMapIndexReader.buildSearchPoiRequest((int) qr.left, (int) qr.right, (int) qr.top,
+						(int) qr.bottom, -1, typeFilter, addFilter, matcher);
+			}
 			for (BinaryMapIndexReader bir : ctx.files) {
+				ctx.stats.poiByTypeTime.start();
+				long br = bir.getBytesRead();
 				bir.searchPoi(req);
+				ctx.stats.poiByTypeBytes += (bir.getBytesRead() - br);
+				ctx.stats.poiByTypeTime.finish();
+				ctx.stats.poiByTypeBboxes += req.numberOfReadSubtrees;
 			}
 		}
 		return results;

@@ -1916,7 +1916,7 @@
     <string name="poi_leaf_type_leafless">Sans feuilles</string>
     <string name="poi_deadlock">Impasse</string>
     <string name="poi_water_characteristic_mineral">Minéral</string>
-    <string name="poi_information_guidepost">Point de repère</string>
+    <string name="poi_information_guidepost">Poteau indicateur</string>
     <string name="poi_fire_hydrant_count">Bouche incendie</string>
     <string name="poi_payment_fuel_type">Cartes carburant</string>
     <string name="poi_additional_type">Supplémentaire</string>

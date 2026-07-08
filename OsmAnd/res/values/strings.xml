@@ -4588,6 +4588,7 @@ Download tile maps directly, or copy them as SQLite database files to OsmAnd\'s 
     <string name="traffic_warning_stop">Stop sign</string>
     <string name="traffic_warning_calming">Traffic calming</string>
     <string name="traffic_warning_speed_camera">Speed camera</string>
+    <string name="traffic_warning_red_light_camera">Red light camera</string>
     <string name="traffic_warning">Traffic warning</string>
     <string name="speak_favorites">Nearby favorites</string>
     <string name="speak_poi">Nearby POI</string>

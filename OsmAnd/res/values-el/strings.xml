@@ -5053,4 +5053,16 @@
     <string name="astro_expand_your_universe_description">Λάβετε πρόσβαση στην εκτεταμένη βάση δεδομένων των καταλόγων βαθέος ουρανού, άρθρων Βικιπαίδειας και λειτουργίας AR εκτός σύνδεσης.</string>
     <string name="astro_offline_knowledge_base_title">Βάση Γνώσεων Εκτός Σύνδεσης</string>
     <string name="astro_offline_knowledge_base_description">Λάβετε την εκτεταμένη βάση δεδομένων για πρόσβαση σε άρθρα Βικιπαίδειας και καταλόγους βαθέος ουρανού εκτός σύνδεσης.</string>
+    <string name="route_calculation_calculating_route">Γίνεται υπολογισμός διαδρομής...</string>
+    <string name="route_calculation_calculating_fast_route">Γίνεται υπολογισμός γρήγορης διαδρομής...</string>
+    <string name="route_calculation_using_fast_algorithm">Χρήση αλγορίθμου γρήγορης δρομολόγησης.</string>
+    <string name="route_calculation_using_standard_algorithm">Χρήση αλγορίθμου τυπικής (πιο αργής) δρομολόγησης.</string>
+    <string name="rendering_attr_safetyContour_description">Ισοβαθείς ασφαλείας</string>
+    <string name="rendering_attr_safetyContour_name">Ισοβαθείς ασφαλείας</string>
+    <string name="rendering_attr_hideTidalFlats_name">Λασπότοποι</string>
+    <string name="rendering_attr_tidalFlatStyle_name">Στυλ λασπότοπων</string>
+    <string name="rendering_attr_tidalFlatStyle_description">Στυλ λασπότοπων</string>
+    <string name="rendering_attr_hideTidalFlats_description">Απόκρυψη λασπότοπων</string>
+    <string name="rendering_attr_OSMMapperAssistantFixme_name">Ετικέτες fixme</string>
+    <string name="rendering_attr_OSMMapperAssistantFixme_description">Εμφάνιση ετικετών fixme</string>
 </resources>

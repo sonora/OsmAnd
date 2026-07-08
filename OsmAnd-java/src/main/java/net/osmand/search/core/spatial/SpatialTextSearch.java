@@ -22,9 +22,11 @@ import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiRegion;
 import net.osmand.binary.NameIndexReader;
 import net.osmand.data.Amenity;
+import net.osmand.data.LatLon;
 import net.osmand.map.OsmandRegions;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
+import net.osmand.util.MapUtils;
 import net.osmand.util.SearchAlgorithms;
 
 //////////////// SEARCH ALGORITHM //////////////////
@@ -48,6 +50,9 @@ import net.osmand.util.SearchAlgorithms;
 public class SpatialTextSearch {
 
 	public static class SpatialTextSearchSettings {
+		
+		// lang to deduplicate results
+		public String LANG_DEDUPLICATE = ""; 
 
 		public boolean SEARCH_ADDR = true;
 		public boolean SEARCH_POI = true;
@@ -88,7 +93,8 @@ public class SpatialTextSearch {
 		// display only top 10
 		public int LIMIT_POI_CATEGORY_BY_FREQ = 15;
 		// print some poi cat
-		public final int DEV_PRINT_POI_CAT = 0; // 10
+		public int DEV_PRINT_POI_CAT_LIMIT = 0; // 10
+		public int DEV_PRINT_POI_CAT_RADIUS_KM = 10;
 		
 		// no need to find 3 street intersection or 3 POI intersection
 		public int LIMIT_ATOMIC_OBJECTS = 2;
@@ -409,23 +415,15 @@ public class SpatialTextSearch {
 			res.mainResults.addAll(lst);
 		}
 		res.mainResults = main.sortResults(ctx, res.mainResults, ctx.settings.DEDUPLICATE_RES);
-		int limitPoiCat = ctx.settings.DEV_PRINT_POI_CAT;
+		int limitPoiCat = ctx.settings.DEV_PRINT_POI_CAT_LIMIT;
 		if (res.mainResults.size() > 0) {
 			int[] limits = ctx.settings.SHOW_MORE_WORDS_COUNT.clone();
 			long cKey = SpatialSearchResult.compareKey(res.mainResults.get(0));
 			int ind = 0, lind = 0;
 			int level = 0; 
 			for (SpatialSearchResult r : res.mainResults) {
-				if (limitPoiCat > 0 && r.getFirstRef() != null && r.getFirstRef().atom.isPoiCategory()) {
-					long nt = System.nanoTime();
-					System.out.printf("Loading poi type '%s' - limit %d...\n", r.getFirstRef().atom.name, limitPoiCat);
-					List<Amenity> interRes = ctx.poiSearch.loadPOIObjects(ctx, r.getFirstRef().atom.id, r.getLatLon(),
-							limitPoiCat);
-					for (Amenity a : interRes) {
-						System.out.printf("\t %s (%s) %s\n", a, a.getOsmId(), a.getLocation());
-					}
-					System.out.printf("\t ... %.1f ms\n", (System.nanoTime() - nt) / 1e6);
-					limitPoiCat = 0;
+				if (limitPoiCat > 0) {
+					limitPoiCat = printPoiCategory(ctx, limitPoiCat, r);
 				}
 				long nextKey = SpatialSearchResult.compareKey(r);
 				if (cKey != nextKey) {
@@ -443,6 +441,25 @@ public class SpatialTextSearch {
 				ind++;
 			}
 		}
+	}
+
+	private int printPoiCategory(SpatialSearchContext ctx, int limitPoiCat, SpatialSearchResult r) throws IOException {
+		if (r.getFirstRef() != null && r.getFirstRef().atom.isPoiCategory()) {
+			long nt = System.nanoTime();
+			System.out.printf("Loading poi type '%s' - limit %d...\n", r.getFirstRef().atom.name, limitPoiCat);
+			LatLon latLon = r.getLatLon();
+			List<Amenity> interRes = ctx.poiSearch.loadPOIObjects(ctx, r.getFirstRef().atom.id,
+					latLon == null ? ctx.location : latLon, ctx.settings.DEV_PRINT_POI_CAT_RADIUS_KM * 1000, limitPoiCat);
+			for (Amenity a : interRes) {
+				double dist = ctx.location == null ? 0 : MapUtils.getDistance(ctx.location, a.getLocation());
+				System.out.printf("\t %s (%s) %.2f km %s \n", a, a.getOsmId(), dist / 1000.0, a.getLocation());
+			}
+			System.out.printf("... Loaded %d pois %.1f ms (%.1f ms, %d tiles, %,d KB)\n", interRes.size(), 
+					(System.nanoTime() - nt) / 1e6, ctx.stats.poiByTypeTime.ms(), ctx.stats.poiByTypeBboxes, 
+					ctx.stats.poiByTypeBytes / 1024);
+			limitPoiCat = 0;
+		}
+		return limitPoiCat;
 	}
 
 	public List<SpatialSearchToken> splitWords(SpatialSearchContext ctx, String input) {

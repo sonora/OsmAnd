@@ -383,19 +383,11 @@ public class SearchPhrase {
 		if (l == null) {
 			return null;
 		}
-		cache1kmRect= calculateBbox(1000, l);
+		cache1kmRect = MapUtils.calculateBbox(1000, l);
 		return cache1kmRect;
 	}
 
-	public static QuadRect calculateBbox(int radiusMeters, LatLon l) {
-		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
-		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
-		int top = MapUtils.get31TileNumberY(northWest.getLatitude());
-		int left = MapUtils.get31TileNumberX(northWest.getLongitude());
-		int bottom = MapUtils.get31TileNumberY(southEast.getLatitude());
-		int right = MapUtils.get31TileNumberX(southEast.getLongitude());
-		return new QuadRect(left, top, right, bottom);
-	}
+	
 	
 	
 	public Iterator<BinaryMapIndexReader> getRadiusOfflineIndexes(int meters, final SearchPhraseDataType dt) {

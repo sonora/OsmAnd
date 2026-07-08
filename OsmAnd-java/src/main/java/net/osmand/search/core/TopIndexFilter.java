@@ -1,13 +1,12 @@
 package net.osmand.search.core;
 
-import net.osmand.CollatorStringMatcher;
+import java.util.Objects;
+
 import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.binary.BinaryMapPoiReaderAdapter.PoiSubType;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.util.SearchAlgorithms;
-
-import java.util.Objects;
 
 public class TopIndexFilter implements BinaryMapIndexReader.SearchPoiAdditionalFilter {
 

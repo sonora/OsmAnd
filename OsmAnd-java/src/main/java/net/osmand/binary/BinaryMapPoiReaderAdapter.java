@@ -1018,7 +1018,7 @@ public class BinaryMapPoiReaderAdapter {
 
 	private Amenity readPoiPoint(int left31, int right31, int top31, int bottom31,
 			int px, int py, int zoom, SearchRequest<Amenity> req, PoiRegion region, boolean checkBounds) throws IOException {
-		Amenity am = null;
+ 		Amenity am = null;
 		int x = 0;
 		int y = 0;
 		int precisionXY = 0;
@@ -1307,7 +1307,7 @@ public class BinaryMapPoiReaderAdapter {
 				}
 				break;
 			case OsmandOdb.OsmAndPoiBox.CATEGORIES_FIELD_NUMBER:
-				if (req.poiTypeFilter == null || readSubBoxesTagGroup) {
+				if ((req.poiTypeFilter == null && req.poiAdditionalFilter == null)|| readSubBoxesTagGroup) {
 					skipUnknownField(t);
 				} else {
 					int length = codedIS.readRawVarint32();
