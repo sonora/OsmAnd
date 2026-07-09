@@ -5246,4 +5246,5 @@
     <string name="required_maps_get_accurate_list_online">Dobijte tačnu listu na mreži</string>
     <string name="required_maps_calculate_with_existing_maps">Izračunaj sa postojećim mapama</string>
     <string name="attached_media">Priloženi mediji</string>
+    <string name="traffic_warning_red_light_camera">Kamera za crveno svetlo</string>
 </resources>

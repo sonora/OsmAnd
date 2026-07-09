@@ -5178,4 +5178,5 @@
     <string name="required_maps_get_accurate_list_online">Obtenir une liste actualisée en ligne</string>
     <string name="required_maps_calculate_with_existing_maps">Effectuer les calculs avec les cartes existantes</string>
     <string name="attached_media">Fichiers média joints</string>
+    <string name="traffic_warning_red_light_camera">Radar de feu rouge</string>
 </resources>

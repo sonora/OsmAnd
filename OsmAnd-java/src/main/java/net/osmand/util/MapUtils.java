@@ -973,10 +973,10 @@ public class MapUtils {
 	public static QuadRect calculateBbox(int radiusMeters, LatLon l) {
 		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
 		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
-		int top = MapUtils.get31TileNumberY(northWest.getLatitude());
-		int left = MapUtils.get31TileNumberX(northWest.getLongitude());
-		int bottom = MapUtils.get31TileNumberY(southEast.getLatitude());
-		int right = MapUtils.get31TileNumberX(southEast.getLongitude());
+		int top = MapUtils.get31TileNumberY(Math.min(MAX_LATITUDE, northWest.getLatitude()));
+		int left = MapUtils.get31TileNumberX(Math.max(MIN_LONGITUDE, northWest.getLongitude()));
+		int bottom = MapUtils.get31TileNumberY(Math.max(MIN_LATITUDE, southEast.getLatitude()));
+		int right = MapUtils.get31TileNumberX(Math.min(MAX_LONGITUDE, southEast.getLongitude()));
 		return new QuadRect(left, top, right, bottom);
 	}
 }

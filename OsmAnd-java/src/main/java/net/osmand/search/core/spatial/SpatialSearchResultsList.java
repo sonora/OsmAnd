@@ -25,6 +25,7 @@ import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.Street;
 import net.osmand.search.core.HashQuadTree;
+import net.osmand.search.core.spatial.SpatialPoiSearch.SpatialPoiType;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.MapUtils;
@@ -145,6 +146,16 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 	public void loadObjectsAndCalcBuildings(SpatialSearchContext ctx) throws IOException {
 		ctx.stats.sub2LoadObjectsBldTime.start();
 		loadObjects(ctx);
+		// calculate amenity type
+		for (int indx = 0; indx < getCombinations(); indx++) {
+			if (skipResults.contains(indx)) {
+				continue;
+			}
+			boolean skip = checkAmenityType(ctx, indx);
+			if (!skip) {
+				skipResults.put(indx, true);
+			}
+		}
 		
 		if (ctx.settings.SEARCH_BUILDINGS) {
 			Map<String, Building> bldCheckCache = new HashMap<>();
@@ -166,6 +177,50 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 		}
 		
 		ctx.stats.sub2LoadObjectsBldTime.finish();
+	}
+
+	private boolean checkAmenityType(SpatialSearchContext ctx, int indx) {
+		SpatialPoiType type = null;
+		for (int i = 0; i < tCount; i++) {
+			NameIndexAtom atom = linearResults.get(indx * tCount + i);
+			if (atom.isPoiCategory()) {
+				type = ctx.poiSearch.getById((int) atom.id);
+				break;
+			}
+		}
+		if (type == null) {
+			return true;
+		}
+		for (int i = 0; i < tCount; i++) {
+			NameIndexAtom atom = linearResults.get(indx * tCount + i);
+			if (atom.object instanceof Amenity a) {
+				boolean matched = type.accept(a);
+				if (!matched) {
+					return false;
+				}
+				// old logic for missing tokens
+//				for (SpatialSearchToken st : missingTokens) {
+//					if (st.hasPoiType(a.getType().getKeyName(), ctx.poiSearch) != null
+//							|| st.hasPoiType(a.getSubType(), ctx.poiSearch) != null) {
+//						matched = true;
+//						break;
+//					}
+//					if (a.getSubType().indexOf(';') != -1) {
+//						for (String subtStr : a.getSubType().split(";")) {
+//							if (st.hasPoiType(subtStr, ctx.poiSearch) != null) {
+//								matched = true;
+//								break;
+//							}
+//						}
+//					}
+//				}
+//				if (matched) {
+//					atom.otherWordsCnt = -1; // could be added to surplusWords later 
+//					break;
+//				}
+			}
+		}
+		return true;
 	}
 	
 	private void calcStreetIntersections(SpatialSearchContext ctx, int indx) {
@@ -673,13 +728,15 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			} else if ((a.buildingInd >= 0) && pa.isStreetBuilding() && !a.isCityStreetName()) {
 				return false; 
 			}
-			// if poi doesn't have bbox don't intersect or add bbox!
-			if ((pa.buildingInd >= 0) && a.isPOI() && a.coords.bbox31 == null) {
-				return false;
-			} else if ((a.buildingInd >= 0) && pa.isPOI() && pa.coords.bbox31 == null) {
-				return false;
+			// if poi doesn't have bbox don't intersect or add bbox! (transport stops take street names)
+			if (!ctx.settings.TEST_ALLOW_HOUSE_POI_TYPE_INTERSECTION) {
+				if ((pa.buildingInd >= 0) && a.isPOI() && a.coords.bbox31 == null) {
+					return false;
+				} else if ((a.buildingInd >= 0) && pa.isPOI() && pa.coords.bbox31 == null) {
+					return false;
+				}
 			}
-			
+//			
 		}
 		// 2. Duplicate words in query
 		for (int i = 0; parent != null && i < parent.tCount; i++) {
@@ -721,6 +778,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			atomObjs.put(a.id, a);
 		}
 		NameIndexAtom poiType = a.isPoiCategory() ? a : null;
+		SpatialSearchToken poiTypeToken = tokens[0];
 		for (int i = 0; parent != null && i < parent.tCount; i++) {
 			NameIndexAtom pa = parent.linearResults.get(pindx * parent.tCount + i);
 			if (pa.id == a.id) {
@@ -729,6 +787,7 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 			if (pa.isPoiCategory()) {
 				if (poiType == null || pa.id == a.id) {
 					poiType = pa;
+					poiTypeToken = parent.tokens[i];
 				} else {
 					// no 2 poi categories
 					return false;
@@ -758,8 +817,15 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 //				return false;
 //			}
 		}
+		// investigate to find types
 		if (poiType != null && atomObjs.size() > 0) {
-			return false;
+			NameIndexAtom p = atomObjs.values().iterator().next();
+			if (poiTypeToken.incomplete) {
+				return false;
+			}
+			if (!p.isPOI()) {
+				return false;
+			}
 		}
 		if (atomObjs.size() > 1) {
 			Iterator<NameIndexAtom> it = atomObjs.values().iterator();

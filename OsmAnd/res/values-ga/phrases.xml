@@ -2614,7 +2614,7 @@
     <string name="poi_reservation_required">Riachtanach</string>
     <string name="poi_boat_dinghy_rental_no">Dinghy: níl</string>
     <string name="poi_couloir">Conair</string>
-    <string name="poi_surface_clay">Cré</string>
+    <string name="poi_surface_clay">Dromchla: cré</string>
     <string name="poi_location_underwater">Suíomh: faoi uisce</string>
     <string name="poi_location_overground">Suíomh: os cionn talún</string>
     <string name="poi_water_supply_running_water">Uisce reatha</string>
@@ -5173,4 +5173,5 @@
     <string name="poi_rapids_grade_x">X (ní féidir é a rith)</string>
     <string name="poi_water_type_filter">Cineál uisce</string>
     <string name="poi_water_lake">Loch</string>
+    <string name="poi_surface_laterite">Dromchla: laterít</string>
 </resources>

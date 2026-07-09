@@ -5084,4 +5084,14 @@
     <string name="favorite_folder_name">Имя папки</string>
     <string name="edit_folder">Редактировать папку</string>
     <string name="favorite_confirm_delete_folder">Это приведёт к удалению папки \"%1$s\", включая вложенные папки и избранные точки в количестве %2$d шт.</string>
+    <string name="route_calculation_calculating_route">Расчет маршрута...</string>
+    <string name="route_calculation_missing_maps">Отсутствующие карты</string>
+    <string name="route_calculation_review_maps">Просмотреть карты</string>
+    <string name="route_calculation_use_existing_maps">Использовать имеющиеся карты</string>
+    <string name="required_maps_missing_and_outdated_title">Отсутствующие и устаревшие карты</string>
+    <string name="required_maps_route_overview">Обзор маршрута:</string>
+    <string name="required_maps_calculate_with_existing_maps">Расчет на основе имеющихся карт</string>
+    <string name="attached_media">Прикреплённые медиафайлы</string>
+    <string name="sort_by_nearest_to_map_center">Ближайшие к центру карты</string>
+    <string name="shared_string_recent">Недавние</string>
 </resources>

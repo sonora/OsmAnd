@@ -5249,4 +5249,5 @@
     <string name="required_maps_get_accurate_list_online">Добијте тачну листу на мрежи</string>
     <string name="required_maps_calculate_with_existing_maps">Израчунај са постојећим мапама</string>
     <string name="attached_media">Приложени медији</string>
+    <string name="traffic_warning_red_light_camera">Камера за црвено светло</string>
 </resources>

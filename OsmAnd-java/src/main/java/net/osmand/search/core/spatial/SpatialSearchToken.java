@@ -20,6 +20,7 @@ import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.Street;
 import net.osmand.search.core.HashQuadTree;
+import net.osmand.search.core.spatial.SpatialPoiSearch.SpatialPoiType;
 import net.osmand.search.core.spatial.SpatialSearchContext.SpatialSearchStats;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.Algorithms;
@@ -47,6 +48,7 @@ public class SpatialSearchToken {
 	String wordNoDot;
 	Set<String> bldWordSplit;
 	
+	Set<Long> poiCategoryAtoms = new HashSet<Long>();
 	List<NameIndexAtom> atoms = new ArrayList<>();
 	TLongObjectHashMap<NameIndexAtom> index = new TLongObjectHashMap<>();
 	HashQuadTree<Integer> quadTree = new HashQuadTree<>(16);
@@ -162,10 +164,24 @@ public class SpatialSearchToken {
 		quadTree.put(atom.coords.bboxTileZoom, atom.coords.bboxTileId, na.indexInToken);
 	}
 	
+	SpatialPoiType hasPoiType(String key, SpatialPoiSearch poiSearch) {
+		if (poiCategoryAtoms.isEmpty()) {
+			return null;
+		}
+		SpatialPoiType tp = poiSearch.getByKey(key);
+		if (tp != null && poiCategoryAtoms.contains((long) tp.id)) {
+			return tp;
+		}
+		return null;
+	}
+	
 	void addAtom(NameIndexAtom atom) {
-		// mostly not used as disabled
+		if (atom.isPoiCategory()) {
+			poiCategoryAtoms.add(atom.id);
+		}
 		if (atom.object != null && !(atom.object instanceof Street) && 
 				atom.object.getId() != null &&  atom.object.getId() > 0) {
+			// mostly not used as disabled in settings for speed up
 			long osmId = ObfConstants.getOsmIdFromMapObjectId(atom.object.getId());
 			NameIndexAtom ex = indexByOsmIds.get(osmId);
 			if (ex != null) {

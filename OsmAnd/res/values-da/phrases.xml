@@ -3165,7 +3165,7 @@
     <string name="poi_gorge">Kløft</string>
     <string name="poi_couloir">Couloir</string>
     <string name="poi_mountain_area">Bjergområde</string>
-    <string name="poi_surface_clay">Ler</string>
+    <string name="poi_surface_clay">Overflade: Ler</string>
     <string name="poi_surface_tartan">Tartan</string>
     <string name="poi_surface_artificial_turf">Kunstgræs</string>
     <string name="poi_surface_decoturf">DecoTurf</string>
@@ -4309,4 +4309,5 @@
     <string name="poi_trolley_bay">Bås til indkøbsvogne</string>
     <string name="poi_water_lake">Sø</string>
     <string name="poi_water_type_filter">Vandtype</string>
+    <string name="poi_surface_laterite">Overflade: Laterit</string>
 </resources>

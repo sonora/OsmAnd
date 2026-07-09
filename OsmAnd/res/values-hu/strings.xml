@@ -774,7 +774,7 @@
     <string name="rendering_attr_lessDetailed_name">Kevesebb részlet</string>
     <string name="rendering_attr_showAccess_name">Behajtási korlátozások megjelenítése</string>
     <string name="rendering_attr_showSurfaceGrade_name">Útminőség megjelenítése</string>
-    <string name="rendering_attr_showSurfaces_name">Útfelszín megjelenítése</string>
+    <string name="rendering_attr_showSurfaces_name">Útburkolat megjelenítése</string>
     <string name="rendering_attr_showCycleRoutes_name">Kerékpáros útvonalak</string>
     <string name="home">Irányítópult</string>
     <string name="lang_fa">perzsa</string>
@@ -1399,7 +1399,7 @@
     <string name="rendering_value_light_brown_name">Világosbarna</string>
     <string name="rendering_value_dark_brown_name">Sötétbarna</string>
     <string name="rendering_attr_contourColorScheme_name">Szintvonalak színsémája</string>
-    <string name="rendering_attr_surfaceIntegrity_name">Útfelszín épsége</string>
+    <string name="rendering_attr_surfaceIntegrity_name">Útburkolat épsége</string>
     <string name="search_hint">Város, cím, érdekes pont (POI) nevének megadása</string>
     <string name="rendering_value_fine_name">Finom</string>
     <string name="search_map_hint">Város vagy régió</string>
@@ -1845,9 +1845,9 @@
     <string name="nautical_render_descr">Hajózási navigációhoz. Főbb tulajdonságok: bóják, világítótornyok, folyók, tengeri útvonalak és jelzések, kikötők, hajózási jelzések, mélységvonalak.</string>
     <string name="ski_map_render_descr">Síeléshez. Kiemeli a sípályákat, a felvonókat, a sífutónyomokat stb. A másodlagos térképobjektumokat elhalványítja.</string>
     <string name="light_rs_render_descr">Egyszerű vezetési stílus. Kellemes éjszakai mód, kontrasztos narancsszínű utak, elhalványított másodlagos térképobjektumok, topográfiai jellemzők, mint például a szintvonalak.</string>
-    <string name="topo_render_descr">Túrázáshoz és természetben történő kerékpározáshoz. Szabad téren is olvasható. Kontrasztos utak és természeti objektumok, különböző úttípusok, speciális szintvonal-beállítások, további részletek. Ha beállítjuk az útfelszín épségének megjelenítését, akkor láthatóvá válik az út minősége. Éjszakai mód nincs.</string>
+    <string name="topo_render_descr">Túrázáshoz és természetben történő kerékpározáshoz. Szabad téren is olvasható. Kontrasztos utak és természeti objektumok, különböző úttípusok, speciális szintvonal-beállítások, további részletek. Ha beállítja az útburkolat épségének megjelenítését, akkor láthatóvá válik az út minősége. Éjszakai mód nincs.</string>
     <string name="touring_view_render_descr">Turisztikai stílus erős kontraszttal és a legtöbb részlettel. Tartalmazza az OsmAnd alapértelmezett stílus össze beállítását, miközben megjeleníti a lehető legtöbb részletet, különösen utakat, ösvényeket és más utazási útvonalakat. A turistatérkép-szerű stílus világos különbséget tesz az úttípusok között. Alkalmas nappali, éjszakai és szabad téri használatra is.</string>
-    <string name="default_render_descr">Általános felhasználású stílus. A sűrű városok világosan jelennek meg. Jellemzői az útvonalak, a felszínminőség, a használati korlátozások, útszámozások, ösvények SAC/CAI-skála szerint, vadvízi sportlétesítmények, topográfiai jellemzők, mint például a szintvonalak.</string>
+    <string name="default_render_descr">Általános felhasználású stílus. A sűrű városok világosan jelennek meg. Jellemzői az útvonalak, a burkolatminőség, a használati korlátozások, útszámozások, ösvények SAC/CAI-skála szerint, vadvízi sportlétesítmények, topográfiai jellemzők, mint például a szintvonalak.</string>
     <string name="quick_action_edit_actions">Műveletek szerkesztése</string>
     <string name="shared_string_dont">Nem</string>
     <string name="shared_string_do">Igen</string>
@@ -1931,7 +1931,7 @@
     <string name="quick_action_switch_day_night_descr">Az OsmAnd éjszakai és nappali módja között váltó kapcsoló.</string>
     <string name="add_work">Munkahely hozzáadása</string>
     <string name="work_button">Munkahely</string>
-    <string name="routeInfo_surface_name">Felület</string>
+    <string name="routeInfo_surface_name">Burkolat</string>
     <string name="routeInfo_smoothness_name">Útminőség</string>
     <string name="routeInfo_steepness_name">Meredekség</string>
     <string name="previous_route">Előző útvonal</string>
@@ -1981,8 +1981,8 @@
     <string name="rendering_attr_surface_grass_name">Fű</string>
     <string name="rendering_attr_surface_grass_paver_name">Gyephézagos térkő</string>
     <string name="rendering_attr_surface_ground_name">Talaj</string>
-    <string name="rendering_attr_surface_dirt_name">Föld</string>
-    <string name="rendering_attr_surface_mud_name">Sár</string>
+    <string name="rendering_attr_surface_dirt_name">Sár</string>
+    <string name="rendering_attr_surface_mud_name">Iszap</string>
     <string name="rendering_attr_surface_ice_name">Jég</string>
     <string name="rendering_attr_surface_salt_name">Só</string>
     <string name="rendering_attr_surface_snow_name">Hó</string>
@@ -3090,12 +3090,12 @@
 \nElőfizetéseit bármikor kezelheti vagy törölheti az Amazon beállításaiból.</string>
     <string name="cancel_anytime_in_amazon_app">Bármikor lemondhatja az Amazon alkalmazással</string>
     <string name="no_activity_for_intent">Alkalmazás telepítése, amely képes a művelet elvégzésére.</string>
-    <string name="routeInfo_surface_description">További információk megjelenítése az utak/gyalogutak fizikai felszínéről.</string>
+    <string name="routeInfo_surface_description">További információk megjelenítése az utak/gyalogutak fizikai burkolatáról.</string>
     <string name="routeInfo_roadClass_description">Útvonal vagy nyomvonal színezése az út besorolása szerint.</string>
     <string name="routeInfo_winter_ice_road_description">Útvonal vagy nyomvonal színezése a téli használat szerinti besorolása szerint.</string>
     <string name="no_items_of_type_message">Nincs ilyen típusú eleme</string>
     <string name="routeInfo_tracktype_description">Útvonal vagy nyomvonal színezése a felület összetétele alapján. Főleg burkolatlan utakból álló hálózatnál célszerű alkalmazni.</string>
-    <string name="routeInfo_smoothness_description">Utak/gyalogutak osztályozása, hogy mennyire használhatók kerekes járművekkel, különös tekintettel az útfelszín egyenletességére/simaságára.</string>
+    <string name="routeInfo_smoothness_description">Utak/gyalogutak osztályozása, hogy mennyire használhatók kerekes járművekkel, különös tekintettel az útburkolat egyenletességére/simaságára.</string>
     <string name="add_group_to_markers">Csoport hozzáadása a jelölők listájához</string>
     <string name="remove_group_from_markers">Csoport eltávolítása a jelölők listájáról</string>
     <string name="start_point">Indítás</string>
@@ -3254,7 +3254,7 @@
     <string name="rendering_value_category_name">Kategória</string>
     <string name="rendering_value_all_name">Minden</string>
     <string name="rendering_value_omit_name">Kihagyás</string>
-    <string name="rendering_attr_seabedDetail_description">További szöveges információ a tengerfenék felszínének jellegéről, a kombinált felszíntípusokról, valamint az algák és a tengeri füvek kategóriájáról és taxonjáról</string>
+    <string name="rendering_attr_seabedDetail_description">További szöveges információk a tengerfenék aljzatminősítéséről, a kombinált aljzattípusokról, valamint a hínár vagy tengerifű kategóriájáról és taxonjáról</string>
     <string name="rendering_attr_seabedDetail_name">Tengerfenék részletei</string>
     <string name="save_track_to_gpx_descrp">Navigáció közben automatikusan rögzíti a nyomvonalat, utána pedig automatikusan elmenti.</string>
     <string name="gpx_no_routes_title">Nincs útvonal</string>
@@ -3521,7 +3521,7 @@
     <string name="map_widget_camera_distance">Kameramagasság</string>
     <string name="map_widget_camera_tilt">Kamera dőlése</string>
     <string name="map_widget_zoom_level_desc">Megjeleníti a térkép jelenlegi nagyítási szintjét.</string>
-    <string name="map_widget_camera_distance_desc">Megjeleníti a kamera felszín feletti magasságát.</string>
+    <string name="map_widget_camera_distance_desc">Megjeleníti a kamera talajszint feletti magasságát.</string>
     <string name="map_widget_camera_tilt_desc">Megjeleníti a kamera dőlésszögét perspektivikus módban. Az alapértelmezés 90° (nincs dőlés).</string>
     <string name="developer_widgets">Fejlesztői modulok</string>
     <string name="map_widget_target_distance_desc">Megjeleníti a kamera és a cél közötti távolságot.</string>
@@ -5176,4 +5176,5 @@
     <string name="route_calculation_using_standard_algorithm">Normál (lassabb) útvonaltervezési algoritmus használata.</string>
     <string name="route_calculation_missing_maps_estimate_desc">Lehetséges hiányzó térképek észlelhetőek egy egyenes vonalú becslés alapján.\nHa az útvonala elkerüli ezeket a területeket, használja a meglévő térképeket.</string>
     <string name="route_calculation_review_maps">Térképek áttekintése</string>
+    <string name="traffic_warning_red_light_camera">Piroson áthaladást figyelő kamera</string>
 </resources>

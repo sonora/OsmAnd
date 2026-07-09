@@ -81,6 +81,9 @@ public class SpatialTextSearch {
 
 		// Deduplicate results in the end by checking osm id of the first object in combination
 		public boolean DEDUPLICATE_RES = true;
+		
+		// we need to test performance and results (we need to turn on for <POI + Address> search)
+		public boolean TEST_ALLOW_HOUSE_POI_TYPE_INTERSECTION = true;
 
 		// READ OBJECTS before intersection to reduce number of duplicates from
 		// different maps by osm id - needs to be tested performance mostly slows down

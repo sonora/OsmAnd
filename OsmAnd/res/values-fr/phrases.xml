@@ -2895,7 +2895,7 @@
     <string name="poi_tower_construction_freestanding">Construction : autoportante</string>
     <string name="poi_gorge">Gorge</string>
     <string name="poi_couloir">Couloir</string>
-    <string name="poi_surface_clay">Argile</string>
+    <string name="poi_surface_clay">Surface : terre battue</string>
     <string name="poi_surface_tartan">Tartan</string>
     <string name="poi_surface_artificial_turf">Pelouse artificielle</string>
     <string name="poi_surface_decoturf">Decoturf</string>
@@ -5173,4 +5173,5 @@
     <string name="poi_rapids_grade_0">0 (eau calme)</string>
     <string name="poi_water_lake">Lac</string>
     <string name="poi_water_type_filter">Type d\'eau</string>
+    <string name="poi_surface_laterite">Surface : latérite</string>
 </resources>
