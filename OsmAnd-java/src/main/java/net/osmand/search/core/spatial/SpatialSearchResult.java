@@ -407,7 +407,7 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 			if (mapObject instanceof Amenity amenity) {
 				return amenity.getWikidata();
 			}
-			return mapObject.getName("wikidata");
+			return mapObject.getWikidata();
 		}
 		return null;
 	}

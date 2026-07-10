@@ -5,11 +5,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import gnu.trove.iterator.TLongIterator;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.set.hash.TLongHashSet;
@@ -601,16 +605,18 @@ public class NameIndexReader {
 				suffixesStat.longestSuffixes = suffixes;
 				suffixesStat.longestSuffixesKey = key;
 			}
-			
+			Set<ValueFreq> set = new LinkedHashSet<ValueFreq>();
 			for (OsmAndPoiNameIndexDataAtom a : poi.getAtomsList()) {
+				set.clear();
 				for (int i = 0; i < a.getSuffixesBitsetIndexCount(); i++) {
 					int suffBit = a.getSuffixesBitsetIndex(i);
-					if(suffBit == 0) {
-						 // delimiter skip 
+					if (suffBit == 0) {
+						// delimiter skip
 					} else if (suffBit % 2 == 0) {
 						int ind = suffBit / 2 - 1;
 						ValueFreq s = suffixes.get(ind);
-						s.freq++;
+						set.add(s);
+//						s.freq++; // don't count twice
 					} else if (suffBit % 2 == 1) {
 						ValueFreq vf = intSuffixes.get(suffBit);
 						if (vf == null) {
@@ -618,8 +624,12 @@ public class NameIndexReader {
 							intSuffixes.put(suffBit, vf);
 							suffixes.add(vf);
 						}
-						vf.freq++;
+						set.add(vf);
+//						vf.freq++;
 					}
+				}
+				for (ValueFreq vf : set) {
+					vf.freq++;
 				}
 				if (suffixesStat != null) {
 					suffixesStat.atomCount++;

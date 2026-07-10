@@ -48,29 +48,31 @@ import net.osmand.util.SearchAlgorithms;
 
 // INSPECTOR stats index_words_dashboard.html
 
-// TO DO Ivan / Gateway
-// TODO DEDUPLICATE: Review / implement similarity radius - similarityRadius = 50000 ... Route Id
-// TODO DEDUPLICATE: Unite RouteArticle, POI by wikidata id ? - DEPTH_TO_CHECK_SAME_SEARCH_RESULTS = 20;...
+// TO DO Ivan
+// REVIEW DEDUPLICATE: Review / implement similarity radius - similarityRadius = 50000 ... Route Id
+// REVIEW DEDUPLICATE: Unite RouteArticle, POI by wikidata id ? - DEPTH_TO_CHECK_SAME_SEARCH_RESULTS = 20;...
 // TODO DEDUPLICATE: Venezia ? - No place=city in POI is it on purpose ? 2 Wikidataids! Rating not merged. POI - relation/44741 (Q641), CITY - way/64778090 (Q33723961).
 // TODO DEDUPLICATE: review osm route id  combine by?
 // TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
 // TODO DEDUPLICATE: Test wiki / travel maps / seamarks map
-// TODO DEDUPLICATE: same location (5-10m) 2 streets different cities
 // TODO DEDUPLICATE: brand langs - 'Поїхали з нами' / 'Поехали с нами'
+// TODO DEDUPLICATE: same location (5-10m) 2 streets different cities
+// TODO DEDUPLICATE: Street related to city or suburb what to show? 
 // TODO UNIT TESTS: (duplicate words), Бульварно-Кудрявська, NC-42, 2-га Нова (2 Нова), M2...
 // TODO UNIT TESTS: Auto tests - Slow analysis (Auto test New york)
 // TODO UNIT TESTS: Analyze Abbrefvations / common skip (abbrevations 1st=first) 
 // TODO UNIT TESTS: Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
-// TODO INSPECTOR : doesn't show suffixes
 
-// LARGE IMPORTANT TASKS
+// TO DO Gateway
+// TODO INSPECTOR : doesn't show suffixes
 // TODO INDEX: Speedup load after sorting - to limit objects (store elo in index)! 
 // TODO INDEX: Store Poi category index (effective intersection 'Church St. Miguel' - refactor checkAmenity)
-// TODO INDEX: Find POI Categories translations / synonyms (WEB) - Стоматол., Dentist, Stomatology, Basilica (?)
 // TODO ANALYZE: BUG - Germany POI words - . (115,158, 115,158), und (97,839, 97,839), - not common? - bach (56,475, 56,475) - could be common?
-// TODO ANALYZE: too many wiki places on streets?
 // TODO ANALYZE: find slow queries on Autotests
 // TODO ANALYZE: Large Geo atoms "Berlin" (Slow query)
+// TODO ANALYZE: too many wiki places on streets?
+// TODO INDEX: Find POI Categories translations / synonyms (WEB) - Стоматол., Dentist, Stomatology, Basilica (?)
+
 
 // TO DO - RZR
 // TODO WEB: POI Categories + top poi categories

@@ -214,8 +214,9 @@ public class ObfConstants {
 
 	public static boolean isTagIndexedForSearchAsName(String tag) {
 		if (tag != null) {
-			if (tag.startsWith(Amenity.ROUTE_NAME)) {
-				// search related but not direct
+			if (tag.startsWith(Amenity.ROUTE_NAME) ||
+			// search related but not direct
+					tag.equals(Amenity.SHIELD_STUB_NAME)) {
 				return false;
 			}
 			return tag.contains("name") || tag.contains("brand");
