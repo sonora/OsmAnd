@@ -5610,4 +5610,9 @@
     <string name="search_around_my_location">Minha localização</string>
     <string name="sort_by_relevance">Relevância</string>
     <string name="routing_attr_motor_type_ethanol_name">Etanol</string>
+    <string name="android_auto_missing_maps_desc">Baixe os mapas que faltam para que o trajeto continue.</string>
+    <string name="android_auto_possible_missing_maps_desc">Possivelmente faltam mapas. Tente usar os mapas existentes para continuar.</string>
+    <string name="route_calculation_calculating_route">Calculando a rota...</string>
+    <string name="route_calculation_calculating_fast_route">Calculando a rota mais rápida...</string>
+    <string name="route_calculation_mixed_maps_desc">O cálculo de rota rápida não está disponível devido a datas de mapas diferentes. A mudança para o cálculo padrão pode levar alguns minutos.</string>
 </resources>

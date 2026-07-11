@@ -64,7 +64,7 @@ import net.osmand.util.SearchAlgorithms;
 // TODO UNIT TESTS: Add test on show more '2 sokak' - Show more 1. 2 Sokak (house) 2. 2 Sokak (street) 3. 2 <WORD> Sokak (street) or 3381/2 Sokak. 4. '2.Kadriye' (city) .. Sokak
 
 // TO DO Gateway
-// TODO INSPECTOR : doesn't show suffixes
+// TODO INSPECTOR: doesn't show suffixes
 // TODO INDEX: Speedup load after sorting - to limit objects (store elo in index)! 
 // TODO INDEX: Store Poi category index (effective intersection 'Church St. Miguel' - refactor checkAmenity)
 // TODO ANALYZE: BUG - Germany POI words - . (115,158, 115,158), und (97,839, 97,839), - not common? - bach (56,475, 56,475) - could be common?
