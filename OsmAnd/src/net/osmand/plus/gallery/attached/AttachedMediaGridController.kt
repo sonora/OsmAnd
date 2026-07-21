@@ -25,7 +25,6 @@ import net.osmand.plus.gallery.model.GallerySortMode
 import net.osmand.plus.gallery.model.GalleryToolbarAction
 import net.osmand.plus.gallery.model.MediaHolder
 import net.osmand.plus.gallery.ui.GalleryGridFragment
-import net.osmand.plus.gallery.ui.holders.SortBarHolder.Companion.SORT_ACTION
 import net.osmand.plus.myplaces.favorites.FavoriteGroup
 import net.osmand.plus.settings.backend.backup.exporttype.AttachedMediaExportType
 import net.osmand.plus.settings.backend.backup.exporttype.ExportType
@@ -40,6 +39,7 @@ import net.osmand.shared.gpx.primitives.Link
 import net.osmand.shared.gpx.primitives.Linkable
 import net.osmand.shared.media.LinkMediaFactory
 import net.osmand.shared.media.domain.MediaItem
+import net.osmand.util.MapUtils
 import java.util.HashMap
 
 class AttachedMediaGridController(
@@ -144,7 +144,7 @@ class AttachedMediaGridController(
 	override fun getGalleryItems(): List<GalleryItem> {
 		val media = sortMedia(getMediaItems())
 		val items = mutableListOf<GalleryItem>()
-		items.add(GalleryItem.SortBar(sortMode))
+		items.add(GalleryItem.SortBar(sortMode, getAvailableSortModes()))
 		if (media.isEmpty()) {
 			return items
 		}
@@ -171,10 +171,14 @@ class AttachedMediaGridController(
 				media.sortedByDescending { metadataOf(it)?.durationMs ?: Long.MIN_VALUE }
 			GallerySortMode.DURATION_SHORT_LONG ->
 				media.sortedBy { metadataOf(it)?.durationMs ?: Long.MAX_VALUE }
-			// TODO #7125: Nearest needs per-item coordinates
-			GallerySortMode.NEAREST -> media
+			GallerySortMode.NEAREST -> latLon?.let { reference -> media.sortedBy { item ->
+					metadataOf(item)?.latLon?.let { MapUtils.getDistance(reference, it) } ?: Double.MAX_VALUE
+				} } ?: media
 		}
 	}
+
+	private fun getAvailableSortModes(): List<GallerySortMode> =
+		GallerySortMode.entries.filter { it != GallerySortMode.NEAREST || latLon != null }
 
 	private fun metadataOf(item: MediaItem): GalleryMediaMetadata? =
 		metadataRepository.getCached(item)
@@ -207,10 +211,13 @@ class AttachedMediaGridController(
 			EDIT_ACTION -> enterSelectionMode(null)
 			SELECT_ALL_ACTION -> toggleSelectAll()
 			ACTIONS_MENU_ACTION -> showSelectionActionsMenu(v)
-			SORT_ACTION -> showSortMenu(v)
 			EXPORT_ACTION -> exportSelectedMedia()
 			DELETE_ACTION -> showDeleteDialog()
 		}
+	}
+
+	override fun onSortModeSelected(sortMode: GallerySortMode) {
+		setSortMode(sortMode)
 	}
 
 	private fun showDeleteDialog() {
@@ -280,25 +287,6 @@ class AttachedMediaGridController(
 				.setOnClickListener { handleGalleryAction(anchor, DELETE_ACTION) }
 				.create()
 		)
-		val data = PopUpMenuDisplayData()
-		data.anchorView = anchor
-		data.menuItems = items
-		data.nightMode = nightMode
-		data.widthMode = PopUpMenuWidthMode.STANDARD
-		PopUpMenu.show(data)
-	}
-
-	private fun showSortMenu(anchor: View) {
-		val nightMode = view?.isNightMode() ?: false
-		val iconColor = ColorUtilities.getDefaultIconColor(app, nightMode)
-		val items = GallerySortMode.entries.map { mode ->
-			PopUpMenuItem.Builder(app)
-				.setTitleId(mode.titleId)
-				.setIcon(app.uiUtilities.getPaintedIcon(mode.iconId, iconColor))
-				.setSelected(mode == sortMode)
-				.setOnClickListener { setSortMode(mode) }
-				.create()
-		}
 		val data = PopUpMenuDisplayData()
 		data.anchorView = anchor
 		data.menuItems = items
