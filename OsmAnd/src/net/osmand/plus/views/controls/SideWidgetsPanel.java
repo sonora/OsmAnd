@@ -73,6 +73,15 @@ public class SideWidgetsPanel extends FrameLayoutEx implements WidgetsContainer 
 	private Insets insets;
 	private int screenWidth = -1;
 	private int screenHeight = -1;
+	@Nullable
+	private ResolvedPanelAppearance appliedAppearance;
+	private boolean pageSizeUpdateScheduled;
+	private final Runnable pageSizeUpdateRunnable = () -> {
+		pageSizeUpdateScheduled = false;
+		if (getVisibility() == VISIBLE) {
+			wrapContentAroundPage(null);
+		}
+	};
 
 	public SideWidgetsPanel(@NonNull Context context) {
 		this(context, null);
@@ -185,8 +194,12 @@ public class SideWidgetsPanel extends FrameLayoutEx implements WidgetsContainer 
 		boolean show = hasVisibleContent() && selfShowAllowed && visibilityAllowed;
 		selfVisibilityChanging = true;
 		boolean visibilityChanged = AndroidUiHelper.updateVisibility(this, show);
-		if (visibilityChanged && !show) {
-			selfShowAllowed = true;
+		if (visibilityChanged) {
+			if (show) {
+				schedulePageSizeUpdate();
+			} else {
+				selfShowAllowed = true;
+			}
 		}
 		wrapContentAroundPage(null);
 		selfVisibilityChanging = false;
@@ -239,10 +252,24 @@ public class SideWidgetsPanel extends FrameLayoutEx implements WidgetsContainer 
 
 	@Override
 	public void applyPanelAppearance(@NonNull ResolvedPanelAppearance appearance) {
+		boolean geometryChanged = hasGeometryChanged(appliedAppearance, appearance);
+		appliedAppearance = appearance;
 		this.nightMode = appearance.getNightMode();
 		borderPaint.setColor(appearance.getPanelBorderColor());
 		updateDots();
+		if (geometryChanged) {
+			schedulePageSizeUpdate();
+		}
 		invalidate();
+	}
+
+	private static boolean hasGeometryChanged(@Nullable ResolvedPanelAppearance previous,
+	                                          @NonNull ResolvedPanelAppearance current) {
+		return previous == null
+				|| previous.getSizeMode() != current.getSizeMode()
+				|| previous.getIconMode() != current.getIconMode()
+				|| previous.getBoldText() != current.getBoldText()
+				|| previous.getBackground().getMode() != current.getBackground().getMode();
 	}
 
 	@Override
@@ -378,6 +405,19 @@ public class SideWidgetsPanel extends FrameLayoutEx implements WidgetsContainer 
 				viewPager.setLayoutParams(pagerParams);
 			}
 		}
+	}
+
+	private void schedulePageSizeUpdate() {
+		if (!pageSizeUpdateScheduled) {
+			pageSizeUpdateScheduled = post(pageSizeUpdateRunnable);
+		}
+	}
+
+	@Override
+	protected void onDetachedFromWindow() {
+		removeCallbacks(pageSizeUpdateRunnable);
+		pageSizeUpdateScheduled = false;
+		super.onDetachedFromWindow();
 	}
 
 	@Nullable

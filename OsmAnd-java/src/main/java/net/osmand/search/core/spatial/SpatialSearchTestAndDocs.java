@@ -28,6 +28,7 @@ import net.osmand.util.SearchAlgorithms;
 // UNIT TESTING: 100km+ "Мигия озеро" (non freq-common word + enlarge), - partialMatch+partialExactMatch
 // UNIT TESTING: 100km+ Calle 20 188 San Isidro Lima 
 // UNIT TESTING: 100km+ нова пошта краматорськ  - no brand (3, 5) 5 (5 N7846074085, N1482296639)
+// UNIT TESTING: Venezia (Changed map data 2 Wikidataids)!, So city on first with good elo rating (Test other top visited cities)
 
 //////////// TESTING //////////
 // UNIT TESTING: 2419 Avenue G, Dickinson, TX 77539, USA (FAILS border) - Add missing border
@@ -52,17 +53,18 @@ import net.osmand.util.SearchAlgorithms;
 //               Hotel Berlin, see below, "нова пошта вулиця Саксаганського", "нова вулиця Саксаганського"; // brand +
 // UNIT TESTING DEDUPLICATE: Street related to city or suburb what to show
 // UNIT TESTING: (failing) 763 Ro-Ki Boulevard Nichols
-
+// UNIT TESTING: City > Boundary + location? Format strings (City > Boundary)...
+// UNIT TESTING: (Deduplicate categories brand id) - "okko", "ОККО" - (split 2 maps one without brand id one with)
+// NO TESTING  :.. Amenity bbox (merge on search for category)
 ////////// IN PROGRESS //////////
 // REVIEW (index_words_dashboard - common озеро): POI / ADDRESS - France, Germany, US, Europe, China, Peru
 // REVIEW: Auto test New york, France, Italy (Slow?)
 
-// TODO DEDUPLICATE: Merge suburb+city same location (5-10m) 2 streets different cities (Aleja Bohaterów)
-// TODO DEDUPLICATE: Venezia, Bratislava? - No place=city in POI is it on purpose ? 2 Wikidataids! Rating not merged. POI - relation/44741 (Q641), CITY - way/64778090 (Q33723961).
-// TEST DEDUPLICATE:  wiki / travel maps / seamarks map
-// TODO DEDUPLICATE: too many houses (duplicate names) in wiki maps - obstruct search by street "Ярославів Вал"`?
-// TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
+// TODO Auto tests
 
+// TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
+// TEST DEDUPLICATE: wiki / travel maps / seamarks map
+// TODO DEDUPLICATE: too many houses (duplicate names) in wiki maps - obstruct search by street "Ярославів Вал"`?
 // TO DO Gateway
 // TODO INDEX: Find POI Categories translations / synonyms via Common words - Стоматол., Dentist, Basilica 
 // TODO REVIEW: Abbrevations (synonyms / direction words) other languages?
@@ -161,16 +163,17 @@ public class SpatialSearchTestAndDocs {
 //		pattern = "Map";
 		String pattern2 = ".....";
 		String query = "Berlin hauptstrasse"; // slow
-		query = "Berlin";
+//		query = "Berlin";
 //		query = "Kelterstraße Kernen im Remstal";
 //		query = "3 Hofäckerstraße Kernen im Remstal";
-//		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
+		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
 //		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
-		query = "24 Kelterstraße Kernen im Remstal";
-		query = "2/1 Rathausplatz Esslingen am Neckar"; // not correct
+//		query = "24 Kelterstraße Kernen im Remstal";
+//		query = "2/1 Rathausplatz Esslingen am Neckar"; // not correct
+		query = "9 Neustädter Straße Korb";
 		
-		pattern = "Map";
-		query = "5 to go";
+//		pattern = "Map";
+//		query = "5 to go";
 		// poi filter
 //		location = new LatLon(52.50805, 13.38176);
 //		settings.SEARCH_POI = false;
@@ -280,7 +283,10 @@ public class SpatialSearchTestAndDocs {
 
 //		pattern = "Netherlands_";
 //		location = new LatLon(52.2827, 4.8601);
-//		query = "harderwijk estrado"; // 't2+0-w2-oth1-tp4' t2+0-w2-oth2-tp0  
+//		query = "harderwijk estrado"; // 't2+0-w2-oth1-tp4' t2+0-w2-oth2-tp0
+//		query = "harderwijk";
+//		query = "cafe harderwijk";
+//		query = "hotel amsterdam";
 //		query = "1186RZ Logger 324D Amstelveen";
 //		query = "Farm";
 //		query = "8832kd";
@@ -321,11 +327,16 @@ public class SpatialSearchTestAndDocs {
 //		query = "Fuel diesel";
 		
 //		location = new LatLon(48, 31);
-		// "Мигия water", "Мигия озеро", "род." (1019665295,(48.0217 30.9681),)
+		// "Мигия water", "Мигия озеро", "род." ( 1019665295 26382,(48.0217 30.9681),)
+//		location = new LatLon(50.4355, 30.6473); 
+//		settings.OPTIM_READ_CATEGORY_WORD_ATOMS = false;
+//		settings.OPTIM_READ_COMMON_WORDS_LIMIT = 10000;
 //		pattern = "Ukraine_";
-//		query = "Мигия озеро";
-//		query = "Мигия water"; 
 		
+//		location = new LatLon(48.020997, 30.968742);
+//		query = "Мигия озеро ";
+//		query = "Мигия water"; 
+//		query = "fuel Хлібна Кава"; 
 //		location = new LatLon(48.75, 37.5);
 //		query = "нова пошта 3 краматорськ"; // (1482296639, 5 7846074085) 
 //		query = "Нова пошта 3 харків";
@@ -440,6 +451,7 @@ public class SpatialSearchTestAndDocs {
 //		query = "Cannaregio 539D Campo Saffa";
 //		query = "Venezia Cannaregio 539D Campo Saffa";
 //		query = "Campo Saffa";
+//		query = "Venezia";
 		
 //		pattern = "France_ile-de-france";
 //		pattern = "France_";
@@ -469,7 +481,9 @@ public class SpatialSearchTestAndDocs {
 //		query = "Кафе Antwerpen ";
 //		query = "Ресторан Antwerpen ";
 //		query = "Cafe Gulliver";
-//		query = "Hotel Berlin";
+//		query = "Hotel amsterdam";
+//		query = "ОККО"; // "okko", "ОККО"
+//		query = "Venezia";
 //		query = "Cafe вулиця Саксаганського";
 //		query = "нова пошта вулиця Саксаганського"; // brand + 
 //		query = "нова вулиця Саксаганського"; // no brand
@@ -555,8 +569,8 @@ public class SpatialSearchTestAndDocs {
 		}
 //		settings.OPTIM_DELETE_POI_SAME_AS_CITY_STREET = false;
 //		settings.DEDUPLICATE_RES = true;
-		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
-		a.searchTest(query, searchContext, 8000);
+//		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
+//		a.searchTest(query, searchContext, 8000);
 	}
 
 	private static void testDeduplication(String[] args) throws IOException, InterruptedException {
@@ -591,8 +605,8 @@ public class SpatialSearchTestAndDocs {
 		SpatialSearchResults rs = a.searchTest(query, searchContext, 1000);
 		if (rs.mainResults != null) {
 			for (SpatialSearchResult s : rs.mainResults) {
-				MapObject unitedObject = s.unitedObject;
-				String out = s.toString();
+				MapObject unitedObject = s.unitedObject.getSyntheticAmenity();
+				String out = s.toString(searchContext);
 				if (unitedObject != null) {
 					out += " United:" + unitedObject.toString();
 				}
@@ -622,6 +636,12 @@ public class SpatialSearchTestAndDocs {
 				return "отель;готель;гатэль";
 			} else if (keyName.equals("cafe")) {
 				return "кафе";
+			} else if (keyName.equals("rugby_union")) {
+				return "rugby 9";
+			} else if (keyName.equals("9pin")) {
+				return "9 pin;bowl";
+			} else if (keyName.equals("water_lake")) {
+				return "озеро";
 			} else if (keyName.equals("restaurant")) {
 				return "ресторан";
 			}

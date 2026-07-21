@@ -1157,7 +1157,6 @@
     <string name="favorite_category_dublicate_message">Prosím zadajte názov kategórie, ktorý ešte neexistuje.</string>
     <string name="favorite_category_name">Názov kategórie</string>
     <string name="favorite_category_add_new_title">Pridať novú kategóriu</string>
-    <string name="confirm_download_roadmaps">Mapa obsahujúca iba cesty nie je potrebné, keďže už máte štandardnú (plnú) mapu. Stiahnuť aj tak?</string>
     <string name="value_downloaded_of_max">%1$.1f z %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Aktualizovať všetko (%1$s MB)</string>

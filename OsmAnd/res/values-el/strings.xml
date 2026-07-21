@@ -1473,7 +1473,6 @@
     <string name="shared_string_upload">Ανέβασμα</string>
     <string name="failed_to_upload">Αδυναμία αποστολής</string>
     <string name="poi_deleted_localy">Τα ΣΕ θα διαγραφούν μόλις στείλετε τις αλλαγές σας</string>
-    <string name="confirm_download_roadmaps">Ο χάρτης μόνο δρόμων δεν χρειάζεται, επειδή έχετε τον τυπικό (πλήρη) χάρτη. Να κατέβει οπωσδήποτε;</string>
     <string name="only_download_over_wifi">Λήψη μόνο με Wi-Fi</string>
     <string name="add_time_span">Προσθήκη χρονικού διαστήματος</string>
     <string name="road_blocked">Αποκλεισμένος δρόμος</string>

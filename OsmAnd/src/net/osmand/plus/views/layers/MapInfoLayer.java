@@ -112,7 +112,7 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 	private boolean appearanceRefreshScheduled;
 	private final Runnable appearanceRefreshRunnable = () -> {
 		appearanceRefreshScheduled = false;
-		refreshWidgetAppearance();
+		refreshWidgetPanels();
 	};
 	private final PanelAppearanceSettingsManager.Listener appearanceSettingsListener;
 
@@ -408,7 +408,8 @@ public class MapInfoLayer extends OsmandMapLayer implements ICoveredScreenRectPr
 	}
 
 	public void refreshWidgetPanels() {
-		if (getMapActivity() == null) {
+		if (getMapActivity() == null || leftWidgetsPanel == null || rightWidgetsPanel == null
+				|| topWidgetsPanel == null || bottomWidgetsPanel == null) {
 			return;
 		}
 		refreshWidgetAppearance();

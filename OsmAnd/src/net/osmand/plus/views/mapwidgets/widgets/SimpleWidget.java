@@ -100,11 +100,15 @@ public abstract class SimpleWidget extends TextInfoWidget implements ISupportWid
 	public void updateValueAlign(boolean fullRow) {
 		if (WidgetSize.SMALL != resolveWidgetSize(getWidgetSizePref().get())) {
 			ViewGroup.LayoutParams textViewLayoutParams = textView.getLayoutParams();
-			if (textViewLayoutParams instanceof FrameLayout.LayoutParams) {
-				FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) textView.getLayoutParams();
+			if (textViewLayoutParams instanceof FrameLayout.LayoutParams params) {
 				textView.setGravity(fullRow ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL);
-				params.setMarginStart(dpToPx(app, (shouldShowIcon() || fullRow) ? 36 : 0));
-				params.setMarginEnd(dpToPx(app, fullRow ? 36 : 0));
+				int startMargin = dpToPx(app, (shouldShowIcon() || fullRow) ? 36 : 0);
+				int endMargin = dpToPx(app, fullRow ? 36 : 0);
+				if (params.getMarginStart() != startMargin || params.getMarginEnd() != endMargin) {
+					params.setMarginStart(startMargin);
+					params.setMarginEnd(endMargin);
+					textView.setLayoutParams(params);
+				}
 			}
 		}
 	}

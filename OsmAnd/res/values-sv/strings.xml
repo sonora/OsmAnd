@@ -1149,7 +1149,6 @@
     <string name="favorite_category_name">Kategorinamn</string>
     <string name="favorite_category_add_new_title">Lägg till en ny kategori</string>
     <string name="file_size_in_mb">%.1f MB</string>
-    <string name="confirm_download_roadmaps">Kartan med enbart vägar behövs inte, eftersom du har den fullständiga kartan. Vill du ladda ned den ändå\?</string>
     <string name="value_downloaded_of_max">%1$.1f av %2$.1f MB</string>
     <string name="update_all">Uppdatera alla (%1$s MB)</string>
     <string name="share_geo">geo:</string>

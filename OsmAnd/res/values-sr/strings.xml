@@ -1670,7 +1670,6 @@
     <string name="poi_deleted_localy">Тачка занимања ће бити обрисана када отпремите Ваше измене</string>
     <string name="show_free_version_banner">Прикажи летак бесплатног издања</string>
     <string name="show_free_version_banner_description">Приказуј летак бесплеатног издања и у плаћеном издању.</string>
-    <string name="confirm_download_roadmaps">Карта која садржи само путеве није потребна, пошто имате уобичајену (целу) карту. Свеједно је преузети\?</string>
     <string name="value_downloaded_of_max">%1$.1f од %2$.1f MB</string>
     <string name="update_all">Освежи све (%1$s MB)</string>
     <string name="poi_context_menu_modify_osm_change">Промени измену ОСМ-а</string>

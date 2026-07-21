@@ -1241,7 +1241,6 @@
     <string name="shared_string_go">התחלה</string>
     <string name="later">אחר כך</string>
     <string name="downloads">הורדות</string>
-    <string name="confirm_download_roadmaps">אין צורך להוריד את מפת הדרכים בלבד כיוון שכבר יש לך את המפה הסטנדרטית (המלאה). להוריד אותה בכל מקרה?</string>
     <string name="value_downloaded_of_max">%1$.1f מתוך %2$.1f מ״ב</string>
     <string name="file_size_in_mb">%.1f מ״ב</string>
     <string name="update_all">עדכון הכול (%1$s מ״ב)</string>

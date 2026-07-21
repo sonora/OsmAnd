@@ -127,6 +127,7 @@ public class City extends MapObject {
 		return isin.contains(name.toLowerCase());
 	}
 	
+	@Override
 	public int[] getBbox31() {
 		return bbox31;
 	}

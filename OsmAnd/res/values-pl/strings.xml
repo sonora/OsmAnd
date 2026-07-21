@@ -1214,7 +1214,6 @@
     <string name="osm_edit_created_poi">Utworzone użyteczne miejsce OSM</string>
     <string name="simulate_initial_startup_descr">Ustawia flagę wskazującą pierwsze uruchomienie aplikacji, zachowując wszystkie inne ustawienia bez zmian.</string>
     <string name="share_geo">geo:</string>
-    <string name="confirm_download_roadmaps">Mapa samochodowa nie jest potrzebna jeśli masz mapę standardową. Pobrać mimo to?</string>
     <string name="show_on_start_description">Wybranie „Wyłącz” uruchamia mapę bezpośrednio.</string>
     <string name="other_menu_group">Inne</string>
     <string name="plugins_menu_group">Wtyczki</string>

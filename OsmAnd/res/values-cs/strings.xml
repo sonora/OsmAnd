@@ -1162,7 +1162,6 @@
     <string name="share_menu_location">Sdílet polohu</string>
     <string name="shared_string_send">Odeslat</string>
     <string name="simulate_initial_startup_descr">Nastavit příznak označující první spuštění aplikace, ostatní nastavení ponechat nezměněná.</string>
-    <string name="confirm_download_roadmaps">Silniční mapa není nutná, protože máte standardní (plnou) mapu. I přesto stáhnout?</string>
     <string name="show_on_start_description">\'Vypnuto\' spouští přímo obrazovku s mapou.</string>
     <string name="world_map_download_descr">Základní mapa světa (pokrývající celý svět při malých úrovních detailů) chybí nebo je zastaralá. Prosím zvažte její stažení pro celkový přehled.</string>
     <string name="shared_string_qr_code">QR kód</string>

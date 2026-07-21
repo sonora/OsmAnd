@@ -302,7 +302,7 @@ class WidgetsAppearanceFragment : BaseFullScreenFragment(), CopyAppModePrefsList
 	}
 
 	fun onAppearanceChanged() {
-		refreshMapWidgetAppearance()
+		refreshMapWidgetPanels()
 		for (fragment in childFragmentManager.fragments) {
 			if (fragment is PanelAppearanceFragment) {
 				fragment.updateContent()
@@ -321,10 +321,6 @@ class WidgetsAppearanceFragment : BaseFullScreenFragment(), CopyAppModePrefsList
 	private fun onPurchaseStateChanged() {
 		app.panelAppearanceSettingsManager.refreshPurchaseState()
 		onAppearanceChanged()
-	}
-
-	private fun refreshMapWidgetAppearance() {
-		app.osmandMap.mapLayers.mapInfoLayer?.refreshWidgetAppearance()
 	}
 
 	private fun refreshMapWidgetPanels() {

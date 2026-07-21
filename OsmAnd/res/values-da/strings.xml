@@ -1161,7 +1161,6 @@
     <string name="favorite_category_dublicate_message">Brug et kategorinavn, der ikke allerede findes.</string>
     <string name="favorite_category_name">Kategorinavn</string>
     <string name="favorite_category_add_new_title">Tilføj ny kategori</string>
-    <string name="confirm_download_roadmaps">Kort kun med veje er ikke nødvendigt, da standard (komplet) kort allerede er hentet. Hent det alligevel?</string>
     <string name="value_downloaded_of_max">%1$.1f af %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Opdater alle (%1$s MB)</string>

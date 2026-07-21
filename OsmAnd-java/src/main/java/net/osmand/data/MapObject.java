@@ -443,6 +443,10 @@ public abstract class MapObject implements Comparable<MapObject> {
 		}
 		return false;
 	}
+	
+	public int[] getBbox31() {
+		return null;
+	}
 
 	public String getWikidata() {
 		String wikidata = names != null ? names.get(NAME_WIKIDATA_ATTR) : null;

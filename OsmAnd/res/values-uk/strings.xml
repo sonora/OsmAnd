@@ -1243,7 +1243,6 @@
     <string name="select_voice_provider_descr">Виберіть або завантажте голосові інструкції для вашої мови.</string>
     <string name="shared_string_sound">Звук</string>
     <string name="poi_deleted_localy">POI буде вилучено після надсилання змін</string>
-    <string name="confirm_download_roadmaps">Мапа доріг не потрібна, оскільки у вас є звичайна (повна) мапа. Все одно завантажити\?</string>
     <string name="missing_write_external_storage_permission">OsmAnd не має дозволу на використання карти памʼяті</string>
     <string name="hourly">Щогодинно</string>
     <string name="daily">Щоденно</string>

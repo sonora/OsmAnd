@@ -1154,7 +1154,6 @@
     <string name="favorite_category_dublicate_message">Utilitzeu un nom de categoria que encara no existeixi.</string>
     <string name="favorite_category_name">Nom de categoria</string>
     <string name="favorite_category_add_new_title">Afegeix una nova categoria</string>
-    <string name="confirm_download_roadmaps">El mapa restringit a carreteres no cal, donat que ja teniu el mapa estàndard (complet). Que baixi igualment\?</string>
     <string name="value_downloaded_of_max">%1$.1f de %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Actualitzeu tot (%1$s MB)</string>

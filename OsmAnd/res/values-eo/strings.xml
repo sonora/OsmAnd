@@ -1322,7 +1322,6 @@
     <string name="activate_srtm_plugin">Aktivigu la kromprogramon “Topografio”</string>
     <string name="later">Poste</string>
     <string name="downloads">Elŝutoj</string>
-    <string name="confirm_download_roadmaps">Nur-voja mapo estas senutila, ĉar vi jam havas norman (plenan) mapon. Ĉu elŝuti ĝin malgraŭ tio?</string>
     <string name="value_downloaded_of_max">%1$.1f el %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Ĝisdatigi ĉiujn (%1$s MB)</string>

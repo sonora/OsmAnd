@@ -1606,7 +1606,6 @@
     <string name="show_free_version_banner_description">即使在付费版本中，也显示免费版本的标语。</string>
     <string name="activate_seamarks_plugin">请启用 \"航海地图视图 \"插件</string>
     <string name="activate_srtm_plugin">请启用 \"地形 \"插件</string>
-    <string name="confirm_download_roadmaps">由于您已经拥有标准（完整）地图，只含有道路的地图是不需要的。仍然要下载它吗？</string>
     <string name="value_downloaded_of_max">%1$.1f 从 %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="feedback">反馈</string>

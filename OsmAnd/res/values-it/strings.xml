@@ -1158,7 +1158,6 @@
     <string name="favorite_category_dublicate_message">Per favore scegli un nome che non esiste già per la categoria.</string>
     <string name="favorite_category_name">Nome della categoria</string>
     <string name="favorite_category_add_new_title">Aggiungi una nuova categoria</string>
-    <string name="confirm_download_roadmaps">Le mappe solo stradali non sono necessarie dato che disponi già delle mappe standard complete. Scaricare comunque\?</string>
     <string name="value_downloaded_of_max">%1$.1f di %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Aggiorna tutto (%1$s MB)</string>

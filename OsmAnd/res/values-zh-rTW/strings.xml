@@ -1112,7 +1112,6 @@
     <string name="favorite_category_dublicate_message">請使用原本沒有的類別名稱。</string>
     <string name="favorite_category_name">類別名稱</string>
     <string name="favorite_category_add_new_title">新增類別</string>
-    <string name="confirm_download_roadmaps">您已經擁有完整地圖，是否仍要下載僅含道路資訊的精簡地圖？</string>
     <string name="value_downloaded_of_max">%1$.1f 從 %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">全部更新 (%1$s MB)</string>

@@ -573,7 +573,6 @@
     <string name="update_all">Ažuriraj sve (%1$s MB)</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="value_downloaded_of_max">%1$.1f od %2$.1f MB</string>
-    <string name="confirm_download_roadmaps">Mapa koja sadrži samo puteve nije potrebna, pošto imate uobičajenu (celu) mapu. Svejedno je preuzeti?</string>
     <string name="downloads">Preuzimanje</string>
     <string name="later">Kasnije</string>
     <string name="activate_srtm_plugin">Aktiviraj dodatak \'Topografija\'</string>

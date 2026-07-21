@@ -87,7 +87,8 @@ public class MapFragmentsHelper implements OnPreferenceStartFragmentCallback {
 	public BaseFullScreenFragment getVisibleBaseFullScreenFragment(int... ids) {
 		for (int id : ids) {
 			Fragment fragment = getSupportFragmentManager().findFragmentById(id);
-			if (fragment != null && !fragment.isRemoving() && fragment instanceof BaseFullScreenFragment
+			if (fragment != null && fragment.isAdded() && !fragment.isRemoving()
+					&& fragment instanceof BaseFullScreenFragment
 					&& ((BaseFullScreenFragment) fragment).getStatusBarColorId() != -1) {
 				return (BaseFullScreenFragment) fragment;
 			}
@@ -99,7 +100,8 @@ public class MapFragmentsHelper implements OnPreferenceStartFragmentCallback {
 	public BaseSettingsFragment getVisibleBaseSettingsFragment(int... ids) {
 		for (int id : ids) {
 			Fragment fragment = getSupportFragmentManager().findFragmentById(id);
-			if (fragment != null && !fragment.isRemoving() && fragment instanceof BaseSettingsFragment
+			if (fragment != null && fragment.isAdded() && !fragment.isRemoving()
+					&& fragment instanceof BaseSettingsFragment
 					&& ((BaseSettingsFragment) fragment).getStatusBarColorId() != -1) {
 				return (BaseSettingsFragment) fragment;
 			}

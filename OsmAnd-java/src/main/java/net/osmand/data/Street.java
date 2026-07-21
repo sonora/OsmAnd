@@ -1,6 +1,7 @@
 package net.osmand.data;
 
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -40,6 +41,16 @@ public class Street extends MapObject {
 			intersectedStreets = new ArrayList<Street>();
 		}
 		intersectedStreets.add(s);
+	}
+	
+	@Override
+	public int[] getBbox31() {
+		QuadRect bb = getBboxPoints();
+		if (bb != null) {
+			return new int[] { MapUtils.get31TileNumberX(bb.left), MapUtils.get31TileNumberY(bb.top),
+					MapUtils.get31TileNumberX(bb.right), MapUtils.get31TileNumberY(bb.bottom) };
+		}
+		return null;
 	}
 	
 	public QuadRect getBboxPoints() {

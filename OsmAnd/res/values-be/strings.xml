@@ -1191,7 +1191,6 @@
     <string name="favorite_category_name">Назва катэгорыі</string>
     <string name="favorite_category_add_new_title">Дадаць новую катэгорыю</string>
     <string name="favorite_category_dublicate_message">Калі ласка, выкарыстайце назву катэгорыі, якая яшчэ не існуе.</string>
-    <string name="confirm_download_roadmaps">Мапа аўтадарог не патрэбная, бо вы маеце стандартную (поўную) мапу\? Спампаваць усё роўна\?</string>
     <string name="value_downloaded_of_max">%1$.1f з %2$.1f Мб</string>
     <string name="file_size_in_mb">%.1f Мб</string>
     <string name="update_all">Абнавіць усе (%1$s МБ)</string>

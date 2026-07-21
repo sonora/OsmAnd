@@ -76,6 +76,10 @@ public class SpatialPoiSearch {
 		public boolean isPlace() {
 			return place;
 		}
+		
+		public String getWikidataId() {
+			return wikidataId;
+		}
 
 		public String getKey() {
 			return key;
@@ -100,16 +104,17 @@ public class SpatialPoiSearch {
 			return false;
 		}
 
-		public void addName(String name) {
+		public boolean addName(String name) {
 			List<String> nms = SearchAlgorithms.split(name);
 			if (tokensInName == 0 || nms.size() < tokensInName) {
 				tokensInName = nms.size();
 			}
 			if (nms.size() > tokensInName) {
 				// very likely buggy name
-				return;
+				return false;
 			}
 			names.add(name);
+			return true;
 		}
 		
 	}
@@ -180,6 +185,30 @@ public class SpatialPoiSearch {
 	}
 
 
+	private void updateNamesWikidataId(SpatialPoiType poiType, String names) {
+		WriteLock wl = poiTypesIndexLock.writeLock();
+		try {
+			wl.lock();
+			String[] snames = names.split(";");
+			if (poiType.wikidataId == null && snames[0].length() > 0) {
+				poiType.wikidataId = snames[0];
+				if (!byWikidataKey.containsKey(poiType.wikidataId)) {
+					byWikidataKey.put(poiType.wikidataId, new ArrayList<>());
+				}
+				byWikidataKey.get(poiType.wikidataId).add(poiType);
+			}
+			for (int i = 1; i < snames.length; i++) {
+				String nameToAdd = snames[i];
+				if (!poiType.names.contains(nameToAdd)) {
+					if (poiType.addName(nameToAdd)) {
+						poiTypesIndex.put(snames[i], poiType);
+					}
+				}
+			}
+		} finally {
+			wl.unlock();
+		}
+	}
 	private void addToIndex(String basePoiName, SpatialPoiType poiType) {
 		poiType.addName(basePoiName);
 		WriteLock wl = poiTypesIndexLock.writeLock();
@@ -237,7 +266,6 @@ public class SpatialPoiSearch {
 					int freq = possibleValuesFreqs != null && k < possibleValuesFreqs.size() ? possibleValuesFreqs.get(k) : 0;
 					SpatialPoiType topValue = byKey.get(fullKey);
 					if (topValue == null) {
-//						String poiTranslation = poiTypes.getPoiTranslation(valueKey, false);
 						topValue = new SpatialPoiType(topValueName, fullKey, ids.getAndIncrement());
 						if (wikidataId.length() > 0) {
 							String[] otherNames = wikidataId.split(";");
@@ -246,12 +274,9 @@ public class SpatialPoiSearch {
 								topValue.addName(otherNames[ts]);
 							}
 						}
-						// not needed
-//						if (!topValueName.equalsIgnoreCase(poiTranslation) && poiTranslation != null) {
-//							topValue.names.add(poiTranslation);
-//						}
-						
 						addToIndex(topValueName, topValue);
+					} else if (wikidataId != null && wikidataId.length() > 0) {
+						updateNamesWikidataId(topValue, wikidataId);
 					}
 					Integer fit = fc.poiFrequencies.get(topValue.key);
 					if (fit != null) {
@@ -401,9 +426,8 @@ public class SpatialPoiSearch {
 	}
 
 
-	public List<Amenity> loadPOIObjects(SpatialSearchContext ctx, long id, LatLon latLon, int radMeters, int limit)
+	public List<Amenity> loadPOIObjects(SpatialSearchContext ctx, SpatialPoiType spt , LatLon latLon, int radMeters, int limit)
 			throws IOException {
-		final SpatialPoiType spt = byId.get((int) id);
 		List<Amenity> results = new ArrayList<Amenity>();
 		int[] alimit = new int[] { limit };
 		if (spt != null && ctx.files != null) {

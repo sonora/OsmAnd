@@ -213,7 +213,8 @@ public class FavoriteMenu {
 	}
 
 	public void showFolderOptionsMenu(@NonNull MyPlacesActivity activity, @NonNull View view, @NonNull FavoriteFolder selectedFolder,
-	                                  boolean nightMode, @NonNull FavoriteActionListener actionListener,
+	                                  boolean nightMode, @NonNull CategorySelectionListener selectionListener,
+	                                  @NonNull FavoriteActionListener actionListener,
 	                                  @NonNull BaseFavoriteListFragment fragment) {
 		if (!AndroidUtils.isActivityNotDestroyed(activity)) {
 			return;
@@ -228,6 +229,16 @@ public class FavoriteMenu {
 				.setOnClickListener(v -> {
 					fragment.setSelectionMode(!fragment.selectionMode);
 				}).create());
+
+		items.add(new PopUpMenuItem.Builder(activity)
+				.setTitleId(R.string.add_new_folder)
+				.setIcon(uiUtilities.getThemedIcon(R.drawable.ic_action_folder_add_outlined))
+				.setOnClickListener(v -> {
+					FragmentManager manager = activity.getSupportFragmentManager();
+					FavouriteGroupEditorFragment.showInstance(manager, null, selectionListener, false, folderPath);
+				})
+				.showTopDivider(true)
+				.create());
 
 		if (selectedGroup != null) {
 			items.add(new PopUpMenuItem.Builder(activity)

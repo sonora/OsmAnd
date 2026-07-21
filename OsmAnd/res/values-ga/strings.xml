@@ -3865,7 +3865,6 @@
     <string name="do_you_like_osmand">An maith leat OsmAnd?</string>
     <string name="user_hates_app_get_feedback_long">Cuir in iúl dúinn aon mholtaí.</string>
     <string name="failed_to_upload">Níorbh fhéidir uasluchtú</string>
-    <string name="confirm_download_roadmaps">Níl an léarscáil bóithre amháin ag teastáil, ós rud é go bhfuil an léarscáil chaighdeánach (iomlán) agat. Íoslódáil é ar aon nós?</string>
     <string name="quick_actions_delete_text">Scrios an gníomh \"%s\"?</string>
     <string name="quick_action_add_marker_descr">Cnaipe chun marcóir léarscáile a chur le suíomh lár an scáileáin.</string>
     <string name="quick_action_take_photo_note_descr">Cnaipe chun nóta grianghraf a chur i lár an scáileáin.</string>

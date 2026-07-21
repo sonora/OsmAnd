@@ -75,6 +75,11 @@
 	<string name="astro_eclipse_safety_warning">Never look directly at the Sun without appropriate solar-viewing protection. Eclipse times are estimates.</string>
 	<string name="sort_by_nearest_to_current_location">Nearest to current location</string>
 	<string name="attached_media_delete_confirmation">Delete %1$d media items from this point? Media stored by the app and not attached anywhere else will also be deleted from the device.</string>
+	<string name="duplicate_map">Duplicate map</string>
+	<string name="duplicate_map_standard_exists_desc">You already have the standard map for %1$s. Downloading the road-only map will duplicate data and may degrade performance.\n\nReplacing will remove address search and POI data included in the standard map.</string>
+	<string name="duplicate_map_road_only_exists_desc">You already have the road-only map for %1$s. Downloading the standard map will duplicate data and may degrade performance.</string>
+	<string name="duplicate_map_replace_with_standard">Replace with Standard</string>
+	<string name="duplicate_map_replace_with_road">Replace with Road-only</string>
 	<string name="android_auto_missing_maps_desc">Download missing maps for the route to continue.</string>
 	<string name="android_auto_possible_missing_maps_desc">Possible missing maps. Try using existing maps to continue.</string>
 	<string name="route_calculation_calculating_route">Calculating route...</string>
@@ -3540,6 +3545,8 @@ You need to activate the sensor so OsmAnd can find it.</string>
     <string name="rendering_attr_surface_grass_paver_name">Grass paver</string>
     <string name="rendering_attr_surface_ground_name">Ground</string>
     <string name="rendering_attr_surface_dirt_name">Dirt</string>
+    <string name="rendering_attr_surface_clay_name">Clay</string>
+    <string name="rendering_attr_surface_laterite_name">Laterite</string>
     <string name="rendering_attr_surface_mud_name">Mud</string>
     <string name="rendering_attr_surface_ice_name">Ice</string>
     <string name="rendering_attr_surface_salt_name">Salt</string>
@@ -5604,7 +5611,6 @@ Download tile maps directly, or copy them as SQLite database files to OsmAnd\'s 
     <string name="activate_srtm_plugin">Please activate the \'Topography\' plugin</string>
     <string name="later">Later</string>
     <string name="downloads">Downloads</string>
-    <string name="confirm_download_roadmaps">The roads-only map is not needed, since you have the standard (full) map. Download it anyway?</string>
     <string name="value_downloaded_of_max">%1$.1f of %2$.1f MB</string>
     <string name="file_size_in_mb">%.1f MB</string>
     <string name="update_all">Update all (%1$s MB)</string>

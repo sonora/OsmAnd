@@ -30,6 +30,7 @@ import net.osmand.data.Amenity;
 import net.osmand.data.LatLon;
 import net.osmand.map.OsmandRegions;
 import net.osmand.osm.MapPoiTypes;
+import net.osmand.search.core.spatial.SpatialPoiSearch.SpatialPoiType;
 import net.osmand.search.core.spatial.SpatialSearchContext.SpatialSearchStats;
 import net.osmand.search.core.spatial.SpatialSearchToken.NameIndexAtom;
 import net.osmand.util.MapUtils;
@@ -327,7 +328,8 @@ public class SpatialTextSearch {
 			}
 			goalRes.loadObjectsAndCalcBuildings(ctx);
 			List<SpatialSearchResult> res = goalRes.sortResults(ctx, ctx.settings.DEDUPLICATE_RES);
-			if (goal.equals(mainGoal) && res.size() == 0) {
+			int uniq = uniqueResults(res);
+			if (goal.equals(mainGoal) && uniq == 0) {
 				goalRes = reevalWithExtendedBoundary(ctx, goal, tokens);
 				if (ctx.isCancelled()) {
 					break;
@@ -337,11 +339,12 @@ public class SpatialTextSearch {
 			}
 			if (res.size() > 0) {
 				if (ctx.resultMatcher != null) {
+					// optional ...
 					for (SpatialSearchResult p : res) {
 						ctx.resultMatcher.publish(p);
 					}
 				}
-				uniqueObjects += res.size();
+				uniqueObjects += uniq;
 				fullResult.add(goalRes);
 				
 			}
@@ -362,6 +365,17 @@ public class SpatialTextSearch {
 			}
 		}
 		return fullResult;
+	}
+
+
+	private int uniqueResults(List<SpatialSearchResult> res) {
+		int c = 0;
+		for (SpatialSearchResult r : res) {
+			if (!r.isPoiCategory()) {
+				c++;
+			}
+		}
+		return c;
 	}
 
 	private SpatialSearchResultsList reevalWithExtendedBoundary(SpatialSearchContext ctx, BitSet goal, List<SpatialSearchToken> tokens) throws IOException {
@@ -499,12 +513,18 @@ public class SpatialTextSearch {
 
 	private void combineSortFilterResults(SpatialSearchContext ctx, SpatialSearchResults res) throws IOException {
 		SpatialSearchResultsList main = res.combinations.get(0);
+		int mainLength = main.getTokenCount();
 		for (SpatialSearchResultsList m : res.combinations) {
 			List<SpatialSearchResult> lst = m.getFinalResult();
 			if (lst == null) {
 				lst = m.sortResults(ctx, ctx.settings.DEDUPLICATE_RES);
 			}
-			res.mainResults.addAll(lst);
+			for (SpatialSearchResult r : lst) {
+				if (r.isPoiCategory() && m.getTokenCount() < mainLength) {
+					continue;
+				}
+				res.mainResults.add(r);
+			}
 		}
 		res.mainResults = main.sortResults(ctx, res.mainResults, ctx.settings.DEDUPLICATE_RES);
 		int limitPoiCat = ctx.settings.DEV_PRINT_POI_CAT_LIMIT;
@@ -536,11 +556,12 @@ public class SpatialTextSearch {
 	}
 
 	private int printPoiCategory(SpatialSearchContext ctx, int limitPoiCat, SpatialSearchResult r) throws IOException {
-		if (r.getFirstRef() != null && r.getFirstRef().atom.isPoiCategory()) {
+		SpatialPoiType type = r.getPoiCategory(ctx.poiSearch);
+		if (type != null) {
 			long nt = System.nanoTime();
-			System.out.printf("Loading poi type '%s' - limit %d...\n", r.getFirstRef().atom.name, limitPoiCat);
+			System.out.printf("Loading poi type '%s' - limit %d...\n", type.key, limitPoiCat);
 			LatLon latLon = r.getLatLon();
-			List<Amenity> interRes = ctx.poiSearch.loadPOIObjects(ctx, r.getFirstRef().atom.id,
+			List<Amenity> interRes = ctx.poiSearch.loadPOIObjects(ctx, type,
 					latLon == null ? ctx.location : latLon, ctx.settings.DEV_PRINT_POI_CAT_RADIUS_KM * 1000, limitPoiCat);
 			for (Amenity a : interRes) {
 				double dist = ctx.location == null ? 0 : MapUtils.getDistance(ctx.location, a.getLocation());
@@ -594,7 +615,8 @@ public class SpatialTextSearch {
 					System.out.println(".............");
 					break;
 				}
-				System.out.printf("Result %d (%s) - %s\n", r.matchedTokens(), SpatialSearchResult.compareKeyString(r), r);
+				System.out.printf("Result %d (%s) - %s\n", r.matchedTokens(), SpatialSearchResult.compareKeyString(r), 
+						r.toString(ctx));
 			}
 			System.out.printf("------ ALL %d results ------- \n ", all);
 			System.out.println("---------------------------------------");
