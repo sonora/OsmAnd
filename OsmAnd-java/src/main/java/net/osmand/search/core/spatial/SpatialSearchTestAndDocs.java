@@ -57,10 +57,17 @@ import net.osmand.util.SearchAlgorithms;
 // UNIT TESTING: (Deduplicate categories brand id) - "okko", "ОККО" - (split 2 maps one without brand id one with)
 // NO TESTING  :.. Amenity bbox (merge on search for category)
 ////////// IN PROGRESS //////////
+
 // REVIEW (index_words_dashboard - common озеро): POI / ADDRESS - France, Germany, US, Europe, China, Peru
 // REVIEW: Auto test New york, France, Italy (Slow?)
 
 // TODO Auto tests
+// TODO 1 W& W
+// TODO 237 S Mountain Blvd Mountain Top
+// TODO 276 East End Centre Wilkes-Barre
+// TODO 155 Park Avenue Wilkes-Barre
+// TODO 401 Market Street Kingston
+// TODO Compare key https://test.osmand.net/map/search/result/?query=28+Paul+Road+Waverly#13/42.0473808/-76.5673843
 
 // TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
 // TEST DEDUPLICATE: wiki / travel maps / seamarks map
@@ -166,11 +173,13 @@ public class SpatialSearchTestAndDocs {
 //		query = "Berlin";
 //		query = "Kelterstraße Kernen im Remstal";
 //		query = "3 Hofäckerstraße Kernen im Remstal";
-		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
+//		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
 //		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
 //		query = "24 Kelterstraße Kernen im Remstal";
 //		query = "2/1 Rathausplatz Esslingen am Neckar"; // not correct
-		query = "9 Neustädter Straße Korb";
+//		query = "9 Neustädter Straße Korb";
+		query = "14/1 J.-F.-Weishaar-Straße Korb";
+
 		
 //		pattern = "Map";
 //		query = "5 to go";
