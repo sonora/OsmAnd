@@ -6,17 +6,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.osmand.binary.BinaryMapIndexReader;
+import net.osmand.binary.NameIndexReader;
+import net.osmand.data.Amenity;
 import net.osmand.data.City;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
+import net.osmand.data.QuadRect;
 import net.osmand.map.OsmandRegions;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.MapPoiTypes.PoiTranslator;
+import net.osmand.search.core.spatial.SpatialPoiSearch.SpatialPoiType;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchResults;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.SearchAlgorithms;
-
 
 //////////// LIVE TESTING //////////
 // UNIT TESTING: Fix 36K national park - live test? (don't index small islands > 100 POI !!!)
@@ -56,35 +59,26 @@ import net.osmand.util.SearchAlgorithms;
 // UNIT TESTING: City > Boundary + location? Format strings (City > Boundary)...
 // UNIT TESTING: (Deduplicate categories brand id) - "okko", "ОККО" - (split 2 maps one without brand id one with)
 // NO TESTING  :.. Amenity bbox (merge on search for category)
-////////// IN PROGRESS //////////
+// REVIEWED TESTS OK '237 S Mountain Blvd Mountain Top', '276 East End Centre Wilkes-Barre', '401 Market Street Kingston', '155 Park Avenue Wilkes-Barre' (13 place)
 
+////////// IN PROGRESS //////////
 // REVIEW (index_words_dashboard - common озеро): POI / ADDRESS - France, Germany, US, Europe, China, Peru
 // REVIEW: Auto test New york, France, Italy (Slow?)
-
-// TODO Auto tests
-// TODO 1 W& W
-// TODO 237 S Mountain Blvd Mountain Top
-// TODO 276 East End Centre Wilkes-Barre
-// TODO 155 Park Avenue Wilkes-Barre
-// TODO 401 Market Street Kingston
-// TODO Compare key https://test.osmand.net/map/search/result/?query=28+Paul+Road+Waverly#13/42.0473808/-76.5673843
-
-// TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
-// TEST DEDUPLICATE: wiki / travel maps / seamarks map
-// TODO DEDUPLICATE: too many houses (duplicate names) in wiki maps - obstruct search by street "Ярославів Вал"`?
-// TO DO Gateway
 // TODO INDEX: Find POI Categories translations / synonyms via Common words - Стоматол., Dentist, Basilica 
 // TODO REVIEW: Abbrevations (synonyms / direction words) other languages?
 // TODO REVIEW: Analyze Abbrevations / common skip (abbrevations 1st=first)
-
+// TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
+// TODO DEDUPLICATE: too many houses (duplicate names) in wiki maps - obstruct search by street "Ярославів Вал"`?
+// TEST DEDUPLICATE: wiki / travel maps / seamarks map
 
 /////////////// EXTRA FEATURES ///////////////
+// TODO INDEX: highway=services (Not index)
+// TODO Common words skip sorting ... '155 Park Avenue Wilkes-Barre' - 13 place
 // TODO 100km+: Calle 20 188 San Isidro Lima, mihia lake, нова пошта краматорськ 3, Нова Пошта (№5 not searchable by common words / name)
 // SLOW: "Travessa de Santo António" x "Rua Joaquim Ribeiro de Carvalho" x "portugal" (39.7412, -8.8012 Barreira Urbanização Vale da Cabrita))
 //       "Foothill Boulevard" x "Golden State Road" x "Los Angeles" x "United states of America"
 // TODO FORBID (slow): to interconnect tokens between 2 words - issue "<Street> <City> <Hno>"?
 // TODO Sorting before load objects (use elo and other buildings?) and limit results
-// TODO INDEX: highway=services (Not index)
 // TODO Suggestion based on common suffixes
 // TODO Store and test conscription number for some cities - issue (RZR)
 // TODO Search in large parks, neighborhood same as in boundaries (index bbox POI), residential way/56238205
@@ -166,19 +160,20 @@ public class SpatialSearchTestAndDocs {
 		SpatialTextSearchSettings settings = SpatialTextSearchSettings.defaultSettings();
 		File folder = new File(System.getProperty("maps.dir"));
 		LatLon location = null;
-		String pattern = "Germany_bad";
+		String pattern = "Germany_b";
 //		pattern = "Map";
 		String pattern2 = ".....";
 		String query = "Berlin hauptstrasse"; // slow
 //		query = "Berlin";
 //		query = "Kelterstraße Kernen im Remstal";
 //		query = "3 Hofäckerstraße Kernen im Remstal";
-//		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
+//		location = new LatLon(48.88223, 9.18768);
+		query = "1 W&W Platz Kornwestheim"; // duplicate word new maps needed
 //		query = "1/1 Salierstraße Waiblingen"; // duplicate in house number priority 1st
 //		query = "24 Kelterstraße Kernen im Remstal";
 //		query = "2/1 Rathausplatz Esslingen am Neckar"; // not correct
 //		query = "9 Neustädter Straße Korb";
-		query = "14/1 J.-F.-Weishaar-Straße Korb";
+//		query = "14/1 J.-F.-Weishaar-Straße Korb";
 
 		
 //		pattern = "Map";
@@ -321,13 +316,14 @@ public class SpatialSearchTestAndDocs {
 		
 //		pattern = "regions.ocbf" ;
 		
-//		pattern = "Ukraine_kyiv-city";
+//		pattern = "Ukraine_kyiv";
 //		pattern = "Test_Ukraine_kyiv-city_europe_12.obf";
-//		pattern = "Ukraine_";
+		pattern = "Ukraine_";
 		
 		// poi types
 //		location = new LatLon(50.436423, 30.508097);
 //		settings.SEARCH_POI = false;
+//		query =  NameIndexReader.POI_CATEGORY_PREFIX + "cafe";
 //		settings.DEV_PRINT_POI_CAT_LIMIT = 1000; 
 //		settings.DEV_PRINT_POI_CAT_RADIUS_KM = 10;
 //		query = "Cafe Fuel";
@@ -576,10 +572,40 @@ public class SpatialSearchTestAndDocs {
 				System.out.println("Suggest search other region - " + bbox);
 			}
 		}
+		boolean testOldPoiSeerch = true;
+		String cat = "ice_rink"; // ice_rink, cafe
+		if (testOldPoiSeerch) {
+			long nt = System.nanoTime();
+			SpatialPoiType type = poiSearch.getByKey(cat); // ice_rink, cafe
+			int limit = 50_000;
+			int radius = 500_000; // 500_000;
+			LatLon loc = new LatLon(50, 30);
+			QuadRect bbox = new QuadRect(29, 51, 32, 49);
+			int z = 12;// 12
+			boolean bboxLoad = false;
+			List<Amenity> poiRes;
+			if (bboxLoad) {
+				poiRes = poiSearch.loadPOIObjects(searchContext, type, bbox, z, limit);
+			} else {
+				poiRes = poiSearch.loadPOIObjects(searchContext, type, loc, radius, limit);
+			}
+			int ind = 0;
+			for (Amenity rr : poiRes) {
+				System.out.println(rr + " " + rr.getLocation());
+				if (ind++ > 10) {
+					System.out.println("...");
+					break;
+				}
+			}
+			System.out.printf("Loaded %d pois %.1f ms (%.1f ms, %d tiles, %,d KB)\n", poiRes.size(),
+					(System.nanoTime() - nt) / 1e6, searchContext.stats.poiByTypeTime.ms(),
+					searchContext.stats.poiByTypeBboxes, searchContext.stats.poiByTypeBytes / 1024);
+		}
 //		settings.OPTIM_DELETE_POI_SAME_AS_CITY_STREET = false;
-//		settings.DEDUPLICATE_RES = true;
-//		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
-//		a.searchTest(query, searchContext, 8000);
+		settings = SpatialTextSearchSettings.searchPoiByCategorySettings();
+		settings.DEDUPLICATE_RES = false;
+		searchContext = new SpatialSearchContext(settings, ls, poiSearch, location);
+		a.searchTest(NameIndexReader.POI_CATEGORY_PREFIX + cat, searchContext, 50);
 	}
 
 	private static void testDeduplication(String[] args) throws IOException, InterruptedException {

@@ -75,6 +75,8 @@ public class SpatialTextSearch {
 		public boolean SEARCH_POI_REF = true;
 		public boolean SUGGEST_SEARCH_POI_CATEGORY_WITH_REF = true;
 		
+		public boolean SEARCH_ONLY_POI_BY_CATEGORY = false; // replacement to search by category
+		
 		// performance tested (we need to turn on for <POI + Address> search)
 		public boolean ALLOW_HOUSE_POI_TYPE_INTERSECTION = true;
 		// no intersection recorded but streets are nearby
@@ -164,6 +166,16 @@ public class SpatialTextSearch {
 		
 		public static SpatialTextSearchSettings defaultSettings() {
 			return new SpatialTextSearchSettings();
+		}
+		
+		public static SpatialTextSearchSettings searchPoiByCategorySettings() {
+			SpatialTextSearchSettings settings = new SpatialTextSearchSettings();
+			settings.ALLOW_HOUSE_POI_TYPE_INTERSECTION = false;
+			settings.SEARCH_ADDR = false;
+			settings.SEARCH_POI = true;
+			settings.SEARCH_POI_CATEGORIES = false;
+			settings.SEARCH_ONLY_POI_BY_CATEGORY = true;
+			return settings;
 		}
 		 
 		public static SpatialTextSearchSettings suggestionSettings() {
@@ -468,6 +480,10 @@ public class SpatialTextSearch {
 		}
 		return s;
 	}
+	
+	public void initContext(SpatialSearchContext ctx) throws IOException {
+		ctx.initFiles(cache);
+	}
 
 	public SpatialSearchResults searchAPI(String input, SpatialSearchContext ctx) throws IOException {
 		ctx.stats.requestTime.start();
@@ -480,7 +496,11 @@ public class SpatialTextSearch {
 		res.input = input;
 		
 		// 1. prepare tokens
-		res.tokens = splitWords(ctx, input);
+		if (ctx.settings.SEARCH_ONLY_POI_BY_CATEGORY) {
+			res.tokens = Collections.singletonList(new SpatialSearchToken(0, input, input, 1));
+		} else {
+			res.tokens = splitWords(ctx, input);
+		}
 		
 		// 2. read atoms & poi categories
 		ctx.stats.step1Atoms.start();

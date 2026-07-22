@@ -151,7 +151,7 @@ public class SpatialSearchResult implements Comparable<SpatialSearchResult> {
 				radius = (int) ct.getRadius();
 			}
 		}
-		QuadRect bbox = MapUtils.calculate31Bbbox(latLon.getLatitude(), latLon.getLongitude(), radius);
+		QuadRect bbox = MapUtils.calculate31Bbox(latLon.getLatitude(), latLon.getLongitude(), radius);
 		return new int[] { (int) bbox.left, (int) bbox.top, (int) bbox.right, (int) bbox.bottom };
 	}
 	

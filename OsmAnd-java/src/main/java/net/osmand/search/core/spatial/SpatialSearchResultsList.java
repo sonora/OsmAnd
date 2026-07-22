@@ -96,10 +96,12 @@ public class SpatialSearchResultsList implements Comparable<SpatialSearchResults
 				poiBboxes.get(indInd).add(HashQuadTree.encodeTileId31(BinaryMapPoiReaderAdapter.EVAL_TAG_GROUP_ZOOM,
 						a.coords.x16 << 15, a.coords.y16 << 15));
 			}
-			if (a.type == type || (type == SpatialSearchToken.ALL_CITY_TYPE && a.type != SpatialSearchToken.POI_TYPE
-					&& a.type != SpatialSearchToken.STREET_TYPE && a.type != SpatialSearchToken.POI_CATEGORY_TYPE)) {
+			if (type == SpatialSearchToken.STREET_TYPE && a.isStreetBuilding()) {
 				lstMap.put(a.id, a.parentid);
-			} else if(type == SpatialSearchToken.ALL_CITY_TYPE && a.type == SpatialSearchToken.STREET_TYPE) {
+			} else if (a.type == type || (type == SpatialSearchToken.ALL_CITY_TYPE && !a.isPOI()
+					&& !a.isStreetBuilding() && !a.isPoiCategory())) {
+				lstMap.put(a.id, a.parentid);
+			} else if (type == SpatialSearchToken.ALL_CITY_TYPE && a.isStreetBuilding()) {
 				lstMap.put(a.parentid, (long) 0);
 			}
 		}

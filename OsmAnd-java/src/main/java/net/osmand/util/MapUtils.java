@@ -738,7 +738,7 @@ public class MapUtils {
 	}
 
 	public static QuadRect calculateLatLonBbox(double latitude, double longitude, int radiusMeters) {
-		QuadRect rect = calculate31Bbbox(latitude, longitude, radiusMeters);
+		QuadRect rect = calculate31Bbox(latitude, longitude, radiusMeters);
 		rect.left = MapUtils.get31LongitudeX((int) rect.left);
 		rect.top = MapUtils.get31LatitudeY((int) rect.top);
 		rect.right = MapUtils.get31LongitudeX((int) rect.right);
@@ -746,7 +746,7 @@ public class MapUtils {
 		return rect;
 	}
 
-	public static QuadRect calculate31Bbbox(double latitude, double longitude, int radiusMeters) {
+	public static QuadRect calculate31Bbox(double latitude, double longitude, int radiusMeters) {
 		int zoom = 16;
 		double coeff = radiusMeters / MapUtils.getTileDistanceWidth(latitude, zoom);
 		double tx = MapUtils.getTileNumberX(zoom, longitude);
@@ -759,6 +759,16 @@ public class MapUtils {
 		double pw = MapUtils.getPowZoom(31 - zoom);
 		QuadRect rect = new QuadRect(topLeftX * pw, topLeftY * pw, bottomRightX * pw, bottomRightY * pw);
 		return rect;
+	}
+	
+	public static QuadRect calculate31BboxUsingRhumb(int radiusMeters, LatLon l) {
+		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
+		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
+		int top = MapUtils.get31TileNumberY(Math.min(MAX_LATITUDE, northWest.getLatitude()));
+		int left = MapUtils.get31TileNumberX(Math.max(MIN_LONGITUDE, northWest.getLongitude()));
+		int bottom = MapUtils.get31TileNumberY(Math.max(MIN_LATITUDE, southEast.getLatitude()));
+		int right = MapUtils.get31TileNumberX(Math.min(MAX_LONGITUDE, southEast.getLongitude()));
+		return new QuadRect(left, top, right, bottom);
 	}
 
 	public static float getInterpolatedY(float x1, float y1, float x2, float y2, float x) {
@@ -980,13 +990,5 @@ public class MapUtils {
 		bbox.bottom = Math.max(-90.0, Math.min(90.0, bbox.bottom));
 	}
 	
-	public static QuadRect calculateBbox(int radiusMeters, LatLon l) {
-		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
-		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
-		int top = MapUtils.get31TileNumberY(Math.min(MAX_LATITUDE, northWest.getLatitude()));
-		int left = MapUtils.get31TileNumberX(Math.max(MIN_LONGITUDE, northWest.getLongitude()));
-		int bottom = MapUtils.get31TileNumberY(Math.max(MIN_LATITUDE, southEast.getLatitude()));
-		int right = MapUtils.get31TileNumberX(Math.min(MAX_LONGITUDE, southEast.getLongitude()));
-		return new QuadRect(left, top, right, bottom);
-	}
+	
 }

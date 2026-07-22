@@ -72,6 +72,7 @@ public class SpatialSearchToken {
 	
 	int mainNumber = -1;
 	CollatorStringMatcher[] otherMatch;
+	boolean categoryMatchMode = false;
 	
 	public record PartialMatch(NameIndexAtom atom, List<SpatialSearchToken> other, boolean nonNumericMatch) {
 		
@@ -82,6 +83,7 @@ public class SpatialSearchToken {
 		this.MIN_CHAR_INCOMPLETE = MIN_CHAR_INCOMPLETE;
 		originalWord = original;
 		word = ow;
+		categoryMatchMode = ow.startsWith(NameIndexReader.POI_CATEGORY_PREFIX);
 		wordAligned = SearchAlgorithms.alignChars(word);
 		bldWordSplit = SearchAlgorithms.getBuildingCompareSet(word, null);
 		originalOrder = order;
@@ -148,7 +150,11 @@ public class SpatialSearchToken {
 			@Override
 			public boolean matchKey(String key) {
 				stats.sub1MatchTime.start();
-				if (key.startsWith(NameIndexReader.POI_CATEGORY_PREFIX) && poiCategoryKeysToAutocomplete.size() > 0) {
+				if (categoryMatchMode) {
+					boolean ret = word.startsWith(key);
+					stats.sub1MatchTime.finish();
+					return ret;
+				} else if (key.startsWith(NameIndexReader.POI_CATEGORY_PREFIX) && poiCategoryKeysToAutocomplete.size() > 0) {
 					for (String poiCatKey : poiCategoryKeysToAutocomplete) {
 						if (poiCatKey.startsWith(key.substring(NameIndexReader.POI_CATEGORY_PREFIX.length()))) {
 							stats.sub1MatchTime.finish();
@@ -253,6 +259,9 @@ public class SpatialSearchToken {
 	boolean matchName(String name, TIntArrayList poiTypes) {
 //		System.out.printf("query '%s' matches '%s' %s\n", word, name, collatorMain.matches(name) || 
 //				collatorMain.matches(name.replace(' ', '-')));
+		if (categoryMatchMode) {
+			return name.equals(word);
+		}
 		if (name.startsWith(NameIndexReader.POI_CATEGORY_PREFIX)) {
 			return poiTypes != null && matchPoiCategoryKeys(poiTypes);
 		}

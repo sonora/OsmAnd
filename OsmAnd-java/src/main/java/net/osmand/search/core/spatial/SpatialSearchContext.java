@@ -159,7 +159,7 @@ public class SpatialSearchContext {
 	}
 	
 	public static int[] calculateBbox(int radiusMeters, LatLon l) {
-		QuadRect qr = MapUtils.calculateBbox(radiusMeters, l);
+		QuadRect qr = MapUtils.calculate31BboxUsingRhumb(radiusMeters, l);
 		int[] bbox31 = new int[4];
 //		System.out.printf("Bbox limit: %.4f %.4f - %.4f %.4f\n", northWest.getLatitude(), northWest.getLongitude(),
 //				southEast.getLatitude(), southEast.getLongitude());
@@ -222,6 +222,8 @@ public class SpatialSearchContext {
 		}
 	}
 
+	
+	
 	void readAtoms() throws IOException {
 		int indxInd = 0;
 		
@@ -435,6 +437,9 @@ public class SpatialSearchContext {
 			}
 		});
 		for (SpatialSearchToken t : tokens) {
+			if (settings.SEARCH_ONLY_POI_BY_CATEGORY && indx.poiRegion == null) {
+				continue;
+			}
 			List<PrefixNameValue> matchedPrefixes = indx.getMatchedPrefixes(t.word);
 			if (matchedPrefixes == null) {
 				stats.sub1FileAtomsTime.start();
