@@ -4875,4 +4875,9 @@
     <string name="open_till_short">Fins a</string>
     <string name="map_widget_memory_info">Informació quant a la memòria</string>
     <string name="astro_designations">Designacions</string>
+    <string name="astro_lunar_eclipse">Eclipsi lunar</string>
+    <string name="astro_lunar_eclipse_subtitle">Cerca els eclipsis lunars a tot el món</string>
+    <string name="astro_previous_lunar_eclipse">Eclipsi lunar anterior</string>
+    <string name="astro_next_lunar_eclipse">Eclipsi lunar següent</string>
+    <string name="astro_close_lunar_eclipse">Tancar el cercador d\'eclipsis lunars</string>
 </resources>

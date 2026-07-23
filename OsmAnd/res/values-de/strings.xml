@@ -4386,7 +4386,7 @@
     <string name="remove_key_assignment">Tastenzuweisung entfernen</string>
     <string name="map_settings_weather_wind_animation">Wind-Animation</string>
     <string name="tomorrow">Morgen</string>
-    <string name="daynight_mode_app_theme_summary">Die Kartendarstellung passt sich dem Gesamtthema der App an - Tagmodus für eine helle Darstellung und Nachtmodus für eine dunkle Darstellung</string>
+    <string name="daynight_mode_app_theme_summary">Die Kartendarstellung passt sich dem Gesamtthema der App an – Tagmodus für eine helle Darstellung und Nachtmodus für eine dunkle Darstellung</string>
     <string name="daynight_mode_sunrise_sunset_summary">Schaltet automatisch zwischen Tag- und Nachtmodus um, je nach Sonnenauf- und -untergangszeit vor Ort.</string>
     <string name="shared_string_modify">Ändern</string>
     <string name="weather_data_sources_prompt">OsmAnd liefert Wetterdaten aus zwei Quellen:</string>
@@ -5227,4 +5227,28 @@
     <string name="coordinate_format_discard_changes">Änderungen verwerfen</string>
     <string name="coordinate_format_select_other">Anderes Format wählen</string>
     <string name="traffic_warning_red_light_camera">Rotlichtblitzer</string>
+    <string name="custom_widget_colors">Benutzerdefinierte Widget-Farben</string>
+    <string name="custom_widget_colors_description">Verbessern Sie die Lesbarkeit unterwegs. Entsperren Sie die volle Farbanpassung, um die perfekte Widget-Sichtbarkeit vor jedem Karten-Hintergrund zu erreichen – im Tag- oder Nacht-Modus.</string>
+    <string name="unlock_custom_colors">Benutzerdefinierte Farben entsperren</string>
+    <string name="text_color">Textfarbe</string>
+    <string name="secondary_text_color">Sekundäre Textfarbe</string>
+    <string name="background_color">Hintergrund-Farbe</string>
+    <string name="widget_height">Widget-Höhe</string>
+    <string name="row_height">Zeilenhöhe</string>
+    <string name="shared_string_transparent">Transparent</string>
+    <string name="panel_appearance_original_description">%1$s behält die individuelle Größe und das Symbol für jedes Widget.</string>
+    <string name="copy_from">Kopiere von</string>
+    <string name="another_profile">Anderes Profil</string>
+    <string name="attached_media_delete_confirmation">Lösche %1$d Medienelemente von diesem Punkt? Durch die App gespeicherte Medien, die nicht anderweitig angehängt sind, werden auch vom Gerät gelöscht.</string>
+    <string name="duplicate_map">Dupliziere Karte</string>
+    <string name="duplicate_map_standard_exists_desc">Sie haben bereits die Standardkarte für %1$s. Das Herunterladen der Straßenkarte wird Daten duplizieren und könnte die Leistung einschränken.\n\nDas Ersetzen wird die Adress-Suche und POI-Daten der Standardkarte entfernen.</string>
+    <string name="duplicate_map_road_only_exists_desc">Sie haben bereits die Straßenkarte für %1$s. Das Herunterladen der Standardkarte wird Daten duplizieren und könnte die Leistung einschränken.</string>
+    <string name="duplicate_map_replace_with_standard">Ersetze mit Standardkarte</string>
+    <string name="duplicate_map_replace_with_road">Ersetze mit Straßenkarte</string>
+    <string name="android_auto_possible_missing_maps_desc">Möglicherweise fehlende Karten. Versuche mit vorhandenen fortzufahren.</string>
+    <string name="route_calculation_using_fast_algorithm">Nutze schnellen Routing-Algorithmus.</string>
+    <string name="route_calculation_using_standard_algorithm">Nutze Standard Routing-Algorithmus (langsamer).</string>
+    <string name="route_calculation_missing_maps_desc">Benötigte Offline-Karten fehlen für diese Route. Um fortzufahren, laden Sie diese herunter.</string>
+    <string name="route_calculation_mixed_maps_desc">Schnelles Routing nicht verfügbar wegen Karten verschiedenen Datums. Wechsel zur Standard-Berechnung könnte einige Minuten dauern.</string>
+    <string name="route_calculation_missing_maps_estimate_desc">Möglicherweise fehlende Karten geschätzt anhand der Luftlinie.\nWenn ihre Route diese Gebiete vermeidet, werden vorhandene Karten verwendet.</string>
 </resources>
