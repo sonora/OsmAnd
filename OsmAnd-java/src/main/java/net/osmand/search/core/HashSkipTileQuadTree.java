@@ -1,34 +1,68 @@
 package net.osmand.search.core;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.map.hash.TLongObjectHashMap;
 import net.osmand.util.MapUtils;
 
 public class HashSkipTileQuadTree<T> {
 
-	public record QuadTreePair<T, R>(T o1, R o2) {}
+	public static final int DEFALT_MAX_ZOOM = 16;
+	public static final int DEFALT_MIN_ZOOM = 0;
+//	public static final int[] DEFAULT_INDEXED_ZOOMS = new int[] { 1, 3, 5, 8, 11, 14};
+	public static final int[] DEFAULT_INDEXED_ZOOMS = new int[] { 1, 3, 5, 8, 11};
+//	public static final int[] DEFAULT_INDEXED_ZOOMS = new int[] { 3, 5, 8};
 
-	public static final int MAX_ZOOM = 16;
-	public static final int MIN_ZOOM = 0;
-	public static final int[] INDEXED_ZOOMS = new int[] { 5, 8, 11, 14, 16 };
+	final int minZoom;
+	final int maxZoom;
+	final int[] indxZooms;
+	ZoomBucket[] zoomBuckets;
+	List<TileEntry<T>> tileEntries = new ArrayList<>();
+	TLongObjectHashMap<List<TileEntry<T>>> modified = null; 
 	
-	private final List<TileEntry<T>> tileEntries = new ArrayList<>();
-	private final ZoomBucket[] zoomBuckets = new ZoomBucket[MAX_ZOOM + 1];
+	public HashSkipTileQuadTree() {
+		this(DEFALT_MIN_ZOOM, DEFALT_MAX_ZOOM, DEFAULT_INDEXED_ZOOMS);
+	}
 	
+	public HashSkipTileQuadTree(int minZoom, int maxZoom, int[] indexedZooms) {
+		this.minZoom = minZoom;
+		this.maxZoom = maxZoom;
+		this.indxZooms = indexedZooms;
+	}
 	
+	// Extra index to be extended
+	public static class TreeExtraIndex<EntryIndex, ZoomIndex> {
+
+		public EntryIndex buildEntryIndex() {
+			return null;
+		}
+		
+		public <T> ZoomIndex buildZoomIndex(ZoomBucket bucket, HashSkipTileQuadTree<T> tree) {
+			return null;
+		}
+		
+		public boolean acceptJoinBucket(EntryIndex entry, ZoomIndex zoom) {
+			return true;
+		}
+		
+		public boolean acceptJoin(EntryIndex entry1, EntryIndex entry2) {
+			return true;
+		}
+	}
+	
+
 	public static class TileEntry<T> {
 		public final long objId;
 		public final T obj;
 		public final int[] bbox31;
 		public final int z;
 		public final long tileId;
-		public int skipNextTileId = 0;
-		
+		public int skipNextTileId = -1;
 
 		TileEntry(long objId, T obj, int[] bbox31, int z, long tileId) {
 			this.objId = objId;
@@ -38,38 +72,249 @@ public class HashSkipTileQuadTree<T> {
 			this.tileId = tileId;
 		}
 	}
-	
+
+	static class ZoomBucketIndexTreeIterator {
+
+		private final ZoomBucketIndexTree[] nodes;
+		private final int[] blockIndices;
+		private final ZoomBucket bucket;
+
+		public ZoomBucketIndexTreeIterator(ZoomBucket bucket) {
+			this.bucket = bucket;
+			int depth = bucket.indexedZooms.length;
+			this.nodes = new ZoomBucketIndexTree[depth];
+			this.blockIndices = new int[depth];
+			ZoomBucketIndexTree curr = bucket.indx;
+			for (int i = 0; i < depth; i++) {
+				nodes[i] = curr;
+				blockIndices[i] = 0;
+				curr = (curr != null) ? curr.subTree : null;
+			}
+		}
+
+		public int checkSkip(int currentIndex, long tileId, int tileZoom, int[] queryBBox, int endIndex,
+				SkipStats stats) {
+			sync(currentIndex);
+			for (int level = 0; level < nodes.length; level++) {
+				int indxZoom = nodes[level].indxZoom;
+				long parentTileId = tileId >> ((tileZoom - indxZoom) * 2);
+				if (!intersectsTile(parentTileId, indxZoom, queryBBox)) {
+					int nextIndex = skipBlock(nodes[0], level, 0, endIndex);
+					if (stats != null) {
+						int skipped = nextIndex - currentIndex;
+						int tileX = (int) MapUtils.deinterleaveX(parentTileId);
+						int tileY = (int) MapUtils.deinterleaveY(parentTileId);
+						stats.recordSkip(bucket.z, level, skipped, indxZoom, tileX, tileY);
+					}
+					return nextIndex;
+				}
+			}
+			return -1;
+		}
+
+		public void sync(int globalIndex) {
+			for (int level = 0; level < nodes.length; level++) {
+				syncSingleLevel(level, globalIndex);
+			}
+		}
+
+		private void syncSingleLevel(int level, int globalIndex) {
+			ZoomBucketIndexTree tree = nodes[level];
+			int blockIdx = blockIndices[level];
+			TIntArrayList skipIndexes = tree.skipIndexes;
+			while (blockIdx + 1 < skipIndexes.size() && skipIndexes.get(blockIdx + 1) <= globalIndex) {
+				blockIdx++;
+			}
+			blockIndices[level] = blockIdx;
+		}
+
+		private int skipBlock(ZoomBucketIndexTree tree, int targetLevel, int currentLevel, int endIndex) {
+			if (currentLevel < targetLevel) {
+				int nextGlobalIndex = skipBlock(tree.subTree, targetLevel, currentLevel + 1, endIndex);
+				if (nextGlobalIndex != endIndex) {
+					syncSingleLevel(currentLevel, nextGlobalIndex);
+				}
+				return nextGlobalIndex;
+			}
+			int nextBlockIdx = blockIndices[targetLevel] + 1;
+			blockIndices[targetLevel] = nextBlockIdx;
+			if (nextBlockIdx >= tree.skipIndexes.size()) {
+				return endIndex;
+			}
+
+			int nextGlobalIndex = tree.skipIndexes.get(nextBlockIdx);
+			resetChildren(tree, targetLevel, nextBlockIdx);
+			return nextGlobalIndex;
+		}
+
+		private void resetChildren(ZoomBucketIndexTree tree, int level, int blockIdx) {
+			if (tree == null || tree.subTree == null || level + 1 >= nodes.length) {
+				return;
+			}
+			if (blockIdx < tree.skipInSubIndexes.size()) {
+				int subBlockIdx = tree.skipInSubIndexes.get(blockIdx);
+				blockIndices[level + 1] = subBlockIdx;
+				resetChildren(tree.subTree, level + 1, subBlockIdx);
+			}
+		}
+		
+		public int skipToTileId(int currentIndex, long targetTileId, SkipStats stats) {
+			if (nodes.length == 0)
+				return -1;
+
+			sync(currentIndex);
+			int bucketEndIndex = bucket.start + bucket.len;
+			for (int level = 0; level < nodes.length; level++) {
+				ZoomBucketIndexTree tree = nodes[level];
+				int blockIdx = blockIndices[level];
+
+				if (blockIdx < tree.tileIds.size()) {
+					int shift = (bucket.z - tree.indxZoom) * 2;
+					long targetParentAtLevel = targetTileId >> shift;
+					long currentBlockParent = tree.tileIds.get(blockIdx);
+
+					if (currentBlockParent < targetParentAtLevel) {
+						int levelEndIndex = (blockIdx + 1 < tree.skipIndexes.size())
+								? tree.skipIndexes.get(blockIdx + 1)
+								: bucketEndIndex;
+						int nextIndex = skipBlock(tree, level, level, levelEndIndex);
+						if (nextIndex > currentIndex) {
+							if (stats != null) {
+								int tileX = (int) MapUtils.deinterleaveX(targetParentAtLevel);
+								int tileY = (int) MapUtils.deinterleaveY(targetParentAtLevel);
+								stats.recordSkip(bucket.z, level, nextIndex - currentIndex, tree.indxZoom, tileX, tileY);
+							}
+							return nextIndex;
+						}
+					}
+				}
+			}
+
+			return -1;
+		}
+
+	}
+
+	public static class SkipStats {
+		public record SkipRecord(int bucketZoom, int level, int zoom, int x, int y, int skippedElements) {
+		}
+
+		public TLongArrayList inspectedEntries = new TLongArrayList();
+		public List<SkipRecord> skipRecords = new ArrayList<>();
+		public int totalSkipsCount = 0;
+		public long totalElementsSkipped = 0;
+		public int totalBucketLen = 0;
+
+		public final int[] skipsPerLevel;
+		public final long[] elementsSkippedPerLevel;
+		public int[] indexedZooms;
+
+		public SkipStats(HashSkipTileQuadTree<?> tree) {
+			this.indexedZooms = tree.indxZooms;
+			this.skipsPerLevel = new int[indexedZooms.length];
+			this.elementsSkippedPerLevel = new long[indexedZooms.length];
+		}
+
+		public void recordSkip(int bucketZoom, int level, int skippedElements, int zoom, int x, int y) {
+			skipsPerLevel[level]++;
+			elementsSkippedPerLevel[level] += skippedElements;
+			totalSkipsCount++;
+			totalElementsSkipped += skippedElements;
+			skipRecords.add(new SkipRecord(bucketZoom, level, zoom, x, y, skippedElements));
+		}
+
+		public void recordInspection(TileEntry<?> t) {
+			inspectedEntries.add(t.objId);
+		}
+		
+		public void totalSize(int len) {
+			totalBucketLen += len;
+		}
+
+		public void printStats() {
+			System.out.println("=== TileIterator Skip Stats ===");
+			System.out.printf("Total bucket size  : %,d\n", totalBucketLen);
+			System.out.printf("Inspected entries  : %,d (%.2f%%)\n", inspectedEntries.size(),
+					(double) inspectedEntries.size() / totalBucketLen * 100.0);
+			System.out.printf("Total skips count  : %,d\n", totalSkipsCount);
+			System.out.printf("Total skipped items: %,d\n", totalElementsSkipped);
+
+			for (int level = 0; level < skipsPerLevel.length; level++) {
+				int zoom = (indexedZooms != null && level < indexedZooms.length) ? indexedZooms[level] : level;
+				System.out.printf("  Level %d (Z%d): %d skips, %,d items skipped\n", level, zoom, skipsPerLevel[level],
+						elementsSkippedPerLevel[level]);
+			}
+		}
+	}
+
+	static class ZoomBucketIndexTree {
+		public final int indxZoom;
+		public final ZoomBucketIndexTree subTree;
+		// start index in global list
+		public TIntArrayList skipIndexes = new TIntArrayList();
+		// start index in sub tree
+		public TIntArrayList skipInSubIndexes = new TIntArrayList();
+		// for debug only
+		public TLongArrayList tileIds = new TLongArrayList();
+		// used only for build
+		long lastTileId = -1;
+
+		public ZoomBucketIndexTree(int indZoom, int[] indexedZooms) {
+			this.indxZoom = indexedZooms[indZoom];
+			if (indZoom < indexedZooms.length - 1) {
+				subTree = new ZoomBucketIndexTree(indZoom + 1, indexedZooms);
+			} else {
+				subTree = null;
+			}
+		}
+
+		public boolean processEntry(int tileIdZoom, long tileId, int globalIndex) {
+			boolean changed = false;
+			long currentParentTileId = tileId >> ((tileIdZoom - this.indxZoom) * 2);
+			if (currentParentTileId != this.lastTileId) {
+				if (subTree != null) {
+					this.skipInSubIndexes.add(subTree.skipIndexes.size());
+				}
+				this.skipIndexes.add(globalIndex);
+				this.lastTileId = currentParentTileId;
+				this.tileIds.add(currentParentTileId);
+				changed = true;
+			}
+			if (this.subTree != null) {
+				this.subTree.processEntry(tileIdZoom, tileId, globalIndex);
+			}
+			return changed;
+		}
+
+	}
+
 	static class ZoomBucket {
 		public int z;
 		public int start;
 		public int len;
 		public int[] indexedZooms;
-		
-		public TIntArrayList[] skipIndexes;
-		public TIntArrayList[] skipSubIndexes;
-		// used only for build
-		long[] lastTileIds;
-		int[] lastTileLen;
+
+		public ZoomBucketIndexTree indx = null;
 
 		ZoomBucket(int z, int start, int[] indexedZooms) {
 			this.z = z;
 			this.start = start;
 			this.indexedZooms = indexedZooms;
-			this.skipIndexes = new TIntArrayList[indexedZooms.length];
-			this.skipSubIndexes = new TIntArrayList[indexedZooms.length];
-			for(int k = 0; k < indexedZooms.length; k++) {
-				this.skipIndexes[k] = new TIntArrayList();
-				this.skipSubIndexes[k] = new TIntArrayList();
+			if (indexedZooms.length > 0) {
+				indx = new ZoomBucketIndexTree(0, indexedZooms);
 			}
 		}
 	}
 
-
 	public void addObject(T obj, int[] bbox31, long externalId) {
 		long objId = externalId == -1 ? tileEntries.size() : externalId;
-		int targetZoom = MAX_ZOOM;
+		addTileEntry(obj, bbox31, objId, getNativeZoom(bbox31));
+	}
+	
+	public int getNativeZoom(int[] bbox31) {
+		int targetZoom = maxZoom;
 		// Fit into 2x2 - maximum 4 tiles
-		while (targetZoom > MIN_ZOOM) {
+		while (targetZoom > minZoom) {
 			int shift = 31 - targetZoom;
 			int minX = bbox31[0] >> shift;
 			int maxX = bbox31[2] >> shift;
@@ -83,52 +328,78 @@ public class HashSkipTileQuadTree<T> {
 			}
 			targetZoom--;
 		}
-		addTileEntry(obj, bbox31, objId, targetZoom);
+		return targetZoom;
 	}
-	
 
 	public static long encodeTileId(int x, int y) {
 		return MapUtils.interleaveBits(x, y);
 	}
 
-	private static boolean intersectsBBox(int[] a, int[] b) {
+	public static boolean intersectsBBox(int[] a, int[] b) {
 		return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 	}
 
-
-	private void addTileEntry(T obj, int[] bbox31, long objId, int targetZoom ) {
+	private void addTileEntry(T obj, int[] bbox31, long objId, int targetZoom) {
 		int shift = 31 - targetZoom;
 		int minX = bbox31[0] >> shift;
 		int maxX = bbox31[2] >> shift;
 		int minY = bbox31[1] >> shift;
 		int maxY = bbox31[3] >> shift;
-		for(int x = minX; x <= maxX; x++) {
-			for(int y = minY; y <= maxY; y++) {
-				tileEntries.add(new TileEntry<>(objId, obj, bbox31, targetZoom, encodeTileId(x, y)));
+		for (int x = minX; x <= maxX; x++) {
+			for (int y = minY; y <= maxY; y++) {
+				TileEntry<T> te = new TileEntry<>(objId, obj, bbox31, targetZoom, encodeTileId(x, y));
+				if (modified != null) {
+					if (!modified.containsKey(objId)) {
+						modified.put(objId, new ArrayList<>());
+					}
+					modified.get(objId).add(te);
+				} else {
+					tileEntries.add(te);
+				}
 			}
 		}
 	}
 
-	public void build() {
-		tileEntries.clear();
+	public int build() {
+		if (modified != null) {
+			List<TileEntry<T>> tileEntries = new ArrayList<>();
+			for (TileEntry<T> e : this.tileEntries) {
+				if (!modified.containsKey(e.objId)) {
+					tileEntries.add(e);
+				}
+			}
+			Iterator<List<TileEntry<T>>> it = modified.valueCollection().iterator();
+			while (it.hasNext()) {
+				tileEntries.addAll(it.next());
+			}
+			this.tileEntries = tileEntries;
+		}
+		zoomBuckets = new ZoomBucket[maxZoom + 1];
 		tileEntries.sort((e1, e2) -> {
-			if (e1.z != e2.z) return Integer.compare(e1.z, e2.z);
+			if (e1.z != e2.z)
+				return Integer.compare(e1.z, e2.z);
 			return Long.compare(e1.tileId, e2.tileId);
 		});
 		ZoomBucket zoomBucket = null;
 		int lastZoom = -1;
-		long lastTileId = 0;
+		long lastTileId = -1;
 		int lastTileIdFirstInd = -1;
 		int index = 0;
-		for (index = 0; index <= tileEntries.size(); index++) {
-			boolean lastProc = tileEntries.size() == index;
-			TileEntry<T> tileE = lastProc ? null : tileEntries.get(index);
-			long tileId = lastProc ? 0 : tileE.tileId;
-			int tileZoom = lastProc ? lastZoom : tileE.z; 
+		for (index = 0; index < tileEntries.size(); index++) {
+			TileEntry<T> tileE = tileEntries.get(index);
+			long tileId = tileE.tileId;
+			int tileZoom = tileE.z;
+			if (lastTileId != tileId || lastZoom != tileZoom) {
+				if (lastTileIdFirstInd >= 0) {
+					tileEntries.get(lastTileIdFirstInd).skipNextTileId = index;
+				}
+				lastTileId = tileId;
+				lastTileIdFirstInd = index;
+			}
 			if (lastZoom != tileZoom) {
-				lastZoom = tileE.z;
+				lastZoom = tileZoom;
 				TIntArrayList indexedZooms = new TIntArrayList();
-				for (int iz : INDEXED_ZOOMS) {
+				for (int iz : indxZooms) {
 					if (iz >= tileE.z) {
 						break;
 					}
@@ -137,295 +408,144 @@ public class HashSkipTileQuadTree<T> {
 				zoomBucket = new ZoomBucket(lastZoom, index, indexedZooms.toArray());
 				zoomBuckets[tileE.z] = zoomBucket;
 			}
-			if ((lastTileId != tileId || lastZoom != tileE.z)) {
-				if (lastTileIdFirstInd >= 0) {
-					tileEntries.get(lastTileIdFirstInd).skipNextTileId = index - lastTileIdFirstInd;
-				}
-				lastTileId = tileId;
-				lastTileIdFirstInd = index;
+			if (zoomBucket.indx != null) {
+				zoomBucket.indx.processEntry(lastZoom, tileId, index);
 			}
-			if (zoomBucket != null) {
-				for (int kz = 0; kz < zoomBucket.indexedZooms.length; kz++) {
-					int zoom = zoomBucket.indexedZooms[kz];
-					long tileIdZoom = tileE.tileId >> ((zoomBucket.z - zoom) * 2);
-					if (tileIdZoom == zoomBucket.lastTileIds[kz]) {
-						zoomBucket.lastTileLen[kz]++;
-					} else {
-						zoomBucket.skipIndexes[kz].add(zoomBucket.lastTileLen[kz]);
-					}
+
+			zoomBucket.len++;
+		}
+		if (lastTileIdFirstInd >= 0) {
+			tileEntries.get(lastTileIdFirstInd).skipNextTileId = index;
+		}
+		modified = new TLongObjectHashMap<>();
+		return tileEntries.size();
+	}
+
+	private static boolean intersectsTile(long parentTileId, int parentZoom, int[] queryBBox) {
+		int shift = 31 - parentZoom;
+
+		int tileX = (int) MapUtils.deinterleaveX(parentTileId);
+		int tileY = (int) MapUtils.deinterleaveY(parentTileId);
+		int tileMinX = tileX << shift;
+		int tileMaxX = ((tileX + 1) << shift) - 1;
+		int tileMinY = tileY << shift;
+		int tileMaxY = ((tileY + 1) << shift) - 1;
+		return tileMinX <= queryBBox[2] && tileMaxX >= queryBBox[0] && tileMinY <= queryBBox[3]
+				&& tileMaxY >= queryBBox[1];
+	}
+
+	class TileIterator implements Iterator<TileEntry<T>> {
+		final int[] queryBBox;
+		final ZoomBucket bucket;
+		final int endIndex;
+		final ZoomBucketIndexTreeIterator treeIt;
+
+		int currentIndex;
+		TileEntry<T> nextEntry;
+
+		final SkipStats stats;
+
+		public TileIterator(ZoomBucket bucket, int[] queryBBox, SkipStats stats) {
+			this.bucket = bucket;
+			this.queryBBox = queryBBox;
+			this.currentIndex = bucket.start;
+			this.endIndex = bucket.start + bucket.len;
+			this.treeIt = new ZoomBucketIndexTreeIterator(bucket);
+			this.stats = stats;
+			advance();
+		}
+
+		@Override
+		public boolean hasNext() {
+			return nextEntry != null;
+		}
+		
+		@Override
+		public TileEntry<T> next() {
+			if (nextEntry == null) {
+				throw new NoSuchElementException();
+			}
+			TileEntry<T> current = nextEntry;
+			advance();
+			return current;
+		}
+
+		private void advance() {
+			nextEntry = null;
+			while (currentIndex < endIndex) {
+				TileEntry<T> entry = tileEntries.get(currentIndex);
+				int newIndex = treeIt.checkSkip(currentIndex, entry.tileId, entry.z, queryBBox, endIndex, stats);
+				if (newIndex >= 0) {
+					currentIndex = newIndex;
+					continue;
 				}
-				zoomBucket.len++;
+				if (stats != null) {
+					stats.recordInspection(entry);
+				}
+				if (!intersectsTile(entry.tileId, entry.z, queryBBox)) {
+					currentIndex = entry.skipNextTileId > 0 ? entry.skipNextTileId : currentIndex + 1;
+					continue;
+				}
+				if (intersectsBBox(entry.bbox31, queryBBox)) {
+					nextEntry = entry;
+					currentIndex++;
+					return;
+				}
+				currentIndex++;
 			}
 		}
 	}
-	
-	
-	private class TileIterator implements Iterator<TileEntry<T>> {
-	    private final ZoomBucket bucket;
-	    private final int zoom;
 
-	    private int currentIndex;
-	    private final int endIndex;
+	public ZoomBucket getZoomBucket(int z) {
+		checkIsBuilt();
+		return zoomBuckets[z];
+	}
 
-	    private TileEntry<T> nextEntry;
+	private void checkIsBuilt() {
+		if (modified == null) {
+			throw new UnsupportedOperationException("Not yet built");
+		}
+	}
 
-	    public TileIterator(ZoomBucket bucket, int zoom) {
-	        this.bucket = bucket;
-	        this.zoom = zoom;
-	        this.currentIndex = bucket.start;
-	        this.endIndex = bucket.start + bucket.len;
-
-	        advance();
-	    }
-
-	    public TileEntry<T> getCurrentTile() {
-	        if (currentIndex < endIndex) {
-	            return tileEntries.get(currentIndex);
-	        }
-	        return null;
-	    }
-
-	    public void moveToNextTile() {
-	        if (currentIndex >= endIndex) return;
-
-	        TileEntry<T> entry = tileEntries.get(currentIndex);
-	        int jump = (entry.skipNextTileId > 0) ? entry.skipNextTileId : 1;
-	        currentIndex += jump;
-	    }
-
-	    public void moveToNextBlock(int indexedZoom) {
-	        if (currentIndex >= endIndex) return;
-
-	        TileEntry<T> entry = tileEntries.get(currentIndex);
-	        long parentTileId = entry.tileId >> ((zoom - indexedZoom) * 2);
-
-//	        int jumpSize = bucket.getCurrentTileBlock(indexedZoom, currentIndex, parentTileId);
-//	        currentIndex += Math.max(1, jumpSize);
-	    }
-
-	    public int[] getIndexedZooms() {
-	        return bucket.indexedZooms;
-	    }
-	    
-	    @Override
-	    public boolean hasNext() {
-	        return nextEntry != null;
-	    }
-
-	    @Override
-	    public TileEntry<T> next() {
-	        if (nextEntry == null) {
-	            throw new NoSuchElementException();
-	        }
-	        TileEntry<T> current = nextEntry;
-	        advance();
-	        return current;
-	    }
-
-	    private void advance() {
-	        nextEntry = null;
-			int[] bbox31 = null;
-	        while (currentIndex < endIndex) {
-	            TileEntry<T> entry = getCurrentTile();
-	            if (entry == null) break;
-
-	            int[] indexedZooms = getIndexedZooms();
-	            boolean skippedByBlock = false;
-
-	            if (indexedZooms != null) {
-	                for (int kz = 0; kz < indexedZooms.length; kz++) {
-	                    int skipZ = indexedZooms[kz];
-	                    long parentTileId = entry.tileId >> ((zoom - skipZ) * 2);
-
-	                    if (!intersectsTileIdBBox31(parentTileId, skipZ, bbox31)) {
-	                        moveToNextBlock(skipZ);
-	                        skippedByBlock = true;
-	                        break;
-	                    }
-	                }
-	            }
-
-	            if (skippedByBlock) {
-	                continue;
-	            }
-
-
-	            currentIndex++;
-	        }
-	    }
+	public boolean contains(int[] queryBBox) {
+		checkIsBuilt();
+		for (int z = minZoom; z <= maxZoom; z++) {
+			ZoomBucket zoomBucket = zoomBuckets[z];
+			if (zoomBucket != null) {
+				TileIterator ti = new TileIterator(zoomBucket, queryBBox, null);
+				while (ti.hasNext()) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 	
-//	public List<TileEntry<T>> get(int z, int[] bbox31) {
-//		List<TileEntry<T>> result = new ArrayList<>();
-//		ZoomBucket bucket = zoomBuckets[z];
-//		if (bucket == null) return result;
-//		
-//		int i = bucket.start;
-//	    int end = bucket.start + bucket.len;
-//	    while (i < end) {
-//	        TileEntry<T> entry = tileEntries.get(i);
-//	        boolean skippedByParent = false;
-//	            for (int kz = 0; kz < bucket.indexedZooms.length; kz++) {
-//	                int skipZ = bucket.indexedZooms[kz];
-//	                long parentTileId = entry.tileId >> ((z - skipZ) * 2);
-//	                if (!intersectsTileIdBBox31(parentTileId, skipZ, bbox31)) {
-//	                    TIntArrayList skipList = bucket.skipIndexes[kz];
-//	                    int jumpSize = getSkipJumpSize(bucket, kz, i, parentTileId);
-//	                    i += Math.max(1, jumpSize);
-//	                    skippedByParent = true;
-//	                    break;
-//	                }
-//	            }
-//
-//	        if (skippedByParent) {
-//	            continue;
-//	        }
-//
-//	        if (!intersectsTileIdBBox31(entry.tileId, z, bbox31)) {
-//	            i += (entry.skipNextTileId > 0) ? entry.skipNextTileId : 1;
-//	            continue;
-//	        }
-//	        if (intersectsBBox(entry.bbox31, bbox31)) {
-//	            result.add(entry);
-//	        }
-//
-//	        i++; 
-//	    }
-//		return result;
-//	}
-	
-	// TODO speedup
-	private static boolean intersectsTileIdBBox31(long tileId, int tileZoom, int[] bbox31) {
-	    int shift = 31 - tileZoom;
-	    int tileX = (int) MapUtils.deinterleaveX(tileId);
-	    int tileY = (int) MapUtils.deinterleaveY(tileId);
-	    int tileMinX = tileX << shift;
-	    int tileMaxX = ((tileX + 1) << shift) - 1;
-	    int tileMinY = tileY << shift;
-	    int tileMaxY = ((tileY + 1) << shift) - 1;
-	    return tileMinX <= bbox31[2] && tileMaxX >= bbox31[0] &&
-	           tileMinY <= bbox31[3] && tileMaxY >= bbox31[1];
+	public List<TileEntry<T>> get(int[] queryBBox, SkipStats stats) {
+		checkIsBuilt();
+		return get(queryBBox, minZoom, maxZoom, stats);
 	}
-//	
-//	public <R> List<QuadTreePair<T, R>> intersect(int z1, int z2, HashSkipTileQuadTree<R> otherTree) {
-//		List<QuadTreePair<T, R>> result = new ArrayList<>();
-//
-//		ZoomBucket b1 = this.zoomBuckets[z1];
-//		ZoomBucket b2 = otherTree.zoomBuckets[z2];
-//
-//		if (b1 == null || b2 == null) {
-//			return result;
-//		}
-//
-//		// 1. Одинаковый зум: двух-указательный скан O(K1 + K2)
-//		if (z1 == z2) {
-//			int idx1 = 0, idx2 = 0;
-//			while (idx1 < b1.tileIds.length && idx2 < b2.tileIds.length) {
-//				long t1 = b1.tileIds[idx1];
-//				long t2 = b2.tileIds[idx2];
-//
-//				if (t1 == t2) {
-//					int start1 = b1.refs[idx1];
-//					int end1 = (idx1 + 1 < b1.tileIds.length) ? b1.refs[idx1 + 1] : (b1.start + b1.len);
-//
-//					int start2 = b2.refs[idx2];
-//					int end2 = (idx2 + 1 < b2.tileIds.length) ? b2.refs[idx2 + 1] : (b2.start + b2.len);
-//
-//					checkBBoxIntersections(start1, end1, start2, end2, otherTree, result);
-//					idx1++;
-//					idx2++;
-//				} else if (t1 < t2) {
-//					idx1++;
-//				} else {
-//					idx2++;
-//				}
-//			}
-//			return result;
-//		}
-//
-//		// 2. Разные зумы: Использование SkipIndex
-//		int parentZoom = Math.min(z1, z2);
-//		int childZoom = Math.max(z1, z2);
-//		int targetIndexedZoom = getNearestIndexedZoom(childZoom);
-//
-//		boolean isCurrentParent = (z1 < z2);
-//		HashSkipTileQuadTree<?> parentTree = isCurrentParent ? this : otherTree;
-//		HashSkipTileQuadTree<?> childTree = isCurrentParent ? otherTree : this;
-//
-//		ZoomBucket parentBucket = parentTree.zoomBuckets[parentZoom];
-//		SkipIndex childSkipIndex = childTree.skipIndices[targetIndexedZoom];
-//
-//		if (parentBucket == null || childSkipIndex == null) {
-//			return result;
-//		}
-//
-//		int shift = (targetIndexedZoom - parentZoom) * 2;
-//
-//		for (int i = 0; i < parentBucket.tileIds.length; i++) {
-//			long pTileId = parentBucket.tileIds[i];
-//			long minChildTileId = pTileId << shift;
-//			long maxChildTileId = ((pTileId + 1) << shift) - 1;
-//
-//			int matchIdx = Arrays.binarySearch(childSkipIndex.tileIds, minChildTileId);
-//			if (matchIdx < 0) matchIdx = -matchIdx - 1;
-//
-//			int start1 = parentBucket.refs[i];
-//			int end1 = (i + 1 < parentBucket.tileIds.length) ? parentBucket.refs[i + 1] : (parentBucket.start + parentBucket.len);
-//
-//			for (int j = matchIdx; j < childSkipIndex.tileIds.length && childSkipIndex.tileIds[j] <= maxChildTileId; j++) {
-//				int start2 = childSkipIndex.startRefs[j];
-//				int end2 = childSkipIndex.endRefs[j];
-//
-//				if (isCurrentParent) {
-//					checkBBoxIntersections(start1, end1, start2, end2, (HashSkipTileQuadTree<R>) childTree, result);
-//				} else {
-//					// Исправлен порядок объектов при обратном вызове
-//					((HashSkipTileQuadTree) childTree).checkBBoxIntersections(
-//							start2, end2, start1, end1, parentTree, new ReversePairAdapter<>(result)
-//					);
-//				}
-//			}
-//		}
-//
-//		return result;
-//	}
-//
-//
-//	private <R> void checkBBoxIntersections(
-//			int start1, int end1, int start2, int end2,
-//			HashSkipTileQuadTree<R> otherTree, List<QuadTreePair<T, R>> result) {
-//
-//		for (int i = start1; i < end1; i++) {
-//			TileEntry<T> e1 = this.tileEntries.get(i);
-//
-//			for (int j = start2; j < end2; j++) {
-//				TileEntry<R> e2 = otherTree.tileEntries.get(j);
-//
-//				if (intersectsBBox(e1.bbox31, e2.bbox31)) {
-//					result.add(new QuadTreePair<>(e1.obj, e2.obj));
-//				}
-//			}
-//		}
-//	}
-//
-//	private int getNearestIndexedZoom(int targetZoom) {
-//		for (int iz : INDEXED_ZOOMS) {
-//			if (iz >= targetZoom) return iz;
-//		}
-//		return MAX_ZOOM;
-//	}
-//
-//
-//	private static class ReversePairAdapter<T, R> extends ArrayList<QuadTreePair<R, T>> {
-//		private final List<QuadTreePair<T, R>> target;
-//
-//		ReversePairAdapter(List<QuadTreePair<T, R>> target) {
-//			this.target = target;
-//		}
-//
-//		@Override
-//		public boolean add(QuadTreePair<R, T> pair) {
-//			return target.add(new QuadTreePair<>(pair.o2(), pair.o1()));
-//		}
-//	}
+	
+	public List<TileEntry<T>> get(int[] queryBBox, int minZ, int maxZ, SkipStats stats) {
+		checkIsBuilt();
+		List<TileEntry<T>> res = new ArrayList<>();
+		for (int z = minZ; z <= maxZ; z++) {
+			ZoomBucket zoomBucket = zoomBuckets[z];
+			if (zoomBucket != null) {
+				if (stats != null) {
+					stats.totalSize(zoomBucket.len);
+				}
+				TileIterator ti = new TileIterator(zoomBucket, queryBBox, stats);
+				while (ti.hasNext()) {
+					res.add(ti.next());
+				}
+			}
+		}
+		return res;
+	}
+	
+	public List<TileEntry<T>> getTileEntries() {
+		return tileEntries;
+	}
+
 }
