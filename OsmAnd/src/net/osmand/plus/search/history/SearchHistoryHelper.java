@@ -191,7 +191,7 @@ public class SearchHistoryHelper {
 			boolean includeDeleted) {
 		List<SearchResult> searchResults = new ArrayList<>();
 
-		SearchPhrase phrase = SearchPhrase.emptyPhrase();
+		SearchPhrase phrase = SearchPhrase.emptyPhrase(app.getSearchUICore().getCore().getSearchSettings());
 		for (HistoryEntry entry : getHistoryEntries(source, onlyPoints, includeDeleted)) {
 			SearchResult result = SearchHistoryAPI.createSearchResult(app, entry, phrase);
 			searchResults.add(result);
@@ -212,7 +212,9 @@ public class SearchHistoryHelper {
 	}
 
 	public void remove(SearchResult searchResult) {
-		HistoryEntry entry = getHistoryEntry(searchResult.object);
+		HistoryEntry entry = searchResult instanceof SearchHistoryAPI.HistorySearchResult historySearchResult
+				? historySearchResult.getHistoryEntry()
+				: getHistoryEntry(searchResult.object);
 		if (entry == null) {
 			entry = getHistoryEntry(searchResult.relatedObject);
 		}
@@ -234,9 +236,9 @@ public class SearchHistoryHelper {
 					"Can't get PointDescription from SearchResult: %s, object: %s (%s), relatedObject: %s (%s), objectType: %s",
 					searchResult,
 					searchResult.object,
-					searchResult.object.getClass(),
+					searchResult.object != null ? searchResult.object.getClass() : null,
 					searchResult.relatedObject,
-					searchResult.relatedObject.getClass(),
+					searchResult.relatedObject != null ? searchResult.relatedObject.getClass() : null,
 					searchResult.objectType
 			));
 		}

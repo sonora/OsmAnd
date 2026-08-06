@@ -2,6 +2,7 @@ package net.osmand.plus.plugins.audionotes;
 
 import static net.osmand.IndexConstants.AV_INDEX_DIR;
 import static net.osmand.shared.media.MediaFileNameFormat.IMG_EXTENSION;
+import static net.osmand.shared.media.MediaFileNameFormat.isNewGeneratedMediaFileName;
 import static net.osmand.shared.media.MediaFileNameFormat.MPEG4_EXTENSION;
 import static net.osmand.shared.media.MediaFileNameFormat.THREEGP_EXTENSION;
 
@@ -14,6 +15,7 @@ import net.osmand.Location;
 import net.osmand.PlatformUtil;
 import net.osmand.data.DataTileManager;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.media.MediaMetadataUtils;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.settings.backend.OsmandSettings;
@@ -27,7 +29,6 @@ import net.osmand.util.MapUtils;
 import org.apache.commons.logging.Log;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -95,26 +96,26 @@ public class RecordingsFileHelper {
 			return false;
 		}
 		Recording recording = new Recording(file);
-		String fileName = file.getName();
-		String otherName = recording.getOtherName(fileName);
-		int i = otherName.indexOf('.');
-		if (i > 0) {
-			otherName = otherName.substring(0, i);
+
+		String legacyFileName = recording.getOtherName(file.getName());
+		Location fileLocation = MediaMetadataUtils.getLocation(file, legacyFileName);
+		if (fileLocation != null) {
+			recording.setLatitude(fileLocation.getLatitude());
+			recording.setLongitude(fileLocation.getLongitude());
+		} else {
+			int separator = legacyFileName.indexOf('.');
+			String shortLink = separator > 0 ? legacyFileName.substring(0, separator) : legacyFileName;
+			GeoParsedPoint point = MapUtils.decodeShortLinkString(shortLink);
+			recording.setLatitude(point.getLatitude());
+			recording.setLongitude(point.getLongitude());
+			log.warn("Recording location resolved with legacy fallback: " + file.getAbsolutePath());
 		}
-		recording.setFile(file);
-		GeoParsedPoint geo = MapUtils.decodeShortLinkString(otherName);
-		recording.setLatitude(geo.getLatitude());
-		recording.setLongitude(geo.getLongitude());
 		Float heading = app.getLocationProvider().getHeading();
 		Location loc = app.getLocationProvider().getLastKnownLocation();
 
 		if (updatePhotoInformation) {
 			float rot = heading != null ? heading : 0;
-			try {
-				recording.updatePhotoInformation(recording.getLatitude(), recording.getLongitude(), loc, rot == 0 ? Double.NaN : rot);
-			} catch (IOException e) {
-				log.error("Error updating EXIF information " + e.getMessage(), e);
-			}
+			MediaMetadataUtils.updatePhotoInformation(file, recording.getLatitude(), recording.getLongitude(), loc, rot == 0 ? Double.NaN : rot);
 		}
 		recordings.registerObject(recording.getLatitude(), recording.getLongitude(), recording);
 
@@ -135,7 +136,8 @@ public class RecordingsFileHelper {
 
 	boolean indexFile(boolean registerInGPX, @NonNull File file, boolean updatePhotoInformation) {
 		String name = file.getName();
-		if (CollectionUtils.endsWithAny(name, THREEGP_EXTENSION, MPEG4_EXTENSION, IMG_EXTENSION)) {
+		if (!isNewGeneratedMediaFileName(name)
+				&& CollectionUtils.endsWithAny(name, THREEGP_EXTENSION, MPEG4_EXTENSION, IMG_EXTENSION)) {
 			boolean newFileIndexed = indexSingleFile(file, updatePhotoInformation);
 			if (newFileIndexed && registerInGPX) {
 				Recording recording = recordingByFileName.get(name);
@@ -162,7 +164,8 @@ public class RecordingsFileHelper {
 	}
 
 	boolean cleanupSpace(@NonNull CamcorderProfile profile) {
-		File[] files = app.getAppPath(AV_INDEX_DIR).listFiles((dir, filename) -> filename.endsWith("." + MPEG4_EXTENSION));
+		File[] files = app.getAppPath(AV_INDEX_DIR).listFiles((dir, filename) ->
+				filename.endsWith("." + MPEG4_EXTENSION) && recordingByFileName.containsKey(filename));
 
 		if (files != null) {
 			double usedSpace = 0;
@@ -187,9 +190,6 @@ public class RecordingsFileHelper {
 					if (r != null) {
 						deleteRecording(r);
 						wasAnyDeleted = true;
-						usedSpace -= length;
-						availableSpace += length;
-					} else if (f.delete()) {
 						usedSpace -= length;
 						availableSpace += length;
 					}

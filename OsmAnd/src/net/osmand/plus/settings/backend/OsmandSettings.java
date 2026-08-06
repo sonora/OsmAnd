@@ -97,6 +97,7 @@ import net.osmand.plus.settings.backend.menuitems.MainContextMenuItemsSettings;
 import net.osmand.plus.settings.backend.preferences.*;
 import net.osmand.plus.settings.backend.storages.ImpassableRoadsStorage;
 import net.osmand.plus.settings.backend.storages.IntermediatePointsStorage;
+import net.osmand.plus.settings.coordinates.CoordinateFormatIds;
 import net.osmand.plus.settings.coordinates.CoordinateFormatSettingsStorage;
 import net.osmand.plus.settings.enums.*;
 import net.osmand.plus.utils.AndroidUtils;
@@ -1495,6 +1496,7 @@ public class OsmandSettings {
 
 	public final OsmandPreference<Boolean> ONLINE_PHOTOS_ROW_COLLAPSED = new BooleanPreference(this, "online_photos_menu_collapsed", true).makeGlobal().makeShared();
 	public final OsmandPreference<Boolean> EXPLORE_NEARBY_ITEMS_ROW_COLLAPSED = new BooleanPreference(this, "online_photos_menu_collapsed", true).makeGlobal().makeShared();
+	public final OsmandPreference<Boolean> EXPLORE_HISTORY_ROW_COLLAPSED = new BooleanPreference(this, "explore_history_menu_collapsed", true).makeGlobal().makeShared();
 	public final OsmandPreference<Boolean> ATTACHED_MEDIA_ROW_COLLAPSED = new BooleanPreference(this, "attached_media_menu_collapsed", true).makeGlobal().makeShared();
 	public final OsmandPreference<Boolean> WEBGL_SUPPORTED = new BooleanPreference(this, "webgl_supported", true).makeGlobal();
 
@@ -2060,6 +2062,7 @@ public class OsmandSettings {
 
 	public CommonPreference<String> PREVIOUS_INSTALLED_VERSION = new StringPreference(this, "previous_installed_version", "").makeGlobal();
 
+	public final OsmandPreference<Boolean> USE_SPATIAL_TEXT_SEARCH = new BooleanPreference(this, "use_spatial_text_search", false).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Boolean> SHOULD_SHOW_FREE_VERSION_BANNER = new BooleanPreference(this, "should_show_free_version_banner", false).makeGlobal().makeShared().cache();
 	public final OsmandPreference<Boolean> SHOULD_SHOW_DISCOUNT_BOTTOM_SHEET = new BooleanPreference(this, "should_show_discount_bottom_sheet", false).makeGlobal().makeShared().cache();
 
@@ -3494,8 +3497,8 @@ public class OsmandSettings {
 	public final CommonPreference<Boolean> SHOW_COORDINATES_GRID =
 			new BooleanPreference(this, "show_coordinates_grid", false).makeProfile();
 
-	public final OsmandPreference<GridFormat> COORDINATE_GRID_FORMAT =
-			new EnumStringPreference<>(this, "coordinates_grid_format", GridFormat.DIGITAL, GridFormat.values()).makeProfile();
+	public final CommonPreference<String> COORDINATE_GRID_FORMAT =
+			new StringPreference(this, "coordinates_grid_format", CoordinateFormatIds.BUILTIN_DDD).makeProfile();
 
 	public final CommonPreference<Integer> COORDINATE_GRID_MIN_ZOOM =
 			new IntPreference(this, "coordinate_grid_min_zoom", 0).makeProfile();

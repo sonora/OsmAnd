@@ -38,6 +38,7 @@ import net.osmand.search.core.CustomSearchPoiFilter;
 import net.osmand.search.core.ObjectType;
 import net.osmand.search.core.SearchResult;
 import net.osmand.search.core.SearchSettings;
+import net.osmand.search.core.spatial.SpatialSearchResult;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
@@ -79,8 +80,27 @@ public class QuickSearchListItem {
 		return searchResult;
 	}
 
+	@Nullable
+	public SpatialSearchResult getSpatialSearchResult() {
+		SearchResult searchResult = getSearchResult();
+		if(searchResult != null) {
+			return searchResult.spatialResult;
+		}
+		return null;
+	}
+
+	public boolean isSpatialCategorySearchResult() {
+		SpatialSearchResult spatialSearchResult = getSpatialSearchResult();
+		return spatialSearchResult != null && spatialSearchResult.isPoiCategory()
+				&& spatialSearchResult.getReferenceObject() != null;
+	}
+
 	public boolean isDestinationHistoryItem() {
 		return isDestinationHistory(searchResult);
+	}
+
+	public boolean isLegacyHistoryItem() {
+		return isLegacySearchHistory(searchResult);
 	}
 
 	public static String getCityTypeStr(Context ctx, CityType type) {
@@ -337,7 +357,7 @@ public class QuickSearchListItem {
 				break;
 			case RECENT_OBJ:
 				HistoryEntry entry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(entry)) {
+				if (isNavigationHistoryEntry(entry)) {
 					return app.getString(R.string.route_descr_destination);
 				}
 				if (!Algorithms.isEmpty(entry.getTypeName())) {
@@ -392,7 +412,7 @@ public class QuickSearchListItem {
 				return app.getUIUtilities().getThemedIcon(R.drawable.ic_action_group_name_16);
 			case RECENT_OBJ:
 				HistoryEntry historyEntry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(historyEntry)) {
+				if (isNavigationHistoryEntry(historyEntry)) {
 					return null;
 				}
 				String typeName = !Algorithms.isEmpty(historyEntry.getTypeName())
@@ -494,7 +514,7 @@ public class QuickSearchListItem {
 				return getIcon(app, R.drawable.ic_world_globe_dark);
 			case RECENT_OBJ:
 				HistoryEntry entry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(entry)) {
+				if (isNavigationHistoryEntry(entry)) {
 					return app.getUIUtilities().getThemedIcon(R.drawable.ic_action_point_destination);
 				}
 				iconId = getHistoryIconId(app, entry);
@@ -569,7 +589,7 @@ public class QuickSearchListItem {
 
 	public static int getHistoryIconId(@NonNull OsmandApplication app,
 	                                   @NonNull HistoryEntry entry) {
-		if (isDestinationHistory(entry)) {
+		if (isNavigationHistoryEntry(entry)) {
 			return R.drawable.ic_action_point_destination;
 		}
 		int iconId = -1;
@@ -588,7 +608,7 @@ public class QuickSearchListItem {
 		return iconId;
 	}
 
-	private static boolean isDestinationHistory(@NonNull HistoryEntry entry) {
+	private static boolean isNavigationHistoryEntry(@NonNull HistoryEntry entry) {
 		return entry.getSource() == HistorySource.NAVIGATION;
 	}
 
@@ -596,7 +616,14 @@ public class QuickSearchListItem {
 		return searchResult != null
 				&& searchResult.objectType == ObjectType.RECENT_OBJ
 				&& searchResult.object instanceof HistoryEntry entry
-				&& isDestinationHistory(entry);
+				&& isNavigationHistoryEntry(entry);
+	}
+
+	private static boolean isLegacySearchHistory(@Nullable SearchResult searchResult) {
+		return searchResult != null
+				&& searchResult.objectType == ObjectType.RECENT_OBJ
+				&& searchResult.object instanceof HistoryEntry entry
+				&& !isNavigationHistoryEntry(entry);
 	}
 
 	@NonNull

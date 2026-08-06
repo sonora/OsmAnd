@@ -4,7 +4,6 @@ import static net.osmand.CollatorStringMatcher.StringMatcherMode.CHECK_STARTS_FR
 
 import android.graphics.drawable.Drawable;
 import android.text.SpannableString;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -22,16 +21,21 @@ import com.squareup.picasso.RequestCreator;
 
 import net.osmand.StringMatcher;
 import net.osmand.data.Amenity;
+import net.osmand.data.MapObject;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.helpers.AmenityExtensionsHelper;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.mapcontextmenu.MenuController;
+import net.osmand.plus.mapcontextmenu.builders.rows.PoiAdditionalUiRule;
+import net.osmand.plus.mapcontextmenu.builders.rows.PoiAdditionalUiRules;
 import net.osmand.plus.mapcontextmenu.controllers.NetworkRouteDrawable;
 import net.osmand.plus.mapcontextmenu.other.TrimToBackgroundTextView;
-import net.osmand.plus.search.dialogs.QuickSearchListAdapter;
+import net.osmand.plus.search.dialogs.SearchScopeChip;
 import net.osmand.plus.search.listitems.QuickSearchListItem;
+import net.osmand.plus.settings.backend.ApplicationMode;
+import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.track.clickable.ClickableWayHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -40,6 +44,8 @@ import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.utils.UpdateLocationUtils.UpdateLocationViewCache;
 import net.osmand.search.SearchUICore;
 import net.osmand.search.core.SearchPhrase.NameStringMatcher;
+import net.osmand.search.core.TopIndexFilter;
+import net.osmand.search.core.spatial.SpatialSearchResult;
 import net.osmand.util.Algorithms;
 import net.osmand.util.OpeningHoursParser;
 import net.osmand.util.OpeningHoursParser.OpeningHours;
@@ -70,11 +76,12 @@ public class SearchResultViewHolder extends RecyclerView.ViewHolder {
 		TextView subtitle = view.findViewById(R.id.subtitle);
 		ImageView imageView = view.findViewById(R.id.imageView);
 
+		OsmandApplication app = (OsmandApplication) view.getContext().getApplicationContext();
 		imageView.setImageDrawable(item.getIcon());
+		setupIconContainer(view, imageView, app);
 		String name = item.getName();
 		title.setText(item.getSpannableName());
 
-		OsmandApplication app = (OsmandApplication) view.getContext().getApplicationContext();
 		String desc = item.getTypeName();
 		Object searchResultObject = item.getSearchResult().object;
 		if (searchResultObject instanceof AbstractPoiType) {
@@ -109,7 +116,6 @@ public class SearchResultViewHolder extends RecyclerView.ViewHolder {
 				subtitle.setVisibility(View.GONE);
 			}
 		}
-
 		Drawable typeIcon = item.getTypeIcon();
 		ImageView groupIcon = view.findViewById(R.id.type_name_icon);
 		if (groupIcon != null) {
@@ -147,6 +153,69 @@ public class SearchResultViewHolder extends RecyclerView.ViewHolder {
 			} else {
 				timeLayout.setVisibility(View.GONE);
 			}
+		}
+	}
+
+	public static void bindSpatialCategorySearchResult(@NonNull View view, @NonNull QuickSearchListItem item) {
+		TextView title = view.findViewById(R.id.title);
+		TextView subtitle = view.findViewById(R.id.subtitle);
+		ImageView imageView = view.findViewById(R.id.imageView);
+
+		OsmandApplication app = (OsmandApplication) view.getContext().getApplicationContext();
+		imageView.setImageDrawable(item.getIcon());
+		setupIconContainer(view, imageView, app);
+		title.setText(item.getSpannableName());
+		bindSpatialCategoryPart(view, item, app, subtitle);
+
+		LinearLayout timeLayout = view.findViewById(R.id.time_layout);
+		if (timeLayout != null) {
+			timeLayout.setVisibility(View.GONE);
+		}
+	}
+
+	public static void bindSpatialCategoryPart(@NonNull View view, @NonNull QuickSearchListItem item,
+	                                           @NonNull OsmandApplication app, @NonNull TextView subtitle) {
+		SpatialSearchResult spatialSearchResult = item.getSpatialSearchResult();
+		if (spatialSearchResult == null || !spatialSearchResult.isPoiCategory()) {
+			return;
+		}
+		SearchScopeChip chip = view.findViewById(R.id.search_scope_chip);
+		ImageView groupIcon = view.findViewById(R.id.type_name_icon);
+		groupIcon.setVisibility(View.GONE);
+		ApplicationMode applicationMode = app.getSettings().getApplicationMode();
+		boolean nightMode = app.getDaynightHelper().isNightMode(applicationMode, ThemeUsageContext.APP);
+		if (chip != null) {
+			MapObject refObject = spatialSearchResult.getReferenceObject();
+			if (refObject != null) {
+				chip.setScopeName(refObject.getName(), nightMode);
+			}
+		}
+		subtitle.setText(app.getString(R.string.shared_string_near).toLowerCase());
+		subtitle.setVisibility(View.VISIBLE);
+
+		if (item.getSearchResult().object instanceof TopIndexFilter topIndexFilter) {
+			PoiAdditionalUiRule uiRule = PoiAdditionalUiRules.INSTANCE.findRule(topIndexFilter.getTag());
+			if (uiRule.getCustomIconId() != null) {
+				int iconColor = nightMode ? R.color.osmand_orange_dark : R.color.osmand_orange;
+				Drawable icon = app.getUIUtilities().getIcon(uiRule.getCustomIconId(), iconColor);
+				((ImageView)view.findViewById(R.id.imageView)).setImageDrawable(icon);
+			}
+		}
+	}
+
+	private static void setupIconContainer(@NonNull View view, @NonNull ImageView imageView,
+	                                       @NonNull OsmandApplication app) {
+		FrameLayout imageContainer = view.findViewById(R.id.image_container);
+		if (imageContainer != null) {
+			FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) imageView.getLayoutParams();
+			params.width = AndroidUtils.dpToPx(app, 24);
+			params.height = AndroidUtils.dpToPx(app, 24);
+			params.gravity = Gravity.CENTER;
+			imageView.setLayoutParams(params);
+			imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+			int margin = AndroidUtils.dpToPx(app, 6);
+			imageContainer.setPadding(margin, margin, margin, margin);
 		}
 	}
 
@@ -336,4 +405,3 @@ public class SearchResultViewHolder extends RecyclerView.ViewHolder {
 		}
 	}
 }
-

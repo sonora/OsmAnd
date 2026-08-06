@@ -920,7 +920,7 @@ public class BinaryMapAddressReaderAdapter {
 				long oldLimit = codedIS.pushLimitLong((long) length);
 				res = readNameIndexInternal(nameIndex);
 				codedIS.popLimit(oldLimit);
-				break;
+				return res;
 			default:
 				skipUnknownField(t);
 				break;
@@ -942,6 +942,7 @@ public class BinaryMapAddressReaderAdapter {
 				long length = readInt();
 				long oldLimit = codedIS.pushLimitLong((long) length);
 				pi.setTablePointer(codedIS.getTotalBytesRead());
+				pi.readTableBytes(length);
 				map.readNameIndexInspector(null, pi);
 				codedIS.popLimit(oldLimit);
 				break;
@@ -951,6 +952,7 @@ public class BinaryMapAddressReaderAdapter {
 				if (pi.getCommonStats() != null) {
 					codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
 				} else {
+					pi.readTableBytes(length);
 					CommonIndexedStats stat = OsmandOdb.CommonIndexedStats.parseFrom(codedIS);
 					pi.setCommonIndexed(stat);
 				}
@@ -968,13 +970,16 @@ public class BinaryMapAddressReaderAdapter {
 						codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
 						break;
 					} else if (loffsets.get(ind) != shift) {
-						codedIS.skipRawBytes(loffsets.get(ind) - shift);
+						long skip = loffsets.get(ind) - shift;
+						pi.skipAtomsBytes(skip);
+						codedIS.skipRawBytes(skip);
 						shift = codedIS.getTotalBytesRead();
 					}
 					ind++;
 				}
 				int len = codedIS.readRawVarint32();
 				oldLimit = codedIS.pushLimitLong((long) len);
+				pi.readAtomsBytes(len);
 				PrefixNameValue prefix = pi.addData(AddressNameIndexData.parseFrom(codedIS), shift);
 				if (res != null) {
 					res.add(prefix);

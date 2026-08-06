@@ -63,6 +63,11 @@ public class MediaStorageHelper {
 	}
 
 	@NonNull
+	private File getLegacyInternalMediaDir() {
+		return MediaProvider.getLegacyInternalMediaDir(app.getAppPath().getAbsolutePath());
+	}
+
+	@NonNull
 	public String getStorageDisplayDirectory(@NonNull MediaStorageType storageType) {
 		return getStorageDisplayDirectory(storageType, app.getSettings().MEDIA_STORAGE_MANUAL_URI.get());
 	}
@@ -128,7 +133,10 @@ public class MediaStorageHelper {
 					MediaStorageUtils.getMediaStoreRelativePath(storageType, dirType), fileName);
 		}
 		File dir = MediaStorageUtils.resolveRawMediaDir(storageType, dirType, getInternalMediaDir());
-		return dir != null && new File(dir, fileName).exists();
+		if (dir != null && new File(dir, fileName).exists()) {
+			return true;
+		}
+		return storageType == MAIN_STORAGE && new File(getLegacyInternalMediaDir(), fileName).exists();
 	}
 
 	@Nullable
@@ -154,30 +162,37 @@ public class MediaStorageHelper {
 
 	@Nullable
 	public MediaSource resolveManagedMediaSource(@NonNull MediaStorageLocation location, @Nullable String href) {
+		return resolveMediaSource(location, href, false);
+	}
+
+	@Nullable
+	public MediaSource resolveMediaSource(@NonNull MediaStorageLocation location, @Nullable String href, boolean includeNonManagedMedia) {
 		if (Algorithms.isEmpty(href)) {
 			return null;
 		}
 		String uri = href.trim();
 		String internalPath = LinkMediaFactory.getInternalPath(uri);
 		if (internalPath != null) {
-			return resolveInternalMediaSource(uri, internalPath);
+			return resolveInternalMediaSource(uri, internalPath, includeNonManagedMedia);
 		}
 
 		Uri parsedUri = Uri.parse(uri);
 		String scheme = parsedUri.getScheme();
 		if (SCHEME_FILE.equalsIgnoreCase(scheme)) {
 			String path = parsedUri.getPath();
-			return path != null ? resolveFileMediaSource(location, uri, new File(path)) : null;
+			return path != null ? resolveFileMediaSource(location, uri, new File(path), includeNonManagedMedia) : null;
 		} else if (SCHEME_CONTENT.equalsIgnoreCase(scheme)) {
+			MediaSource source = null;
 			if (location.getStorageType() == MANUALLY_SPECIFIED) {
-				return resolveDocumentMediaSource(location, uri, parsedUri);
+				source = resolveDocumentMediaSource(location, uri, parsedUri);
 			} else if (MediaStorageUtils.isPublicStorage(location.getStorageType())) {
-				return resolveMediaStoreSource(location, uri, parsedUri);
+				source = resolveMediaStoreSource(location, uri, parsedUri);
 			}
+			return source != null || !includeNonManagedMedia ? source : resolveContentMediaSource(uri, parsedUri);
 		} else if (scheme == null) {
 			File file = new File(uri);
 			if (file.isAbsolute()) {
-				return resolveFileMediaSource(location, uri, file);
+				return resolveFileMediaSource(location, uri, file, includeNonManagedMedia);
 			}
 		}
 		return null;
@@ -193,7 +208,8 @@ public class MediaStorageHelper {
 	}
 
 	private boolean isInInternalMediaDir(@NonNull File file) {
-		return MediaStorageUtils.isInDirectory(getInternalMediaDir(), file);
+		return MediaStorageUtils.isInDirectory(getInternalMediaDir(), file)
+				|| MediaStorageUtils.isInDirectory(getLegacyInternalMediaDir(), file);
 	}
 
 	/**
@@ -220,8 +236,11 @@ public class MediaStorageHelper {
 	}
 
 	@Nullable
-	private MediaSource resolveInternalMediaSource(@NonNull String href, @NonNull String internalPath) {
+	private MediaSource resolveInternalMediaSource(@NonNull String href, @NonNull String internalPath, boolean includeNonManagedMedia) {
 		File file = MediaProvider.resolveInternalMediaFile(app.getAppPath().getAbsolutePath(), internalPath);
+		if (includeNonManagedMedia) {
+			return file.isFile() ? new FileMediaSource(this, href, file) : null;
+		}
 		if (file.exists() && MediaFileNameFormat.isManagedMediaFileName(file.getName())) {
 			return new FileMediaSource(this, href, file);
 		}
@@ -229,7 +248,11 @@ public class MediaStorageHelper {
 	}
 
 	@Nullable
-	private MediaSource resolveFileMediaSource(@NonNull MediaStorageLocation location, @NonNull String href, @NonNull File file) {
+	private MediaSource resolveFileMediaSource(@NonNull MediaStorageLocation location,
+			@NonNull String href, @NonNull File file, boolean includeNonManagedMedia) {
+		if (includeNonManagedMedia) {
+			return file.isFile() ? new FileMediaSource(this, href, file) : null;
+		}
 		if (!file.exists() || !isManagedMediaFile(location, file)) {
 			return null;
 		}
@@ -269,6 +292,16 @@ public class MediaStorageHelper {
 				location.getManualUri());
 	}
 
+	@Nullable
+	private MediaSource resolveContentMediaSource(@NonNull String href, @NonNull Uri uri) {
+		MediaInfo info = readMediaInfo(uri, false);
+		if (info == null || Algorithms.isEmpty(info.name())) {
+			return null;
+		}
+		MediaDirType dirType = MediaDirType.fromMimeTypeOrExtension(info.mimeType(), Algorithms.getFileNameExtension(info.name()));
+		return new UriMediaSource(app, href, uri, info.name(), info.length(), info.mimeType(), dirType, null);
+	}
+
 	private static boolean isGeneratedMediaName(@Nullable String name) {
 		return !Algorithms.isEmpty(name) && MediaFileNameFormat.isManagedMediaFileName(name);
 	}
@@ -278,7 +311,7 @@ public class MediaStorageHelper {
 			return false;
 		}
 		if (location.getStorageType() == MAIN_STORAGE) {
-			return MediaStorageUtils.isInDirectory(getInternalMediaDir(), file);
+			return isInInternalMediaDir(file);
 		}
 		if (location.getStorageType() == MANUALLY_SPECIFIED) {
 			return false;

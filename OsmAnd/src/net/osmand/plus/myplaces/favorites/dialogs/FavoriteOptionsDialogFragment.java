@@ -30,14 +30,16 @@ import net.osmand.plus.base.bottomsheetmenu.simpleitems.DividerHalfItem;
 import net.osmand.plus.base.bottomsheetmenu.simpleitems.DividerItem;
 import net.osmand.plus.helpers.AndroidUiHelper;
 import net.osmand.plus.mapcontextmenu.editors.FavoriteAppearanceFragment;
-import net.osmand.plus.mapcontextmenu.editors.FavouriteGroupEditorFragment;
 import net.osmand.plus.mapmarkers.MapMarkersGroup;
 import net.osmand.plus.mapmarkers.MapMarkersHelper;
+import net.osmand.plus.myplaces.MyPlacesActivity;
 import net.osmand.plus.myplaces.favorites.FavoriteFolder;
 import net.osmand.plus.myplaces.favorites.FavoriteFolderFormatter;
 import net.osmand.plus.myplaces.favorites.FavoriteFolderPath;
 import net.osmand.plus.myplaces.favorites.FavoriteGroup;
 import net.osmand.plus.myplaces.favorites.FavouritesHelper;
+import net.osmand.plus.myplaces.favorites.dialogs.share.ShareFavoritesController;
+import net.osmand.plus.myplaces.favorites.dialogs.share.ShareFavoritesController.ShareHandlingResult;
 import net.osmand.plus.track.SelectTrackTabsFragment;
 import net.osmand.plus.track.helpers.GpxUiHelper;
 import net.osmand.plus.track.helpers.save.SaveGpxHelper;
@@ -163,14 +165,6 @@ public class FavoriteOptionsDialogFragment extends MenuBottomSheetDialogFragment
 			items.add(new DividerHalfItem(getContext()));
 		}
 
-		BaseBottomSheetItem addFolderItem = new SimpleBottomSheetItem.Builder()
-				.setIcon(getContentIcon(R.drawable.ic_action_folder_add_outlined))
-				.setTitle(getString(R.string.add_new_folder))
-				.setLayoutId(R.layout.bottom_sheet_item_simple)
-				.setOnClickListener(v -> showAddFolderDialog())
-				.create();
-		items.add(addFolderItem);
-
 		BaseBottomSheetItem editNameItem = new SimpleBottomSheetItem.Builder()
 				.setIcon(getContentIcon(R.drawable.ic_action_edit_outlined))
 				.setTitle(getString(R.string.shared_string_rename))
@@ -195,6 +189,37 @@ public class FavoriteOptionsDialogFragment extends MenuBottomSheetDialogFragment
 					}))
 					.create();
 			items.add(changeColorItem);
+		}
+
+		boolean canShare = group != null && !group.getPoints().isEmpty();
+		boolean canMove = !Algorithms.isEmpty(folderPath);
+		if (canShare || canMove) {
+			items.add(new DividerHalfItem(getContext()));
+		}
+
+		if (canShare) {
+			FavoriteGroup favoriteGroup = group;
+			Drawable shareIcon = getContentIcon(R.drawable.ic_action_gshare_dark);
+			if (shareIcon != null) {
+				shareIcon = AndroidUtils.getDrawableForDirection(app, shareIcon);
+			}
+			BaseBottomSheetItem shareItem = new SimpleBottomSheetItem.Builder()
+					.setIcon(shareIcon)
+					.setTitle(getString(R.string.shared_string_share))
+					.setLayoutId(R.layout.bottom_sheet_item_simple)
+					.setOnClickListener(view -> handleShare(favoriteGroup))
+					.create();
+			items.add(shareItem);
+		}
+
+		if (canMove) {
+			BaseBottomSheetItem moveItem = new SimpleBottomSheetItem.Builder()
+					.setIcon(getContentIcon(R.drawable.ic_action_folder_move_outlined))
+					.setTitle(getString(R.string.shared_string_move))
+					.setLayoutId(R.layout.bottom_sheet_item_simple)
+					.setOnClickListener(view -> showMoveDialog())
+					.create();
+			items.add(moveItem);
 		}
 
 		if (group != null && !group.getPoints().isEmpty()) {
@@ -236,24 +261,6 @@ public class FavoriteOptionsDialogFragment extends MenuBottomSheetDialogFragment
 					})
 					.create();
 			items.add(addToTrackGroupItem);
-
-			Drawable shareIcon = getContentIcon(R.drawable.ic_action_gshare_dark);
-			if (shareIcon != null) {
-				shareIcon = AndroidUtils.getDrawableForDirection(app, shareIcon);
-			}
-			BaseBottomSheetItem shareItem = new SimpleBottomSheetItem.Builder()
-					.setIcon(shareIcon)
-					.setTitle(getString(R.string.shared_string_share))
-					.setLayoutId(R.layout.bottom_sheet_item_simple)
-					.setOnClickListener(view -> {
-						BaseFavoriteListFragment fragment = getFavoriteListFragment();
-						if (fragment != null) {
-							fragment.shareFavorites(Collections.singletonList(favoriteGroup));
-						}
-						dismiss();
-					})
-					.create();
-			items.add(shareItem);
 		}
 		items.add(new DividerHalfItem(getContext()));
 
@@ -294,6 +301,20 @@ public class FavoriteOptionsDialogFragment extends MenuBottomSheetDialogFragment
 		}
 	}
 
+	private void handleShare(@NonNull FavoriteGroup group) {
+		BaseFavoriteListFragment fragment = getFavoriteListFragment();
+		if (fragment == null) return;
+
+		FragmentActivity activity = getActivity();
+		if (activity == null) return;
+
+		ShareHandlingResult result = ShareFavoritesController.handleShareRequest(activity, group);
+		if (result == ShareHandlingResult.GPX_FALLBACK_REQUIRED) {
+			fragment.shareFavorites(Collections.singletonList(group));
+		}
+		dismiss();
+	}
+
 	@Override
 	public void onResume() {
 		super.onResume();
@@ -326,17 +347,17 @@ public class FavoriteOptionsDialogFragment extends MenuBottomSheetDialogFragment
 				: getString(R.string.shared_string_empty);
 	}
 
-	private void showAddFolderDialog() {
+	private void showMoveDialog() {
 		callActivity(activity -> {
-			FragmentManager manager = activity.getSupportFragmentManager();
-			FavouriteGroupEditorFragment.showInstance(manager, null, pointsGroup -> {
-				FavoriteGroup createdGroup = helper.getGroup(pointsGroup.getName());
-				if (createdGroup != null) {
-					helper.saveSelectedGroupsIntoFile(Collections.singletonList(createdGroup), true);
-				}
+			if (folderPath == null || !(activity instanceof MyPlacesActivity myPlacesActivity)) {
+				return;
+			}
+			FavoriteMenu menu = new FavoriteMenu(app, app.getUIUtilities(), myPlacesActivity);
+			menu.showMoveFavoriteFoldersDialog(activity.getSupportFragmentManager(),
+					Collections.singletonList(folderPath), FavoriteFolderPath.parentPath(folderPath), destinationPath -> {
 				updateAll();
-			}, false, folderPath);
-			dismiss();
+				dismiss();
+			});
 		});
 	}
 

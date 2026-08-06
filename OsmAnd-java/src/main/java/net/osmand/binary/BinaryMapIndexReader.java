@@ -1822,7 +1822,9 @@ public class BinaryMapIndexReader {
 
 	public void close() throws IOException {
 		if (codedIS != null) {
-			raf.close();
+			if (raf != null) {
+				raf.close();
+			}
 			codedIS = null;
 			mapIndexes.clear();
 			addressIndexes.clear();
@@ -1845,8 +1847,11 @@ public class BinaryMapIndexReader {
 	}
 
 	public static interface SearchPoiAdditionalFilter {
+		
 		public boolean accept(PoiSubType poiSubType, String value);
+		
 		String getName();
+		
 		String getIconResource();
 	}
 
@@ -1906,7 +1911,7 @@ public class BinaryMapIndexReader {
 		public boolean log = true;
 		int numberOfVisitedObjects = 0;
 		int numberOfAcceptedObjects = 0;
-		int numberOfReadSubtrees = 0;
+		public int numberOfReadSubtrees = 0;
 		int numberOfAcceptedSubtrees = 0;
 		boolean interrupted = false;
 		PriorityQueue<T> priorityQueue;
@@ -2459,7 +2464,7 @@ public class BinaryMapIndexReader {
 
 	private static boolean testMapSearch = false;
 	private static boolean testAddressSearch = false;
-	private static boolean testAddressSearchName = false;
+	private static boolean testAddressSearchName = true;
 	private static boolean testAddressJustifySearch = false;
 	private static boolean testPoiSearch = true;
 	private static boolean testPoiSearchOnPath = false;
@@ -2479,7 +2484,8 @@ public class BinaryMapIndexReader {
 
 	public static void main(String[] args) throws IOException {
 		File fl = new File(System.getProperty("maps") + "/Synthetic_test_rendering.obf");
-		fl = new File(System.getProperty("maps") +"/Us_pennsylvania_northamerica_2.obf");
+		fl = new File(System.getProperty("maps") +"/Liechtenstein_europe.obf");
+		fl = new File(System.getProperty("maps") +"/map.obf");
 		
 		RandomAccessFile raf = new RandomAccessFile(fl, "r");
 		SearchStat stat = new SearchStat();
@@ -2507,7 +2513,7 @@ public class BinaryMapIndexReader {
 			PoiRegion poiRegion = reader.getPoiIndexes().get(0);
 			if (testPoiSearch) {
 				testPoiSearch(reader, poiRegion, stat);
-				testPoiSearchByName(reader, "shell", 0, 0, stat);
+				testPoiSearchByName(reader, "#^", 0, 0, stat);
 //				testPoiSearchByName(reader, "shell", 0, 0, stat);
 			}
 			if (testPoiSearchOnPath) {
@@ -2783,7 +2789,9 @@ public class BinaryMapIndexReader {
 				if (match) {
 					readNameIndexInspector(key, inspector);
 				} else {
-					codedIS.skipRawBytes(codedIS.getBytesUntilLimit());
+					long skip = codedIS.getBytesUntilLimit();
+					inspector.skipTableBytes(skip);
+					codedIS.skipRawBytes(skip);
 				}
 				codedIS.popLimit(oldLim);
 				break;

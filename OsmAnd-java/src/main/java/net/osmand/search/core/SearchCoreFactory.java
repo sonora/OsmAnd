@@ -6,6 +6,7 @@ import static net.osmand.CollatorStringMatcher.StringMatcherMode.CHECK_ONLY_STAR
 import static net.osmand.CollatorStringMatcher.StringMatcherMode.CHECK_STARTS_FROM_SPACE;
 import static net.osmand.binary.ObfConstants.isTagIndexedForSearchAsId;
 import static net.osmand.binary.ObfConstants.isTagIndexedForSearchAsName;
+import static net.osmand.binary.ObfConstants.isTagNonIndexedForSearchAsName;
 import static net.osmand.data.Amenity.POPULATION;
 import static net.osmand.osm.MapPoiTypes.OSM_WIKI_CATEGORY;
 import static net.osmand.osm.MapPoiTypes.WIKI_PLACE;
@@ -473,7 +474,7 @@ public class SearchCoreFactory {
 		
 		boolean hasNonNumericLeftUnknownSearchWord(SearchResult res) {
 			for (String leftUnknownSearchWord : res.filterUnknownSearchWord(null)) {
-				if (!CommonWords.isNumber2Letters(leftUnknownSearchWord)) {
+				if (!SearchAlgorithms.isNumber2Letters(leftUnknownSearchWord)) {
 					return true;
 				}
 			}
@@ -643,12 +644,12 @@ public class SearchCoreFactory {
 							req.setBBox(x31, y31, left, top, right, bottom);
 						} else {
 							int radius = (int) c.getType().getRadius() * 3;
-							rect = SearchPhrase.calculateBbox(radius, c.getLocation());
+							rect = MapUtils.calculate31BboxUsingRhumb(radius, c.getLocation());
 							req.setBBoxRadius(c.getLocation().getLatitude(), c.getLocation().getLongitude(), radius);
 						}
 					} else {
 						int radius = phrase.getRadiusSearch(maxRadius);
-						rect = SearchPhrase.calculateBbox(radius, loc);
+						rect = MapUtils.calculate31BboxUsingRhumb(radius, loc);
 						req.setBBoxRadius(loc.getLatitude(), loc.getLongitude(), radius);
 					}
                     offlineIterator = phrase.getOfflineIndexes(rect, SearchPhraseDataType.ADDRESS);
@@ -683,7 +684,7 @@ public class SearchCoreFactory {
 								if (match) {
 									newParentSearchResult = cityResult;
 								} else if(hasNonNumericLeftUnknownSearchWord(res)) { // speed up
-									QuadRect bbox = SearchPhrase.calculateBbox(1000, res.location);
+									QuadRect bbox = MapUtils.calculate31BboxUsingRhumb(1000, res.location);
 									List<City>  cacheResArray = townCitiesCache.queryBoundaries(bbox);
 									for (City boundary : cacheResArray) {
 										int[] bb = boundary.getBbox31();
@@ -815,8 +816,10 @@ public class SearchCoreFactory {
 					}
 					if (!matchLocalName && !nm.matches(sr.otherNames)) {
 						for(String k : object.getAdditionalInfoKeys()) {
-							if ((isTagIndexedForSearchAsName(k) || isTagIndexedForSearchAsId(k))
-									&& nm.matches(object.getAdditionalInfo(k))) {
+							if (( isTagIndexedForSearchAsName(k) ||
+								  isTagNonIndexedForSearchAsName(k) ||
+								  isTagIndexedForSearchAsId(k))
+								&& nm.matches(object.getAdditionalInfo(k))) {
 								sr.alternateName = object.getAdditionalInfo(k);
 								break;
 							}
@@ -1728,6 +1731,7 @@ public class SearchCoreFactory {
 		@Override
 		public boolean search(SearchPhrase phrase, final SearchResultMatcher resultMatcher) throws IOException {
 			Street s = null;
+			CommonWords commonWords = CommonWords.getInstance();
 			int priority = SEARCH_BUILDING_BY_STREET_PRIORITY;
 			if (phrase.isLastWord(ObjectType.STREET)) {
 				s =  (Street) phrase.getLastSelectedWord().getResult().object;
@@ -1828,7 +1832,7 @@ public class SearchCoreFactory {
 				String streetIntersection = phrase.getUnknownWordToSearch();
 				if (Algorithms.isEmpty(streetIntersection) ||
 						(!Character.isDigit(streetIntersection.charAt(0)) &&
-						  CommonWords.getCommonSearch(streetIntersection) == -1) &&
+								commonWords.getCommonSearch(streetIntersection) == -1) &&
 						 phrase.isSearchTypeAllowed(ObjectType.STREET_INTERSECTION)) {
 					for (Street street : s.getIntersectedStreets()) {
 						SearchResult res = new SearchResult(phrase);
@@ -2056,7 +2060,7 @@ public class SearchCoreFactory {
 		private LatLon searchOLCLocation(SearchPhrase phrase, final SearchResultMatcher resultMatcher) throws IOException {
 			List<String> unknownWords = phrase.getUnknownSearchWords();
 			String text = !unknownWords.isEmpty() ? unknownWords.get(0) : phrase.getUnknownWordToSearch();
-			
+
 			final List<String> allowedTypes = Arrays.asList("village", "town", "city"); // ascending priority
 			QuadRect searchBBox31 = new QuadRect(0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
 			final NameStringMatcher nm = new NameStringMatcher(text, CHECK_STARTS_FROM_SPACE);
@@ -2082,11 +2086,11 @@ public class SearchCoreFactory {
 					if (object.objectType == POI) {
 						amenity = (Amenity) object.object;
 					}
-					
+
 					if (amenity == null) {
 						return false;
 					}
-					
+
 					String subType = amenity.getSubType();
 					String localeName = amenity.getName(lang, transliterate);
 					Collection<String> otherNames = object.otherNames;

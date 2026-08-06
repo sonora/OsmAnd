@@ -69,6 +69,7 @@ public class Amenity extends MapObject {
 	public static final String ROUTE_ID_OSM_PREFIX = "O"; // indexed in POI-section
 	public static final String ROUTE_SOURCE = "route_source";
 	public static final String ROUTE_NAME = "route_name";
+	public static final String SHIELD_STUB_NAME = "shield_stub_name";
 	public static final String ROUTE_ACTIVITY_TYPE = "route_activity_type";
 	public static final String WIKI_PHOTO = "wiki_photo";
 	public static final String WIKI_CATEGORY = "wiki_category";
@@ -107,6 +108,7 @@ public class Amenity extends MapObject {
 	private int order;
 	private Map<Integer, List<TagValuePair>> tagGroups;
 	private String regionName;
+	private int[] bbox31;
 
 	private String wikiIconUrl;
 	private String wikiImageStubUrl;
@@ -994,6 +996,15 @@ public class Amenity extends MapObject {
 
 	public void setY(TIntArrayList y) {
 		this.y = y;
+	}
+	
+	public void setBbox31(int[] bbox31) {
+		this.bbox31 = bbox31;
+	}
+	
+	@Override
+	public int[] getBbox31() {
+		return bbox31;
 	}
 
 	public String getRouteActivityType() {
