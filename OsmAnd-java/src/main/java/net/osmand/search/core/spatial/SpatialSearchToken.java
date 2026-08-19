@@ -26,6 +26,7 @@ import net.osmand.data.Building;
 import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.Street;
+import net.osmand.osm.MapPoiTypes;
 import net.osmand.search.core.HashQuadTree;
 import net.osmand.search.core.HashSkipTileQuadTree;
 import net.osmand.search.core.spatial.SpatialSearchContext.SpatialSearchStats;
@@ -43,6 +44,9 @@ public class SpatialSearchToken {
 	public static final int POI_TYPE = -1;
 	public static final int STREET_TYPE = CityBlocks.STREET_TYPE.index;
 	public static final String DOT_INCOMPLETE_STRING = CollatorStringMatcher.INCOMPLETE_DOT + "";
+
+	private static final String TOP_INDEX_CATEGORY =
+			NameIndexReader.POI_CATEGORY_PREFIX + MapPoiTypes.TOP_INDEX_ADDITIONAL_PREFIX;
 
 	int MIN_CHAR_INCOMPLETE;
 	
@@ -286,11 +290,11 @@ public class SpatialSearchToken {
 	boolean matchName(String name, TIntArrayList poiTypes) {
 //		System.out.printf("query '%s' matches '%s' %s\n", word, name, collatorMain.matches(name) || 
 //				collatorMain.matches(name.replace(' ', '-')));
-		if (name.startsWith(NameIndexReader.POI_CATEGORY_PREFIX)) {
-			return poiTypes != null && matchPoiCategoryKeys(poiTypes);
-		}
 		if (categoryMatchMode) {
 			return name.equals(word);
+		}
+		if (name.startsWith(NameIndexReader.POI_CATEGORY_PREFIX)) {
+			return poiTypes != null && matchPoiCategoryKeys(poiTypes);
 		}
 		Boolean cache = fastMatchCheck.get(name);
 		if (cache != null) {
@@ -362,11 +366,17 @@ public class SpatialSearchToken {
 	
 	String[] matchSplitName(String name) {
 		name = SearchAlgorithms.alignChars(name);
+		if (wordAligned.length() >= name.length()) {
+			return null;
+		}
 		String[] res = null;
-		if (wordAligned.length() < name.length() 
-				&& collatorMain.getCollator().equals(name.substring(0, wordAligned.length()), wordAligned)) {
+		String cutName = name.substring(0, wordAligned.length());
+		boolean fastEquals = wordAligned.equals(cutName);
+		boolean isTopIndex = cutName.startsWith(TOP_INDEX_CATEGORY) || wordAligned.startsWith(TOP_INDEX_CATEGORY);
+		boolean collatorEquals = !fastEquals && !isTopIndex && collatorMain.getCollator().equals(cutName, wordAligned);
+		if (fastEquals || collatorEquals) {
 			res = new String[2];
-			res[0] = name.substring(0, wordAligned.length());
+			res[0] = cutName;
 			// don't split numbers
 			if (Character.isDigit(name.charAt(wordAligned.length()))
 					&& Character.isDigit(name.charAt(wordAligned.length() - 1))) {
