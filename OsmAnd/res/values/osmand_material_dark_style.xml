@@ -11,6 +11,9 @@
 		<item name="color_button_secondary_v2">@color/buttons_secondary_dark_v2</item>
 		<item name="color_material_switch_outline">@color/material_switch_outline_dark</item>
 		<item name="active_color_secondary">@color/active_color_secondary_dark</item>
+		<item name="icon_button_background_hovered">@color/btn_bg_icon_hover_dark</item>
+		<item name="icon_button_background_focused">@color/btn_bg_icon_focused_dark</item>
+		<item name="icon_button_background_pressed">@color/btn_bg_icon_pressed_dark</item>
 		<item name="ctx_menu_card_btn">@color/inactive_buttons_and_links_bg_dark</item>
 		<item name="active_color_primary">@color/active_color_primary_dark</item>
 		<item name="active_color_basic">@color/active_color_primary_dark</item>
@@ -36,8 +39,13 @@
 		<item name="dlg_btn_transparent">@drawable/dlg_btn_transparent_dark</item>
 		<item name="dlg_btn_stroked">@drawable/dlg_btn_stroked_dark</item>
 		<item name="dlg_btn_stroked_secondary_content">@color/dlg_btn_stroked_secondary_content_dark</item>
+		<item name="dlg_btn_accent_stroked">@drawable/dlg_btn_accent_stroked_dark</item>
+		<item name="dlg_btn_accent_stroked_text">@color/dlg_btn_accent_stroked_text_dark</item>
 		<item name="dlg_btn_tertiary_text">@color/active_color_primary_dark</item>
 		<item name="dlg_btn_tertiary_harmful">@drawable/dlg_btn_tertiary_harmful</item>
+		<item name="wikivoyage_primary_btn_text_color">@color/active_buttons_and_links_text_dark</item>
+		<item name="stroked_btn_contour">@drawable/stroked_btn_contour_dark</item>
+		<item name="radio_button_outline">@drawable/ic_action_radio_button_night</item>
 		<item name="text_color_secondary">@color/text_color_secondary_dark</item>
 		<item name="android:textColorPrimary">@color/text_color_primary_dark</item>
 		<item name="android:textColorSecondary">@color/text_color_secondary_dark</item>

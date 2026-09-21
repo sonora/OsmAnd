@@ -24,6 +24,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.compose.ui.AndroidComposeUiFlags;
 import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleObserver;
@@ -62,6 +63,7 @@ import net.osmand.plus.exploreplaces.ExplorePlacesOnlineProvider;
 import net.osmand.plus.exploreplaces.ExplorePlacesProvider;
 import net.osmand.plus.feedback.AnalyticsHelper;
 import net.osmand.plus.feedback.FeedbackHelper;
+import net.osmand.plus.feedback.MemoryLog;
 import net.osmand.plus.feedback.RateUsHelper;
 import net.osmand.plus.feedback.RateUsState;
 import net.osmand.plus.gallery.GalleryHelper;
@@ -117,6 +119,7 @@ import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.OsmandMap;
 import net.osmand.plus.views.PointImageUtils;
 import net.osmand.plus.views.corenative.NativeCoreContext;
+import net.osmand.plus.views.mapwidgets.configure.appearance.PanelAppearanceSettingsManager;
 import net.osmand.plus.views.mapwidgets.utils.AverageGlideComputer;
 import net.osmand.plus.views.mapwidgets.utils.AverageSpeedComputer;
 import net.osmand.plus.voice.CommandPlayer;
@@ -164,6 +167,7 @@ public class OsmandApplication extends MultiDexApplication {
 	private final LocaleHelper localeHelper = new LocaleHelper(this);
 	private final ToastHelper toastHelper = new ToastHelper(this);
 	private final CoordinateFormatHelper coordinateFormatHelper = new CoordinateFormatHelper(this);
+	PanelAppearanceSettingsManager panelAppearanceSettingsManager;
 
 	// start variables
 	ResourceManager resourceManager;
@@ -244,6 +248,7 @@ public class OsmandApplication extends MultiDexApplication {
 		}
 		long timeToStart = System.currentTimeMillis();
 		enableStrictMode();
+		applyComposeWorkarounds();
 		super.onCreate();
 
 		LifecycleObserver appLifecycleObserver = new DefaultLifecycleObserver() {
@@ -304,6 +309,26 @@ public class OsmandApplication extends MultiDexApplication {
 		BackupHelper.DEBUG = PluginsHelper.isDevelopment();
 	}
 
+	/**
+	 * Turns off the "view based semantics handler" Compose feature flag.
+	 * <p>
+	 * With the flag on, AndroidComposeViewAccessibilityDelegateCompat.onViewDetachedFromWindow()
+	 * dereferences View.getHandler() with {@code !!}, although that handler is null whenever the
+	 * view is not attached to a window. AbsListView leaves recycled item views exactly in that
+	 * state: RecycleBin detaches them from the window and later puts them back with
+	 * attachViewToParent(), which does not re-dispatch onAttachedToWindow(). The next
+	 * ListView.resetList() -> removeAllViewsInLayout() then detaches such a view a second time and
+	 * every ComposeView inside a list item (search results, gallery sort bar, chips) crashes with
+	 * a NullPointerException.
+	 * <p>
+	 * The flag only exists to support Compose on a non-main thread, which OsmAnd never does, so
+	 * falling back to the main looper handler is safe. To be removed once the upstream bug
+	 * (b/486998514) is fixed.
+	 */
+	private void applyComposeWorkarounds() {
+		AndroidComposeUiFlags.isViewBasedSemanticsHandlerEnabled = false;
+	}
+
 	public boolean isPlusVersionInApp() {
 		return true;
 	}
@@ -315,6 +340,7 @@ public class OsmandApplication extends MultiDexApplication {
 	private synchronized void startDiagnostics() {
 		OsmAndDiagnosticThread diagnosticThread = this.diagnosticThread;
 		if (diagnosticThread == null || !diagnosticThread.isAlive()) {
+			MemoryLog.watchActivities(this);
 			diagnosticThread = new OsmAndDiagnosticThread(this);
 			diagnosticThread.start();
 			this.diagnosticThread = diagnosticThread;
@@ -439,9 +465,17 @@ public class OsmandApplication extends MultiDexApplication {
 		return settings;
 	}
 
-	public void setSettings(OsmandSettings settings) {
+	public synchronized void setSettings(OsmandSettings settings) {
 		this.settings = settings;
+		if (panelAppearanceSettingsManager != null) {
+			panelAppearanceSettingsManager.updateSettings(settings);
+		}
 		PluginsHelper.initPlugins(this);
+	}
+
+	@NonNull
+	public PanelAppearanceSettingsManager getPanelAppearanceSettingsManager() {
+		return panelAppearanceSettingsManager;
 	}
 
 	public SavingTrackHelper getSavingTrackHelper() {
@@ -535,6 +569,12 @@ public class OsmandApplication extends MultiDexApplication {
 	public void onLowMemory() {
 		super.onLowMemory();
 		resourceManager.onLowMemory();
+	}
+
+	@Override
+	public void onTrimMemory(int level) {
+		super.onTrimMemory(level);
+		MemoryLog.onTrimMemory(level);
 	}
 
 	@Override
@@ -857,7 +897,7 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	public void startApplication() {
-		feedbackHelper.setExceptionHandler();
+		feedbackHelper.setupExceptionHandler();
 		if (!NetworkUtils.hasProxy() && settings.isProxyEnabled()) {
 			try {
 				NetworkUtils.setProxy(settings.PROXY_HOST.get(), settings.PROXY_PORT.get());
@@ -1130,8 +1170,16 @@ public class OsmandApplication extends MultiDexApplication {
 					LOG.info(">>>> Failed APP startForegroundService = " + usageIntent + " {no location permission}");
 					return;
 				}
+				if (!isAppInForeground()) {
+					// A foreground service started from the background is denied the while-in-use
+					// location capability, so startForeground(.., TYPE_LOCATION) throws and the
+					// platform may kill the process for missing its startForegroundService()
+					// deadline. See #25861.
+					LOG.info(">>>> Failed APP startForegroundService = " + usageIntent + " {app in background}");
+					return;
+				}
 				try {
-					LOG.info(">>>> APP startForegroundService = " + usageIntent + " {foreground " + isAppInForeground() + "}");
+					LOG.info(">>>> APP startForegroundService = " + usageIntent);
 					context.startForegroundService(intent);
 				} catch (Exception e) {
 					// e.g. ForegroundServiceStartNotAllowedException (Android 12+) when the service

@@ -394,8 +394,7 @@ public class SearchFavoriteFragment extends BaseFullScreenDialogFragment impleme
 	}
 
 	private void sortItems(@NonNull List<Object> items, @NonNull FavoriteListSortMode sortMode) {
-		LatLon latLon = app.getMapViewTrackingUtilities().getDefaultLocation();
-		items.sort(new FavoriteComparator(sortMode, latLon, app));
+		items.sort(new FavoriteComparator(sortMode, app));
 	}
 
 	private List<Object> getAdapterItems() {
@@ -467,7 +466,7 @@ public class SearchFavoriteFragment extends BaseFullScreenDialogFragment impleme
 				FavoriteMenu favoriteMenu = new FavoriteMenu(app, app.getUIUtilities(), requireMyPlacesActivity());
 				favoriteMenu.showPointsSelectOptionsMenu(actionButton, selectedPoints, null, nightMode,
 						createCategorySelectionListener(null, selectedPoints),
-						SearchFavoriteFragment.this, SearchFavoriteFragment.this);
+						SearchFavoriteFragment.this, null, SearchFavoriteFragment.this);
 			}
 		});
 
@@ -676,7 +675,7 @@ public class SearchFavoriteFragment extends BaseFullScreenDialogFragment impleme
 	}
 
 	@Override
-	public void onSavingFavoritesFinished() {
+	public void onSavingFavoritesFinished(boolean success) {
 		updateContent();
 	}
 

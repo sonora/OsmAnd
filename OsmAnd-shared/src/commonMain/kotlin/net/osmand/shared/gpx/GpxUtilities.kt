@@ -61,8 +61,11 @@ object GpxUtilities {
 	const val PINNED_EXTENSION = "pinned"
 	const val POINT_TYPE_EXTENSION = "point_type"
 
-	const val GPXTPX_PREFIX = "gpxtpx:"
-	const val OSMAND_EXTENSIONS_PREFIX = "osmand:"
+	private const val GPXTPX_XML_PREFIX = "gpxtpx"
+	private const val OSMAND_XML_PREFIX = "osmand"
+	private const val GPXX_XML_PREFIX = "gpxx"
+	const val GPXTPX_PREFIX = "$GPXTPX_XML_PREFIX:"
+	const val OSMAND_EXTENSIONS_PREFIX = "$OSMAND_XML_PREFIX:"
 	const val OSM_PREFIX = "osm_tag_"
 	const val AMENITY_PREFIX = "amenity_"
 	const val ORIGIN_EXTENSION = "origin"
@@ -116,6 +119,13 @@ object GpxUtilities {
 			}
 		}
 	}
+
+	// Extensions from these namespaces keep their local tag names, so that a file binding the
+	// same namespace to another prefix (e.g. "ns3:hr" for TrackPointExtension) stays recognized.
+	private val KNOWN_EXTENSION_HOSTS = setOf("osmand.net", "garmin.com")
+
+	private val KNOWN_EXTENSION_PREFIXES =
+		setOf(OSMAND_XML_PREFIX, GPXTPX_XML_PREFIX, GPXX_XML_PREFIX)
 
 	private val SUPPORTED_EXTENSION_TAGS = mapOf(
 		"heartrate" to PointAttributes.SENSOR_TAG_HEART_RATE,
@@ -487,7 +497,7 @@ object GpxUtilities {
 			if (file != null) {
 				serializer.setOutput(file)
 			} else if (stream != null) {
-				serializer.setOutput(stream.buffer())
+				serializer.setOutput(stream)
 			} else {
 				throw KException("Output file or stream is not defined")
 			}
@@ -618,11 +628,10 @@ object GpxUtilities {
 	}
 
 	private fun writeNotNullLink(serializer: XmlSerializer, link: Link?) {
-		if (link != null) {
+		val href = link?.href
+		if (link != null && !href.isNullOrBlank()) {
 			serializer.startTag(null, "link")
-			if (link.href != null) {
-				serializer.attribute(null, "href", link.href!!)
-			}
+			serializer.attribute(null, "href", href)
 			writeNotNullText(serializer, "text", link.text)
 			writeNotNullText(serializer, "type", link.type)
 			serializer.endTag(null, "link")
@@ -1689,6 +1698,19 @@ object GpxUtilities {
 		return supportedTag ?: tag.replace(XML_COLON, ":")
 	}
 
+	private fun getQualifiedExtensionTagName(parser: XmlPullParser): String? {
+		val name = parser.getName() ?: return null
+		val prefix = parser.getPrefix()
+		if (prefix.isNullOrEmpty()) {
+			return name
+		}
+		val host = parser.getNamespace()?.lowercase()
+			?.substringAfter("://")?.substringBefore('/') ?: ""
+		val known = KNOWN_EXTENSION_HOSTS.any { host == it || host.endsWith(".$it") }
+				|| KNOWN_EXTENSION_PREFIXES.contains(prefix)
+		return if (known) name else "$prefix:$name"
+	}
+
 	@Throws(XmlParserException::class, IOException::class)
 	private fun readExtensionsText(parser: XmlPullParser, key: String, target: GpxExtensions) {
 		var tok: Int
@@ -1699,7 +1721,7 @@ object GpxUtilities {
 				if (tag != null && text != null) {
 					val value = text.toString()
 					if (!value.isBlank()) {
-						applyExtensionValue(target, tag, value)
+						applyExtensionValue(target, getQualifiedExtensionTagName(parser) ?: tag, value)
 					}
 				}
 				if (tag == key) {
@@ -1777,9 +1799,7 @@ object GpxUtilities {
 				point.setColor(pointsGroup.color)
 			}
 			val iconName = point.getIconName()
-			if (KAlgorithms.isEmpty(pointsGroup.iconName) && !KAlgorithms.isEmpty(iconName)) {
-				pointsGroup.iconName = iconName
-			} else if (!KAlgorithms.isEmpty(pointsGroup.iconName) && KAlgorithms.isEmpty(iconName)) {
+			if (!KAlgorithms.isEmpty(pointsGroup.iconName) && KAlgorithms.isEmpty(iconName)) {
 				point.setIconName(pointsGroup.iconName)
 			}
 			val backgroundType = point.getBackgroundType()

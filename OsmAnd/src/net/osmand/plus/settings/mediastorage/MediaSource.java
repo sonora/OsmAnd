@@ -7,6 +7,7 @@ import net.osmand.util.Algorithms;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,7 @@ public abstract class MediaSource {
 	private final MediaDirType dirType;
 	private final Set<String> hrefKeys = new LinkedHashSet<>();
 	private final long length;
+	private boolean appManaged;
 
 	MediaSource(@NonNull String href, @NonNull String fileName, long length,
 	            @Nullable String mimeType, @NonNull MediaDirType dirType) {
@@ -55,14 +57,24 @@ public abstract class MediaSource {
 		return dirType;
 	}
 
+	public boolean isAppManaged() {
+		return appManaged;
+	}
+
+	void markAppManaged() {
+		appManaged = true;
+	}
+
 	@NonNull
 	public abstract InputStream openInputStream() throws IOException;
 
 	public abstract void delete() throws IOException;
 
+	public abstract long getLastModified();
+
 	@NonNull
 	public List<String> getHrefKeys() {
-		return List.copyOf(hrefKeys);
+		return new ArrayList<>(hrefKeys);
 	}
 
 	@NonNull

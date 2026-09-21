@@ -14,6 +14,7 @@ import net.osmand.Location;
 import net.osmand.PlatformUtil;
 import net.osmand.data.DataTileManager;
 import net.osmand.plus.OsmandApplication;
+import net.osmand.plus.media.MediaMetadataUtils;
 import net.osmand.plus.plugins.PluginsHelper;
 import net.osmand.plus.plugins.monitoring.OsmandMonitoringPlugin;
 import net.osmand.plus.settings.backend.OsmandSettings;
@@ -21,13 +22,10 @@ import net.osmand.plus.settings.backend.preferences.CommonPreference;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.util.Algorithms;
 import net.osmand.util.CollectionUtils;
-import net.osmand.util.GeoParsedPoint;
-import net.osmand.util.MapUtils;
 
 import org.apache.commons.logging.Log;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -95,26 +93,20 @@ public class RecordingsFileHelper {
 			return false;
 		}
 		Recording recording = new Recording(file);
-		String fileName = file.getName();
-		String otherName = recording.getOtherName(fileName);
-		int i = otherName.indexOf('.');
-		if (i > 0) {
-			otherName = otherName.substring(0, i);
+
+		Location fileLocation = MediaMetadataUtils.getLocation(file);
+		if (fileLocation == null) {
+			log.warn("Recording location unavailable: " + file.getAbsolutePath());
+			return false;
 		}
-		recording.setFile(file);
-		GeoParsedPoint geo = MapUtils.decodeShortLinkString(otherName);
-		recording.setLatitude(geo.getLatitude());
-		recording.setLongitude(geo.getLongitude());
+		recording.setLatitude(fileLocation.getLatitude());
+		recording.setLongitude(fileLocation.getLongitude());
 		Float heading = app.getLocationProvider().getHeading();
 		Location loc = app.getLocationProvider().getLastKnownLocation();
 
 		if (updatePhotoInformation) {
 			float rot = heading != null ? heading : 0;
-			try {
-				recording.updatePhotoInformation(recording.getLatitude(), recording.getLongitude(), loc, rot == 0 ? Double.NaN : rot);
-			} catch (IOException e) {
-				log.error("Error updating EXIF information " + e.getMessage(), e);
-			}
+			MediaMetadataUtils.updatePhotoInformation(file, recording.getLatitude(), recording.getLongitude(), loc, rot == 0 ? Double.NaN : rot);
 		}
 		recordings.registerObject(recording.getLatitude(), recording.getLongitude(), recording);
 
@@ -162,7 +154,8 @@ public class RecordingsFileHelper {
 	}
 
 	boolean cleanupSpace(@NonNull CamcorderProfile profile) {
-		File[] files = app.getAppPath(AV_INDEX_DIR).listFiles((dir, filename) -> filename.endsWith("." + MPEG4_EXTENSION));
+		File[] files = app.getAppPath(AV_INDEX_DIR).listFiles((dir, filename) ->
+				filename.endsWith("." + MPEG4_EXTENSION) && recordingByFileName.containsKey(filename));
 
 		if (files != null) {
 			double usedSpace = 0;
@@ -187,9 +180,6 @@ public class RecordingsFileHelper {
 					if (r != null) {
 						deleteRecording(r);
 						wasAnyDeleted = true;
-						usedSpace -= length;
-						availableSpace += length;
-					} else if (f.delete()) {
 						usedSpace -= length;
 						availableSpace += length;
 					}

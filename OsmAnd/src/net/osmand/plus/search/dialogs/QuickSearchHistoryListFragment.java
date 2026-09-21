@@ -8,7 +8,6 @@ import android.widget.ListView;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentManager;
 
 import net.osmand.data.Amenity;
@@ -21,10 +20,11 @@ import net.osmand.plus.search.dialogs.QuickSearchDialogFragment.SearchVisibility
 import net.osmand.plus.search.listitems.NearbyPlacesCard;
 import net.osmand.plus.search.listitems.QuickSearchListItem;
 import net.osmand.plus.settings.fragments.HistoryItemsFragment;
+import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.utils.UiUtilities.CardItemPosition;
 import net.osmand.search.SearchUICore;
 import net.osmand.search.core.SearchCoreFactory;
 import net.osmand.search.core.SearchPhrase;
-import net.osmand.search.core.SearchResult;
 
 import java.util.List;
 
@@ -33,7 +33,6 @@ public class QuickSearchHistoryListFragment extends QuickSearchListFragment impl
 		NearbyItemClickListener, DownloadIndexesThread.DownloadEvents {
 
 	public static final int TITLE = R.string.shared_string_explore;
-	private static final String HISTORY_COLLAPSED_KEY = "history_collapsed_key";
 
 	private boolean selectionMode;
 	private NearbyPlacesCard nearbyPlacesCard;
@@ -109,10 +108,8 @@ public class QuickSearchHistoryListFragment extends QuickSearchListFragment impl
 				}
 			});
 		}
-		if (savedInstanceState != null) {
-			historyCollapsed = savedInstanceState.getBoolean(HISTORY_COLLAPSED_KEY, false);
-			updateHistoryCollapseIndicator();
-		}
+		historyCollapsed = app.getSettings().EXPLORE_HISTORY_ROW_COLLAPSED.get();
+		updateHistoryCollapseIndicator();
 		getListView().setOnItemLongClickListener((parent, view, position, id) -> {
 			int index = position - ((ListView) parent).getHeaderViewsCount();
 			QuickSearchDialogFragment dialogFragment = getDialogFragment();
@@ -120,34 +117,14 @@ public class QuickSearchHistoryListFragment extends QuickSearchListFragment impl
 			if (fragmentManager != null && index >= 0 && index < getListAdapter().getCount()) {
 				QuickSearchListItem item = getListAdapter().getItem(index);
 				if (item != null) {
-					HistoryEntry entry = getEntryFromSearchItem(item);
+					HistoryEntry entry = item.getHistoryEntry();
 					if (entry != null) {
-						HistoryItemsFragment.showInstance(fragmentManager, entry.getSource(), dialogFragment);
+						HistoryItemsFragment.showInstance(fragmentManager, entry.getSource(), dialogFragment, entry);
 					}
 				}
 			}
 			return true;
 		});
-	}
-
-	@Override
-	public void onSaveInstanceState(@NonNull Bundle outState) {
-		super.onSaveInstanceState(outState);
-		outState.putBoolean(HISTORY_COLLAPSED_KEY, historyCollapsed);
-	}
-
-	@Nullable
-	private HistoryEntry getEntryFromSearchItem(@NonNull QuickSearchListItem item) {
-		SearchResult searchResult = item.getSearchResult();
-		if (searchResult != null) {
-			if (searchResult.object instanceof HistoryEntry historyEntry) {
-				return historyEntry;
-			}
-			if (searchResult.relatedObject instanceof HistoryEntry historyEntry) {
-				return historyEntry;
-			}
-		}
-		return null;
 	}
 
 	@Override
@@ -175,8 +152,9 @@ public class QuickSearchHistoryListFragment extends QuickSearchListFragment impl
 		View historyHeader = inflate(R.layout.recently_visited_header, getListView(), false);
 		historyTitleContainer = historyHeader.findViewById(R.id.history_title_container);
 		historyCollapseIndicator = historyHeader.findViewById(R.id.explicit_indicator);
-		historyHeader.setOnClickListener(v -> {
+		historyTitleContainer.setOnClickListener(v -> {
 			historyCollapsed = !historyCollapsed;
+			app.getSettings().EXPLORE_HISTORY_ROW_COLLAPSED.set(historyCollapsed);
 			updateHistoryCollapseIndicator();
 			getDialogFragment().reloadHistory();
 		});
@@ -184,15 +162,14 @@ public class QuickSearchHistoryListFragment extends QuickSearchListFragment impl
 		getListView().addHeaderView(historyHeader, null, false);
 	}
 
-	public boolean isHistoryCollapsed() {
-		return historyCollapsed;
+	public boolean isHistoryExpanded() {
+		return !historyCollapsed;
 	}
 
 	private void updateHistoryCollapseIndicator() {
 		if (historyTitleContainer != null) {
-			historyTitleContainer.setBackgroundResource(historyCollapsed
-					? R.drawable.bg_quick_search_explore_card
-					: R.drawable.bg_quick_search_explore_card_top);
+			UiUtilities.applyCardItemBackground(historyTitleContainer,
+					historyCollapsed ? CardItemPosition.SINGLE : CardItemPosition.TOP);
 		}
 		if (historyCollapseIndicator != null) {
 			int iconRes = historyCollapsed ? R.drawable.ic_action_arrow_down : R.drawable.ic_action_arrow_up;

@@ -25,6 +25,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
 import net.osmand.CallbackWithObject;
+import net.osmand.Location;
 import net.osmand.PlatformUtil;
 import net.osmand.data.FavouritePoint;
 import net.osmand.data.LatLon;
@@ -54,6 +55,7 @@ import net.osmand.shared.gpx.primitives.Linkable;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.shared.media.MediaFileNameFormat;
 import net.osmand.util.Algorithms;
+import net.osmand.util.MapUtils;
 
 import org.apache.commons.logging.Log;
 
@@ -87,6 +89,12 @@ public class AttachedMediaUiHelper {
 
 	public void showAddMenu(@NonNull View anchorView, @NonNull Linkable target,
 	                        @Nullable LatLon latLon, @Nullable Runnable onMediaChanged) {
+		showAddMenu(anchorView, target, latLon, false, onMediaChanged);
+	}
+
+	public void showAddMenu(@NonNull View anchorView, @NonNull Linkable target,
+	                        @Nullable LatLon latLon, boolean showAudioRecordingInDialog,
+	                        @Nullable Runnable onMediaChanged) {
 		if (latLon == null || !canAttachMedia(target)) {
 			return;
 		}
@@ -95,19 +103,19 @@ public class AttachedMediaUiHelper {
 		List<PopUpMenuItem> items = new ArrayList<>();
 		items.add(createAddMenuItem(R.string.recording_context_menu_precord,
 				R.drawable.ic_action_photo_dark, iconColor,
-				() -> takeNote(AVActionType.REC_PHOTO, latLon, target, onMediaChanged), false));
+				() -> takeNote(AVActionType.REC_PHOTO, target, latLon, false, onMediaChanged), false));
 		items.add(createAddMenuItem(R.string.recording_context_menu_vrecord,
 				R.drawable.ic_action_video_dark, iconColor,
-				() -> takeNote(AVActionType.REC_VIDEO, latLon, target, onMediaChanged), false));
+				() -> takeNote(AVActionType.REC_VIDEO, target, latLon, false, onMediaChanged), false));
 		items.add(createAddMenuItem(R.string.recording_context_menu_arecord,
 				R.drawable.ic_action_micro_dark, iconColor,
-				() -> takeNote(AVActionType.REC_AUDIO, latLon, target, onMediaChanged), false));
+				() -> takeNote(AVActionType.REC_AUDIO, target, latLon, showAudioRecordingInDialog, onMediaChanged), false));
 		items.add(createAddMenuItem(R.string.choose_from_gallery,
 				R.drawable.ic_action_photo_album, iconColor,
-				() -> chooseFromGallery(target, latLon, onMediaChanged), true));
+				() -> chooseFromGallery(target, onMediaChanged), true));
 		items.add(createAddMenuItem(R.string.choose_from_files,
 				R.drawable.ic_action_group_list, iconColor,
-				() -> chooseFromFiles(target, latLon, onMediaChanged), false));
+				() -> chooseFromFiles(target, onMediaChanged), false));
 
 		PopUpMenuDisplayData data = new PopUpMenuDisplayData();
 		data.anchorView = anchorView;
@@ -133,8 +141,8 @@ public class AttachedMediaUiHelper {
 		return target instanceof FavouritePoint || target instanceof WptPt;
 	}
 
-	private void takeNote(@NonNull AVActionType type, @NonNull LatLon latLon,
-	                      @NonNull Linkable target, @Nullable Runnable onMediaChanged) {
+	private void takeNote(@NonNull AVActionType type, @NonNull Linkable target, @NonNull LatLon targetLocation,
+	                      boolean showAudioRecordingInDialog, @Nullable Runnable onMediaChanged) {
 		AudioVideoNotesPlugin plugin = PluginsHelper.getPlugin(AudioVideoNotesPlugin.class);
 		if (plugin != null && !plugin.isActive()) {
 			PluginsHelper.enablePluginIfNeeded(mapActivity, app, plugin, true);
@@ -143,17 +151,27 @@ public class AttachedMediaUiHelper {
 			if (plugin.isRecording()) {
 				plugin.stopRecording(mapActivity, true, true);
 			} else {
-				captureAttachedMedia(plugin, type, latLon, target, onMediaChanged);
+				captureAttachedMedia(plugin, type, target, targetLocation, showAudioRecordingInDialog, onMediaChanged);
 			}
 		}
 	}
 
 	private void captureAttachedMedia(@NonNull AudioVideoNotesPlugin plugin, @NonNull AVActionType type,
-	                                  @NonNull LatLon latLon, @NonNull Linkable target, @Nullable Runnable onMediaChanged) {
+	                                  @NonNull Linkable target, @NonNull LatLon targetLocation,
+	                                  boolean showAudioRecordingInDialog, @Nullable Runnable onMediaChanged) {
+		Location location = app.getLocationProvider().getLastKnownLocation();
+		double lat = location != null ? location.getLatitude() : targetLocation.getLatitude();
+		double lon = location != null ? location.getLongitude() : targetLocation.getLongitude();
+		if (!MapUtils.isValidLatLon(lat, lon)) {
+			lat = targetLocation.getLatitude();
+			lon = targetLocation.getLongitude();
+		}
+
 		MediaDirType dirType = getMediaDirType(type);
 		String extension = getMediaExtension(type);
 		MediaStorageLocation storageLocation = MediaStorageLocation.fromSettings(app);
-		String fileName = MediaFileNameFormat.createUniqueMediaFileName(extension, name -> mediaStorageHelper.mediaFileExists(storageLocation, dirType, name));
+		String fileName = MediaFileNameFormat.createUniqueMediaFileName(lat, lon, extension,
+				name -> mediaStorageHelper.mediaFileExists(storageLocation, dirType, name));
 		String mimeType = MediaStorageUtils.getMimeType(null, fileName, dirType);
 		MediaTarget mediaTarget = mediaStorageHelper.createTarget(storageLocation, dirType, fileName, mimeType);
 		if (mediaTarget == null || mediaTarget.exists()) {
@@ -181,11 +199,11 @@ public class AttachedMediaUiHelper {
 		};
 		switch (type) {
 			case REC_PHOTO ->
-					plugin.takeAttachedPhoto(latLon.getLatitude(), latLon.getLongitude(), mapActivity, captureFile, callback);
+					plugin.takeAttachedPhoto(lat, lon, mapActivity, captureFile, callback);
 			case REC_VIDEO ->
-					plugin.recordAttachedVideo(latLon.getLatitude(), latLon.getLongitude(), mapActivity, captureFile, callback);
+					plugin.recordAttachedVideo(lat, lon, mapActivity, captureFile, callback);
 			case REC_AUDIO ->
-					plugin.recordAttachedAudio(latLon.getLatitude(), latLon.getLongitude(), mapActivity, captureFile, callback);
+					plugin.recordAttachedAudio(lat, lon, mapActivity, captureFile, showAudioRecordingInDialog, callback);
 		}
 	}
 
@@ -277,18 +295,18 @@ public class AttachedMediaUiHelper {
 		};
 	}
 
-	private void chooseFromGallery(@NonNull Linkable target, @NonNull LatLon latLon, @Nullable Runnable onMediaChanged) {
+	private void chooseFromGallery(@NonNull Linkable target, @Nullable Runnable onMediaChanged) {
 		PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
 				.setMediaType(PickVisualMedia.ImageAndVideo.INSTANCE)
 				.build();
-		launchMediaPicker(new PickMultipleVisualMedia(), request, uris -> onMediaPicked(target, latLon, onMediaChanged, uris, Intent.FLAG_GRANT_READ_URI_PERMISSION));
+		launchMediaPicker(new PickMultipleVisualMedia(), request, uris -> onMediaPicked(target, onMediaChanged, uris, Intent.FLAG_GRANT_READ_URI_PERMISSION));
 	}
 
-	private void chooseFromFiles(@NonNull Linkable target, @NonNull LatLon latLon, @Nullable Runnable onMediaChanged) {
+	private void chooseFromFiles(@NonNull Linkable target, @Nullable Runnable onMediaChanged) {
 		launchMediaPicker(new StartActivityForResult(), createOpenMediaDocumentIntent(), result -> {
 			Intent data = result.getData();
 			if (data != null && result.getResultCode() == RESULT_OK) {
-				onMediaPicked(target, latLon, onMediaChanged, IntentHelper.getIntentUris(data), data.getFlags());
+				onMediaPicked(target, onMediaChanged, IntentHelper.getIntentUris(data), data.getFlags());
 			}
 		});
 	}
@@ -328,14 +346,13 @@ public class AttachedMediaUiHelper {
 		}
 	}
 
-	private void onMediaPicked(@NonNull Linkable target, @NonNull LatLon latLon,
-	                           @Nullable Runnable onMediaChanged, @NonNull List<Uri> uris, int persistableUriFlags) {
+	private void onMediaPicked(@NonNull Linkable target, @Nullable Runnable onMediaChanged, @NonNull List<Uri> uris, int persistableUriFlags) {
 		if (uris.isEmpty()) {
 			logDebug("Attached media picker returned no media");
 			return;
 		}
 		logDebug("Attached media picker returned media: count=" + uris.size() + ", persistableFlags=" + persistableUriFlags);
-		OsmAndTaskManager.executeTask(new CollectMediaLinksTask(app, latLon, uris, persistableUriFlags, links -> {
+		OsmAndTaskManager.executeTask(new CollectMediaLinksTask(app, uris, persistableUriFlags, links -> {
 			logDebug("Attached media picker links collected: count=" + links.size());
 			dataHelper.addMediaLinks(target, links, onMediaChanged);
 			return true;

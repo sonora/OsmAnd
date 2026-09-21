@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,6 +37,7 @@ import net.osmand.plus.search.dialogs.QuickSearchDialogFragment;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.UiUtilities;
+import net.osmand.plus.utils.UiUtilities.CardItemPosition;
 import net.osmand.plus.wikipedia.WikipediaPlugin;
 import net.osmand.search.SearchUICore.SearchResultCollection;
 import net.osmand.search.core.SearchResult;
@@ -102,6 +104,8 @@ public class NearbyPlacesCard extends FrameLayout implements DownloadItemsAdapte
 		emptyView = findViewById(R.id.empty_nearby_places);
 		noCardsFound = findViewById(R.id.no_cards_found);
 		showAllBtn = findViewById(R.id.show_all_button);
+		TextView showAllTitle = showAllBtn.findViewById(R.id.action_title);
+		showAllTitle.setText(R.string.shared_string_show_all);
 		cardContent = findViewById(R.id.card_content);
 		downloadMapsCard = findViewById(R.id.download_maps_card);
 
@@ -156,6 +160,8 @@ public class NearbyPlacesCard extends FrameLayout implements DownloadItemsAdapte
 		int iconRes = collapsed ? R.drawable.ic_action_arrow_down : R.drawable.ic_action_arrow_up;
 		boolean nightMode = app.getDaynightHelper().isNightMode(ThemeUsageContext.APP);
 		explicitIndicator.setImageDrawable(app.getUIUtilities().getIcon(iconRes, nightMode));
+		UiUtilities.applyCardItemBackground(titleContainer,
+				collapsed ? CardItemPosition.SINGLE : CardItemPosition.TOP);
 		boolean nearbyPointFound = getNearbyAdapter().hasData();
 		AndroidUiHelper.updateVisibility(cardContent, !collapsed && isDataSourceAvailable());
 		AndroidUiHelper.updateVisibility(showAllBtn, !collapsed && nearbyPointFound);

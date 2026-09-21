@@ -85,6 +85,7 @@ import net.osmand.plus.track.helpers.GpxSelectionHelper;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.views.OsmandMap;
 import net.osmand.plus.views.corenative.NativeCoreContext;
+import net.osmand.plus.views.mapwidgets.configure.appearance.PanelAppearanceSettingsManager;
 import net.osmand.plus.views.mapwidgets.utils.AverageGlideComputer;
 import net.osmand.plus.views.mapwidgets.utils.AverageSpeedComputer;
 import net.osmand.plus.voice.CommandPlayer;
@@ -112,7 +113,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -124,6 +124,7 @@ public class AppInitializer implements IProgress {
 	private static final Log LOG = PlatformUtil.getLog(AppInitializer.class);
 	private static final int MAX_OPENGL_FAILURES = 3;
 	private static final int MAX_OPENGL_DISABLE = 6;
+	private static final long MAP_UPDATES_CHECK_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000L; // 2 days
 
 	private final OsmandApplication app;
 	private final AppVersionUpgradeOnInit appVersionUpgrade;
@@ -224,20 +225,18 @@ public class AppInitializer implements IProgress {
 	}
 
 	private void checkMapUpdates() {
-		long diff = System.currentTimeMillis() - app.getSettings().LAST_CHECKED_UPDATES.get();
-		if (diff >= 2 * 24 * 60 * 60L && new Random().nextInt(5) == 0 &&
-				app.getSettings().isInternetConnectionAvailable()) {
-			app.getDownloadThread().runReloadIndexFiles();
-		} else if (Version.isDeveloperVersion(app)) {
-//			app.getDownloadThread().runReloadIndexFiles();
+		OsmandSettings settings = app.getSettings();
+		long diff = System.currentTimeMillis() - settings.LAST_CHECKED_UPDATES.get();
+		if (diff >= MAP_UPDATES_CHECK_INTERVAL_MS && settings.isInternetConnectionAvailable()) {
+			app.getDownloadThread().runReloadIndexFilesSilent();
 		}
 	}
 
 	public boolean checkPreviousRunsForExceptions(Activity activity, boolean writeFileSize) {
 		initVariables();
 		long size = activity.getPreferences(Context.MODE_PRIVATE).getLong(EXCEPTION_FILE_SIZE, 0);
-		File file = app.getAppPath(FeedbackHelper.EXCEPTION_PATH);
-		if (file.exists() && file.length() > 0) {
+		File file = app.getFeedbackHelper().getCrashLog();
+		if (file != null) {
 			if (size != file.length() && !isFirstTime()) {
 				if (writeFileSize) {
 					activity.getPreferences(Context.MODE_PRIVATE).edit().putLong(EXCEPTION_FILE_SIZE, file.length()).commit();
@@ -328,6 +327,8 @@ public class AppInitializer implements IProgress {
 		app.importHelper = startupInit(new ImportHelper(app), ImportHelper.class);
 		app.backupHelper = startupInit(new BackupHelper(app), BackupHelper.class);
 		app.inAppPurchaseHelper = startupInit(new InAppPurchaseHelperImpl(app), InAppPurchaseHelperImpl.class);
+		app.panelAppearanceSettingsManager = startupInit(
+				new PanelAppearanceSettingsManager(app, settings), PanelAppearanceSettingsManager.class);
 		app.poiTypes = startupInit(MapPoiTypes.getDefaultNoInit(), MapPoiTypes.class);
 		app.transportRoutingHelper = startupInit(new TransportRoutingHelper(app), TransportRoutingHelper.class);
 		app.routingHelper = startupInit(new RoutingHelper(app), RoutingHelper.class);

@@ -60,6 +60,7 @@ import net.osmand.search.core.SearchPhrase;
 import net.osmand.search.core.SearchPhrase.NameStringMatcher;
 import net.osmand.search.core.SearchResult;
 import net.osmand.search.core.SearchSettings;
+import net.osmand.search.core.spatial.SpatialTextSearchAPI;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
 
@@ -121,8 +122,41 @@ public class QuickSearchHelper implements ResourceListener {
 	public void initSearchUICore() {
 		mapsIndexed = false;
 		setRepositoriesForSearchUICore(app);
-		core.init();
+		core.clearAPIs();
+		core.resetSearch();
+		resultCollection = null;
+		if (useSpatialTextSearch()) {
+			registerSpatialMapSearchAPIs();
+		} else {
+			core.init();
+		}
 
+		registerNonMapSearchAPIs();
+		refreshCustomPoiFilters();
+	}
+
+	private void registerSpatialMapSearchAPIs() {
+		SearchCoreFactory.SearchAmenityByNameAPI amenitiesApi = new SearchCoreFactory.SearchAmenityByNameAPI();
+		core.registerAPI(new SearchCoreFactory.SearchAmenityTypesAPI(app.getPoiTypes()));
+		core.registerAPI(new SearchCoreFactory.SearchLocationAndUrlAPI(amenitiesApi,
+				app.getSettings()::isInternetConnectionAvailable));
+		core.registerAPI(new SpatialCategoryAmenityByTypeAPI(app.getPoiTypes()));
+		core.registerAPI(new SpatialTextSearchAPI(app.getPoiTypes()));
+	}
+
+	private static class SpatialCategoryAmenityByTypeAPI extends SearchCoreFactory.SearchAmenityByTypeAPI {
+
+		public SpatialCategoryAmenityByTypeAPI(@NonNull MapPoiTypes types) {
+			super(types, null);
+		}
+
+		@Override
+		public int getSearchPriority(SearchPhrase p) {
+			return p.isLastWord(ObjectType.POI_TYPE) ? super.getSearchPriority(p) : -1;
+		}
+	}
+
+	private void registerNonMapSearchAPIs() {
 		// Register index item api
 		core.registerAPI(new SearchIndexItemApi(app));
 
@@ -138,8 +172,10 @@ public class QuickSearchHelper implements ResourceListener {
 		core.registerAPI(new SearchHistoryAPI(app));
 
 		core.registerAPI(new SearchOnlineApi(app));
+	}
 
-		refreshCustomPoiFilters();
+	private boolean useSpatialTextSearch() {
+		return app.getSettings().USE_SPATIAL_TEXT_SEARCH.get();
 	}
 
 	public void refreshCustomPoiFilters() {

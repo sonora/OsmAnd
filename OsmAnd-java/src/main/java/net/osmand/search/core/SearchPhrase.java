@@ -54,16 +54,15 @@ public class SearchPhrase {
 	private AbstractPoiType unselectedPoiType;
 	private boolean acceptPrivate;
 	private QuadRect cache1kmRect;
-	private RegionPriorityProvider regionPriorityProvider;
 	
 	static {
-
 		commonWordsComparator = new Comparator<String>() {
+			CommonWords instance = CommonWords.getInstance();
 
 			@Override
 			public int compare(String o1, String o2) {
-				int i1 = CommonWords.getCommonSearch(o1.toLowerCase());
-				int i2 = CommonWords.getCommonSearch(o2.toLowerCase());
+				int i1 = instance.getCommonSearch(o1.toLowerCase());
+				int i2 = instance.getCommonSearch(o2.toLowerCase());
 				if (i1 != i2) {
 					if(i1 == -1) {
 						return -1;
@@ -88,7 +87,7 @@ public class SearchPhrase {
 		this.settings = settings;
 		this.clt = clt;
 		if (settings != null) {
-			this.regionPriorityProvider = new RegionPriorityProvider(this);
+			settings.updateRegionPriorityProvider(this);
 		}
 	}
 	
@@ -359,7 +358,7 @@ public class SearchPhrase {
 		if (searchBBox31 != null) {
 			return searchBBox31;
 		}
-		
+
 		int radiusInMeters = getRadiusSearch(radius);
 		QuadRect cache1kmRect = get1km31Rect();
 		if (cache1kmRect == null) {
@@ -383,21 +382,10 @@ public class SearchPhrase {
 		if (l == null) {
 			return null;
 		}
-		cache1kmRect= calculateBbox(1000, l);
+		cache1kmRect = MapUtils.calculate31BboxUsingRhumb(1000, l);
 		return cache1kmRect;
 	}
 
-	public static QuadRect calculateBbox(int radiusMeters, LatLon l) {
-		LatLon northWest = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 315);
-		LatLon southEast = MapUtils.rhumbDestinationPoint(l.getLatitude(), l.getLongitude(), radiusMeters, 135);
-		int top = MapUtils.get31TileNumberY(northWest.getLatitude());
-		int left = MapUtils.get31TileNumberX(northWest.getLongitude());
-		int bottom = MapUtils.get31TileNumberY(southEast.getLatitude());
-		int right = MapUtils.get31TileNumberX(southEast.getLongitude());
-		return new QuadRect(left, top, right, bottom);
-	}
-	
-	
 	public Iterator<BinaryMapIndexReader> getRadiusOfflineIndexes(int meters, final SearchPhraseDataType dt) {
 		final QuadRect rect = meters > 0 ? getRadiusBBoxToSearch(meters) : null;
 		return getOfflineIndexes(rect, dt);
@@ -406,8 +394,9 @@ public class SearchPhrase {
 
 	public Iterator<BinaryMapIndexReader> getRadiusOfflineIndexes(int minMeters, int maxMeters, SearchPhraseDataType dataType) {
 		List<BinaryMapIndexReader> list;
-		if (regionPriorityProvider != null) {
-			list = regionPriorityProvider.getOfflineIndexes(minMeters, maxMeters);
+		if (settings.hasRegionPriority()) {
+			settings.updateRegionPriorityProvider(this);
+			list = settings.getRegionPriorityIndexesWithMinRadius(minMeters, maxMeters);
 		} else {
 			list = indexes != null ? indexes : settings.getOfflineIndexes();
 		}
@@ -417,8 +406,9 @@ public class SearchPhrase {
 
 	public Iterator<BinaryMapIndexReader> getOfflineIndexes(QuadRect rect, SearchPhraseDataType dataType) {
 		Collection<BinaryMapIndexReader> list;
-		if (regionPriorityProvider != null) {
-			list = regionPriorityProvider.getOfflineIndexes();
+		if (settings.hasRegionPriority()) {
+			settings.updateRegionPriorityProvider(this);
+			list = settings.getRegionPriorityIndexes();
 		} else {
 			list = indexes != null ? indexes : settings.getOfflineIndexes();
 		}
@@ -961,8 +951,8 @@ public class SearchPhrase {
 	}
 
 	public int getRegionPriority(BinaryMapIndexReader reader) {
-		if (regionPriorityProvider != null) {
-			return regionPriorityProvider.getRegionWeight(reader);
+		if (settings != null) {
+			return settings.getRegionPriority(reader);
 		}
 		return 0;
 	}

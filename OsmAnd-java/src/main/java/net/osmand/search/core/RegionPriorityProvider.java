@@ -3,6 +3,8 @@ package net.osmand.search.core;
 import net.osmand.binary.BinaryMapIndexReader;
 import net.osmand.data.LatLon;
 import net.osmand.data.QuadRect;
+import net.osmand.util.MapUtils;
+
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +18,8 @@ public class RegionPriorityProvider {
     private final Map<Integer, List<BinaryMapIndexReader>> priorityMap;
     private LinkedHashMap<BinaryMapIndexReader, Integer> regionsPriority;
     private LatLon searchLocation;
+    private int lastIndexesCount = -1;
+    private static final double LOCATION_SHIFT_THRESHOLD_METERS = 30000; // 30 km
 
     public RegionPriorityProvider(SearchPhrase phrase) {
         this.priorityMap = new TreeMap<>();
@@ -23,6 +27,34 @@ public class RegionPriorityProvider {
             this.searchLocation = phrase.getSettings().getOriginalLocation();
             initPriorityMap(phrase);
         }
+    }
+
+    public void checkAndUpdate(SearchPhrase phrase) {
+        if (phrase == null || phrase.getSettings() == null) {
+            return;
+        }
+
+        LatLon newLocation = phrase.getSettings().getOriginalLocation();
+        int cnt = phrase.getOfflineIndexes().size();
+        if (shouldReinitialize(newLocation, cnt)) {
+            this.searchLocation = newLocation == null ? this.searchLocation : newLocation;
+            this.lastIndexesCount = cnt;
+            this.priorityMap.clear();
+            this.regionsPriority = null;
+            initPriorityMap(phrase);
+        }
+    }
+
+    private boolean shouldReinitialize(LatLon newLocation, int cnt) {
+        if (this.searchLocation == null || this.lastIndexesCount != cnt) {
+            return true;
+        }
+
+        if (newLocation != null) {
+            double distance = MapUtils.getDistance(this.searchLocation, newLocation);
+            return distance >= LOCATION_SHIFT_THRESHOLD_METERS;
+        }
+        return false;
     }
 
     public Collection<BinaryMapIndexReader> getOfflineIndexes() {
@@ -93,7 +125,7 @@ public class RegionPriorityProvider {
 
     private int calculatePriorityValue(BinaryMapIndexReader region) {
         for (int i = 0; i * BBOX_STEP <= BBOX_MAX; i++) {
-            QuadRect rect = SearchPhrase.calculateBbox(i * BBOX_STEP + 50, searchLocation);
+            QuadRect rect = MapUtils.calculate31BboxUsingRhumb(i * BBOX_STEP + 50, searchLocation);
             if (region.containsPoiData((int) rect.left, (int) rect.top, (int) rect.right, (int) rect.bottom)) {
                 return i;
             }

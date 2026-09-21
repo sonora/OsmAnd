@@ -95,7 +95,7 @@ public class CollatorStringMatcher implements StringMatcher {
 			}
 		}
 		if (alignPart) {
-			part = alignChars(part);
+			part = SearchAlgorithms.alignChars(part);
 		}
 		if (alignFull) {
 			// FUTURE: This is not effective code, it runs on each comparison
@@ -230,18 +230,7 @@ public class CollatorStringMatcher implements StringMatcher {
 	
 	private static String lowercaseAndAlignChars(String fullText) {
 		fullText = fullText.toLowerCase(Locale.getDefault());
-		fullText = alignChars(fullText);
-		return fullText;
-	}
-
-	public static String alignChars(String fullText) {
-		if (ArabicNormalizer.isSpecialArabic(fullText)) {
-			String normalized = ArabicNormalizer.normalize(fullText);
-			fullText = normalized == null ? fullText : normalized;
-		}
-		fullText = SearchAlgorithms.removeApostrophes(fullText);
-		fullText = SearchAlgorithms.replaceGermanSS(fullText);
-		fullText = UnicodeDiacritics.getInstance().stripDiacritics(fullText);
+		fullText = SearchAlgorithms.alignChars(fullText);
 		return fullText;
 	}
 

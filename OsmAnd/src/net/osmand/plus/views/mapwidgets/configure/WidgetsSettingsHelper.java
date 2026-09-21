@@ -15,13 +15,17 @@ import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.backend.WidgetsAvailabilityHelper;
 import net.osmand.plus.settings.backend.preferences.OsmandPreference;
 import net.osmand.plus.settings.enums.ScreenLayoutMode;
+import net.osmand.plus.settings.enums.WidgetSize;
 import net.osmand.plus.views.mapwidgets.MapWidgetInfo;
 import net.osmand.plus.views.mapwidgets.MapWidgetRegistry;
 import net.osmand.plus.views.mapwidgets.MapWidgetsFactory;
 import net.osmand.plus.views.mapwidgets.WidgetInfoCreator;
 import net.osmand.plus.views.mapwidgets.WidgetType;
 import net.osmand.plus.views.mapwidgets.WidgetsPanel;
+import net.osmand.plus.views.mapwidgets.configure.appearance.PanelAppearanceSettingsManager;
+import net.osmand.plus.views.mapwidgets.widgetinterfaces.ISupportWidgetResizing;
 import net.osmand.plus.views.mapwidgets.widgets.MapWidget;
+import net.osmand.plus.views.mapwidgets.widgets.SimpleWidget;
 import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
@@ -39,6 +43,7 @@ public class WidgetsSettingsHelper {
 	private final MapWidgetRegistry widgetRegistry;
 	private final MapWidgetsFactory widgetsFactory;
 	private final MapButtonsHelper mapButtonsHelper;
+	private final PanelAppearanceSettingsManager appearanceSettingsManager;
 
 	private ApplicationMode appMode;
 	private ScreenLayoutMode layoutMode;
@@ -51,6 +56,7 @@ public class WidgetsSettingsHelper {
 		this.widgetRegistry = app.getOsmandMap().getMapLayers().getMapWidgetRegistry();
 		this.widgetsFactory = new MapWidgetsFactory(mapActivity);
 		this.mapButtonsHelper = app.getMapButtonsHelper();
+		this.appearanceSettingsManager = app.getPanelAppearanceSettingsManager();
 	}
 
 	public void setAppMode(@NonNull ApplicationMode appMode) {
@@ -76,6 +82,9 @@ public class WidgetsSettingsHelper {
 
 		settings.getPanelsLayoutMode(mapActivity, layoutMode).resetModeToDefault(appMode);
 		settings.getTransparentMapThemePreference(layoutMode).resetModeToDefault(appMode);
+		for (WidgetsPanel panel : WidgetsPanel.values()) {
+			appearanceSettingsManager.get(panel).resetToDefault(appMode, layoutMode);
+		}
 		mapButtonsHelper.getCompassButtonState().getVisibilityPref().resetModeToDefault(appMode);
 		settings.SHOW_DISTANCE_RULER.resetModeToDefault(appMode);
 		mapButtonsHelper.resetButtonStatesForMode(appMode, mapButtonsHelper.getAllButtonsStates());
@@ -90,6 +99,9 @@ public class WidgetsSettingsHelper {
 		}
 		copyPrefFromAppMode(settings.getPanelsLayoutMode(mapActivity, layoutMode), fromAppMode);
 		copyPrefFromAppMode(settings.getTransparentMapThemePreference(layoutMode), fromAppMode);
+		for (WidgetsPanel panel : WidgetsPanel.values()) {
+			appearanceSettingsManager.get(panel).copyFromProfile(fromAppMode, appMode, layoutMode);
+		}
 		copyPrefFromAppMode(mapButtonsHelper.getCompassButtonState().getVisibilityPref(), fromAppMode);
 		copyPrefFromAppMode(settings.SHOW_DISTANCE_RULER, fromAppMode);
 		copyPrefFromAppMode(settings.POSITION_PLACEMENT_ON_MAP, fromAppMode);
@@ -100,6 +112,30 @@ public class WidgetsSettingsHelper {
 		copyPrefFromAppMode(mapButtonsHelper.getDefaultOpacityPref(), fromAppMode);
 		copyPrefFromAppMode(mapButtonsHelper.getDefaultCornerRadiusPref(), fromAppMode);
 		mapButtonsHelper.copyButtonStatesFromMode(appMode, fromAppMode, mapButtonsHelper.getAllButtonsStates());
+	}
+
+	public void applyWidgetsSize(@NonNull WidgetsPanel panel, @NonNull WidgetSize size) {
+		for (MapWidgetInfo widgetInfo : getEnabledWidgetsForPanel(panel)) {
+			if (widgetInfo.widget instanceof ISupportWidgetResizing resizableWidget
+					&& resizableWidget.allowResize()) {
+				resizableWidget.getWidgetSizePref().setModeValue(appMode, size);
+			}
+		}
+	}
+
+	public void applyWidgetsIconVisibility(@NonNull WidgetsPanel panel, boolean showIcon) {
+		for (MapWidgetInfo widgetInfo : getEnabledWidgetsForPanel(panel)) {
+			if (widgetInfo.widget instanceof SimpleWidget simpleWidget) {
+				simpleWidget.shouldShowIconPref().setModeValue(appMode, showIcon);
+			}
+		}
+	}
+
+	@NonNull
+	private Set<MapWidgetInfo> getEnabledWidgetsForPanel(@NonNull WidgetsPanel panel) {
+		int filter = ENABLED_MODE | AVAILABLE_MODE | MATCHING_PANELS_MODE;
+		return widgetRegistry.getWidgetsForPanel(mapActivity, appMode, layoutMode, filter,
+				Collections.singletonList(panel));
 	}
 
 	public void copyWidgetsForPanel(@NonNull ApplicationMode fromAppMode,

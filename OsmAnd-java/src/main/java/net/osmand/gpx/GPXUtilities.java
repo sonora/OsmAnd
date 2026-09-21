@@ -27,6 +27,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlSerializer;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -993,7 +994,8 @@ public class GPXUtilities {
 			if (fout.getParentFile() != null) {
 				fout.getParentFile().mkdirs();
 			}
-			output = new OutputStreamWriter(new FileOutputStream(fout), "UTF-8"); //$NON-NLS-1$
+			output = new BufferedWriter(
+					new OutputStreamWriter(new FileOutputStream(fout), "UTF-8"), 32 * 1024); //$NON-NLS-1$
 			if (Algorithms.isEmpty(file.path)) {
 				file.path = fout.getAbsolutePath();
 			}

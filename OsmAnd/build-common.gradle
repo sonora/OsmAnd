@@ -386,6 +386,8 @@ dependencies {
 	implementation 'androidx.gridlayout:gridlayout:1.1.0'
 	implementation 'androidx.cardview:cardview:1.0.0'
 	implementation 'androidx.appcompat:appcompat:1.7.1'
+	implementation 'androidx.fragment:fragment:1.8.9'
+	implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
 	implementation 'com.google.android.material:material:1.14.0'
 	implementation 'androidx.browser:browser:1.0.0'
 	implementation 'androidx.preference:preference:1.1.0'
@@ -421,7 +423,7 @@ dependencies {
 // implementation 'com.ibm.icu:icu4j:50.1'
 // implementation 'net.sf.trove4j:trove4j:3.0.3'
 
-	legacyImplementation "net.osmand:OsmAndCore_android:master-snapshot@jar"
+	legacyImplementation "net.osmand:OsmAndCore_android:5.4@jar"
 
 	implementation("com.getkeepsafe.taptargetview:taptargetview:1.15.0") {
 		exclude group: 'com.android.support'
@@ -445,12 +447,12 @@ dependencies {
 
 	//implementation "androidx.tracing:tracing:1.1.0"
 	//debugImplementation 'androidx.test:monitor:1.6.1'
-	androidTestImplementation "androidx.test:runner:1.5.2"
-	androidTestImplementation "androidx.test:rules:1.5.0"
-	androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+	androidTestImplementation "androidx.test:runner:1.7.0"
+	androidTestImplementation "androidx.test:rules:1.7.0"
+	androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 	//debugImplementation("androidx.test:core:1.5.0")
-	androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-	androidTestImplementation ('androidx.test.espresso:espresso-contrib:3.5.1') {
+	androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+	androidTestImplementation ('androidx.test.espresso:espresso-contrib:3.7.0') {
 		exclude module: "protobuf-lite"
 	}
 	implementation 'com.facebook.shimmer:shimmer:0.5.0@aar'

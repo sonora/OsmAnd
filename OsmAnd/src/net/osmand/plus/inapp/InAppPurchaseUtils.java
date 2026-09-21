@@ -92,10 +92,14 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isLiveUpdatesAvailable(@NonNull OsmandApplication app) {
+		return isLiveUpdatesAvailable(app, true);
+	}
+
+	public static boolean isLiveUpdatesAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
 		return isLiveUpdatesPurchased(app)
-				|| isOsmAndProAvailable(app)
+				|| isOsmAndProAvailable(app, checkDevBuild)
 				|| isMapperUpdatesSubscribed(app)
-				|| checkDeveloperBuildIfNeeded(app, true)
+				|| checkDeveloperBuildIfNeeded(app, checkDevBuild)
 				|| isBrandPromoAvailable(app);
 	}
 
@@ -159,6 +163,10 @@ public class InAppPurchaseUtils {
 
 	public static boolean isBuildingsCustomColorAvailable(@NonNull OsmandApplication app) {
 		return Version.isPaidVersion(app) || checkDeveloperBuildIfNeeded(app, true);
+	}
+
+	public static boolean isCustomWidgetBackgroundColorAvailable(@NonNull OsmandApplication app) {
+		return Version.isPaidVersion(app);
 	}
 
 	public static boolean isGradientEditorAvailable(@NonNull OsmandApplication app) {

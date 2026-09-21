@@ -27,11 +27,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.widget.NestedScrollView;
+import androidx.core.graphics.Insets;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -89,30 +90,50 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 	private OsmAndFeature currentSelectedFeature;
 	@Nullable
 	private String currentInAppSku;
+	@Nullable
+	private BottomSheetBehavior<View> bottomSheetBehavior;
+	@Nullable
+	private View bottomSheetView;
+	private int bottomSheetState = BottomSheetBehavior.STATE_COLLAPSED;
+	private float bottomSheetSlideOffset;
+	@NonNull
+	private final BottomSheetBehavior.BottomSheetCallback bottomSheetCallback = new BottomSheetBehavior.BottomSheetCallback() {
+		@Override
+		public void onStateChanged(@NonNull View bottomSheet, int newState) {
+			bottomSheetState = newState;
+			if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+				bottomSheetSlideOffset = 1f;
+			} else if (newState == BottomSheetBehavior.STATE_COLLAPSED || newState == BottomSheetBehavior.STATE_HIDDEN) {
+				bottomSheetSlideOffset = 0f;
+			}
+			updateBottomSheetLayout();
+		}
 
-	private static final List<BannerFeatureItem> MAPS_PLUS_BANNER_FEATURES = Arrays.asList(
-			new BannerFeatureItem(OsmAndFeature.UNLIMITED_MAP_DOWNLOADS),
-			new BannerFeatureItem(OsmAndFeature.ANDROID_AUTO),
-			new BannerFeatureItem(OsmAndFeature.OSMAND_CLOUD),
-			new BannerFeatureItem(OsmAndFeature.TERRAIN)
-	);
-	private static final List<BannerFeatureItem> OSMAND_PRO_BANNER_FEATURES = Arrays.asList(
-			new BannerFeatureItem(OsmAndFeature.OSMAND_CLOUD),
-			new BannerFeatureItem(OsmAndFeature.HOURLY_MAP_UPDATES),
-			new BannerFeatureItem(OsmAndFeature.UNLIMITED_MAP_DOWNLOADS),
-			new BannerFeatureItem(OsmAndFeature.VEHICLE_METRICS)
-	);
-	private static final List<BannerFeatureItem> OSMAND_PRO_WITH_MAPS_PLUS_BANNER_FEATURES = Arrays.asList(
-			new BannerFeatureItem(OsmAndFeature.OSMAND_CLOUD),
-			new BannerFeatureItem(OsmAndFeature.HOURLY_MAP_UPDATES),
-			new BannerFeatureItem(OsmAndFeature.RELIEF_3D),
-			new BannerFeatureItem(OsmAndFeature.VEHICLE_METRICS)
-	);
+		@Override
+		public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+			bottomSheetSlideOffset = getInsetSlideOffset(bottomSheet);
+			updateBottomSheetLayout();
+		}
+	};
 
-	@Override
-	public int getTheme() {
-		return isNightMode() ? R.style.OsmandDarkTheme : R.style.OsmandLightTheme;
-	}
+	private static final List<OsmAndFeature> MAPS_PLUS_BANNER_FEATURES = Arrays.asList(
+			OsmAndFeature.UNLIMITED_MAP_DOWNLOADS,
+			OsmAndFeature.ANDROID_AUTO,
+			OsmAndFeature.OSMAND_CLOUD,
+			OsmAndFeature.TERRAIN
+	);
+	private static final List<OsmAndFeature> OSMAND_PRO_BANNER_FEATURES = Arrays.asList(
+			OsmAndFeature.OSMAND_CLOUD,
+			OsmAndFeature.HOURLY_MAP_UPDATES,
+			OsmAndFeature.UNLIMITED_MAP_DOWNLOADS,
+			OsmAndFeature.VEHICLE_METRICS
+	);
+	private static final List<OsmAndFeature> OSMAND_PRO_WITH_MAPS_PLUS_BANNER_FEATURES = Arrays.asList(
+			OsmAndFeature.OSMAND_CLOUD,
+			OsmAndFeature.HOURLY_MAP_UPDATES,
+			OsmAndFeature.RELIEF_3D,
+			OsmAndFeature.VEHICLE_METRICS
+	);
 
 	@Nullable
 	@Override
@@ -149,7 +170,7 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		Drawable contours = AppCompatResources.getDrawable(requireContext(), R.drawable.img_banner_contours);
 		if (contours != null) {
 			contours = contours.mutate();
-			contours.setAlpha(isNightMode() ? 255 : 51);
+			contours.setAlpha(isNightMode() ? 151 : 51);
 		}
 		AndroidUtils.setBackground(bannerContainer, new ClipRoundCornersDrawable(backgroundColor, cornerRadius, contours));
 	}
@@ -217,21 +238,17 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		primaryDescription.setText(selectedFeature != null
 				? selectedFeature.getDescription(getApp())
 				: args.getString(TITLE_KEY));
-		primaryDescription.setTextColor(ColorUtilities.getPrimaryTextColor(getApp(), nightMode));
 
 		FlowLayout listContainer = view.findViewById(R.id.list_container);
 		listContainer.removeAllViews();
-		int spacing = getResources().getDimensionPixelSize(R.dimen.content_padding_half);
-		for (BannerFeatureItem item : getBannerFeatureItems(inAppSku)) {
-			View itemView = createFeatureChip(item);
-			if (item.feature != null) {
-				itemView.setOnClickListener(v -> bindChoosePlanContent(view, item.feature, inAppSku, args));
-			}
-			listContainer.addView(itemView, new FlowLayout.LayoutParams(spacing, spacing));
+		int spacing = getResources().getDimensionPixelSize(R.dimen.content_padding_small_half);
+		for (OsmAndFeature feature : getBannerFeatures(inAppSku)) {
+			listContainer.addView(createFeatureChip(feature), new FlowLayout.LayoutParams(spacing, spacing));
 		}
 		listContainer.addView(createLearnMoreChip(), new FlowLayout.LayoutParams(spacing, spacing));
 
 		setupPriceButtons(view, selectedFeature, inAppSku);
+		view.post(this::updateCollapsedPeekHeight);
 	}
 
 	private int getHeaderIconId(@Nullable OsmAndFeature selectedFeature, @Nullable String inAppSku, boolean nightMode) {
@@ -265,7 +282,7 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 	}
 
 	@NonNull
-	private List<BannerFeatureItem> getBannerFeatureItems(@Nullable String inAppSku) {
+	private List<OsmAndFeature> getBannerFeatures(@Nullable String inAppSku) {
 		if (isMapsPlusSku(inAppSku)) {
 			return MAPS_PLUS_BANNER_FEATURES;
 		} else if (InAppPurchaseUtils.isMapsPlusAvailable(getApp(), false) || InAppPurchaseUtils.isFullVersionAvailable(getApp(), false)) {
@@ -274,12 +291,11 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		return OSMAND_PRO_BANNER_FEATURES;
 	}
 
-	private View createFeatureChip(@NonNull BannerFeatureItem item) {
+	private View createFeatureChip(@NonNull OsmAndFeature feature) {
 		LinearLayout chip = new LinearLayout(requireContext());
 		chip.setGravity(android.view.Gravity.CENTER_VERTICAL);
 		chip.setOrientation(LinearLayout.HORIZONTAL);
-		chip.setMinimumHeight(dpToPx(36f));
-		int horizontalPadding = dpToPx(12f);
+		int horizontalPadding = dpToPx(9f);
 		int verticalPadding = dpToPx(6f);
 		chip.setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding);
 		chip.setBackground(createChipBackground());
@@ -287,12 +303,12 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		ImageView icon = new ImageView(requireContext());
 		int iconSize = getResources().getDimensionPixelSize(R.dimen.standard_icon_size);
 		LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(iconSize, iconSize);
-		iconParams.setMarginEnd(dpToPx(8f));
-		icon.setImageResource(item.getIconId(isNightMode()));
+		iconParams.setMarginEnd(dpToPx(10f));
+		icon.setImageResource(feature.getIconId(isNightMode()));
 		chip.addView(icon, iconParams);
 
 		TextViewEx title = new TextViewEx(requireContext());
-		title.setText(getString(item.titleId));
+		title.setText(getString(feature.getListTitleId()));
 		title.setTextColor(ColorUtilities.getPrimaryTextColor(getApp(), isNightMode()));
 		title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,
 				getResources().getDimension(R.dimen.default_list_text_size));
@@ -326,8 +342,10 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 
 	private Drawable createChipBackground() {
 		GradientDrawable drawable = new GradientDrawable();
-		drawable.setColor(ColorUtilities.getActivityBgColor(getApp(), isNightMode()));
-		drawable.setCornerRadius(getResources().getDimension(R.dimen.radius_small));
+		drawable.setColor(ColorUtilities.getColor(getApp(), isNightMode()
+				? R.color.banner_feature_bg_dark
+				: R.color.banner_feature_bg_light));
+		drawable.setCornerRadius(getResources().getDimension(R.dimen.radius_normal));
 		return drawable;
 	}
 
@@ -727,7 +745,15 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 	private void applyDialogTransparency(@NonNull BottomSheetDialog dialog) {
 		View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
 		if (bottomSheet != null) {
+			bottomSheet.setFitsSystemWindows(false);
 			bottomSheet.setBackgroundColor(Color.TRANSPARENT);
+			if (bottomSheet.getParent() instanceof View parent) {
+				parent.setFitsSystemWindows(false);
+				if (parent instanceof ViewGroup parentGroup) {
+					parentGroup.setClipChildren(false);
+					parentGroup.setClipToPadding(false);
+				}
+			}
 		}
 	}
 
@@ -738,28 +764,27 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 			return;
 		}
 		bottomSheet.post(() -> {
+			bottomSheetView = bottomSheet;
 			ViewGroup.LayoutParams params = bottomSheet.getLayoutParams();
-			params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+			params.height = ViewGroup.LayoutParams.MATCH_PARENT;
 			bottomSheet.setLayoutParams(params);
 
-			int contentHeight = 0;
-			int width = bottomSheet.getWidth() > 0 ? bottomSheet.getWidth() : content.getWidth();
-			if (width > 0) {
-				int widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY);
-				int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-				content.measure(widthSpec, heightSpec);
-				contentHeight = content.getMeasuredHeight();
+			BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
+			if (bottomSheetBehavior != behavior) {
+				if (bottomSheetBehavior != null) {
+					bottomSheetBehavior.removeBottomSheetCallback(bottomSheetCallback);
+				}
+				bottomSheetBehavior = behavior;
+				behavior.addBottomSheetCallback(bottomSheetCallback);
 			}
-			if (contentHeight == 0) {
-				contentHeight = content.getHeight();
-			}
-			if (contentHeight > 0) {
-				BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
-				behavior.setFitToContents(true);
-				behavior.setSkipCollapsed(false);
-				behavior.setPeekHeight(contentHeight);
-				behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-			}
+			behavior.setFitToContents(false);
+			behavior.setExpandedOffset(0);
+			behavior.setSkipCollapsed(false);
+			bottomSheetState = BottomSheetBehavior.STATE_COLLAPSED;
+			bottomSheetSlideOffset = 0f;
+			updateBottomSheetLayout();
+			updateCollapsedPeekHeight();
+			behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 		});
 	}
 
@@ -793,35 +818,6 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		return false;
 	}
 
-	private static class BannerFeatureItem {
-
-		@StringRes
-		final int titleId;
-		@DrawableRes
-		final int dayIconId;
-		@DrawableRes
-		final int nightIconId;
-		@Nullable
-		final OsmAndFeature feature;
-
-		BannerFeatureItem(@NonNull OsmAndFeature feature) {
-			this(feature.getListTitleId(), feature.getIconId(false), feature.getIconId(true), feature);
-		}
-
-		BannerFeatureItem(@StringRes int titleId, @DrawableRes int dayIconId, @DrawableRes int nightIconId,
-		                  @Nullable OsmAndFeature feature) {
-			this.titleId = titleId;
-			this.dayIconId = dayIconId;
-			this.nightIconId = nightIconId;
-			this.feature = feature;
-		}
-
-		@DrawableRes
-		int getIconId(boolean nightMode) {
-			return nightMode ? nightIconId : dayIconId;
-		}
-	}
-
 	private static class DiscountBadgeSpan extends ReplacementSpan {
 
 		private final RectF rect = new RectF();
@@ -833,7 +829,8 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 		private final float cornerRadius;
 
 		DiscountBadgeSpan(@NonNull MapActivity activity) {
-			backgroundColor = ColorUtilities.getColor(activity, R.color.purchase_sc_discount);
+			int badgeColor = activity.isNightMode() ? R.color.sale_badge_dark: R.color.sale_badge_light;
+			backgroundColor = ColorUtilities.getColor(activity, badgeColor);
 			textColor = ColorUtilities.getColor(activity, R.color.active_buttons_and_links_text_light);
 			paddingHorizontal = activity.getResources().getDimensionPixelSize(R.dimen.content_padding_small_half);
 			paddingVertical = activity.getResources().getDimensionPixelSize(R.dimen.dash_margin);
@@ -870,9 +867,126 @@ public class DiscountBottomSheet extends BaseMaterialBottomSheetDialogFragment i
 			canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
 
 			paint.setColor(textColor);
-			canvas.drawText(text, start, end, badgeLeft + paddingHorizontal, y, paint);
+			float textX = rect.centerX() - textWidth / 2f;
+			float textY = rect.centerY() - (metrics.ascent + metrics.descent) / 2f;
+			canvas.drawText(text, start, end, textX, textY, paint);
 			paint.setColor(oldColor);
 		}
+	}
+
+	@Override
+	public void onApplyInsets(@NonNull WindowInsetsCompat insets) {
+		super.onApplyInsets(insets);
+		updateBottomSheetLayout();
+		updateCollapsedPeekHeight();
+	}
+
+	private void updateBottomSheetLayout() {
+		View view = getView();
+		if (view != null) {
+			boolean fillsHeight = isFullHeightState();
+			int topInset = getStatusBarTopInset();
+			int topOffset = Math.round(topInset * bottomSheetSlideOffset);
+			updateBottomSheetContainer(fillsHeight, topInset, topOffset);
+			View bannerContainer = view.findViewById(R.id.banner_container);
+			setLayoutHeight(view, fillsHeight ? ViewGroup.LayoutParams.MATCH_PARENT : ViewGroup.LayoutParams.WRAP_CONTENT);
+			setLayoutHeight(bannerContainer, fillsHeight ? ViewGroup.LayoutParams.MATCH_PARENT : ViewGroup.LayoutParams.WRAP_CONTENT);
+			if (view instanceof NestedScrollView nestedScrollView) {
+				nestedScrollView.setFillViewport(fillsHeight);
+			}
+			int bottomPadding = getResources().getDimensionPixelSize(R.dimen.content_padding) + getNavigationBarBottomInset();
+			bannerContainer.setPadding(
+					bannerContainer.getPaddingLeft(),
+					topOffset,
+					bannerContainer.getPaddingRight(),
+					bottomPadding);
+		}
+	}
+
+	private boolean isFullHeightState() {
+		return bottomSheetSlideOffset > 0f
+				|| bottomSheetState != BottomSheetBehavior.STATE_COLLAPSED
+				&& bottomSheetState != BottomSheetBehavior.STATE_HIDDEN;
+	}
+
+	private void updateBottomSheetContainer(boolean fillsHeight, int topInset, int topOffset) {
+		if (bottomSheetView != null) {
+			bottomSheetView.setTranslationY(-topOffset);
+			setLayoutHeight(bottomSheetView, fillsHeight
+					? getFullHeightBottomSheetHeight(topInset)
+					: ViewGroup.LayoutParams.MATCH_PARENT);
+		}
+	}
+
+	private int getFullHeightBottomSheetHeight(int topInset) {
+		if (bottomSheetView != null && bottomSheetView.getParent() instanceof View parent && parent.getHeight() > 0) {
+			return parent.getHeight() - bottomSheetView.getTop() + getNavigationBarBottomInset()
+					+ Math.round(topInset * bottomSheetSlideOffset);
+		}
+		return ViewGroup.LayoutParams.MATCH_PARENT;
+	}
+
+	private void setLayoutHeight(@NonNull View view, int height) {
+		ViewGroup.LayoutParams params = view.getLayoutParams();
+		if (params != null && params.height != height) {
+			params.height = height;
+			view.setLayoutParams(params);
+		}
+	}
+
+	private void updateCollapsedPeekHeight() {
+		if (bottomSheetBehavior == null || bottomSheetView == null || isFullHeightState()) {
+			return;
+		}
+		View content = getView();
+		if (content == null) {
+			return;
+		}
+		int contentHeight = measureContentHeight(content);
+		if (bottomSheetView.getParent() instanceof View parent && parent.getHeight() > 0) {
+			contentHeight = Math.min(contentHeight, parent.getHeight());
+		}
+		if (contentHeight > 0) {
+			bottomSheetBehavior.setPeekHeight(contentHeight);
+		}
+	}
+
+	private int measureContentHeight(@NonNull View content) {
+		int width = bottomSheetView != null && bottomSheetView.getWidth() > 0 ? bottomSheetView.getWidth() : content.getWidth();
+		if (width > 0) {
+			int widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY);
+			int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+			content.measure(widthSpec, heightSpec);
+			return content.getMeasuredHeight();
+		}
+		return content.getHeight();
+	}
+
+	private float getInsetSlideOffset(@NonNull View bottomSheet) {
+		int topInset = getStatusBarTopInset();
+		if (topInset == 0) {
+			return 1f;
+		}
+		return Math.max(0f, Math.min(1f, (topInset - bottomSheet.getTop()) / (float) topInset));
+	}
+
+	private int getNavigationBarBottomInset() {
+		WindowInsetsCompat insets = getLastRootInsets();
+		if (insets != null) {
+			Insets navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+			return navBarInsets.bottom;
+		}
+		return 0;
+	}
+
+	private int getStatusBarTopInset() {
+		WindowInsetsCompat insets = getLastRootInsets();
+		if (insets != null) {
+			Insets statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars()
+					| WindowInsetsCompat.Type.displayCutout());
+			return statusBarInsets.top;
+		}
+		return 0;
 	}
 
 }

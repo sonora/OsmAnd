@@ -21,6 +21,7 @@ import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.helpers.AmenityExtensionsHelper;
 import net.osmand.plus.helpers.MapMarkerDialogHelper;
+import net.osmand.plus.search.QuickSearchHelper.SearchHistoryAPI.HistorySearchResult;
 import net.osmand.plus.search.history.HistoryEntry;
 import net.osmand.plus.mapcontextmenu.controllers.NetworkRouteDrawable;
 import net.osmand.plus.mapmarkers.MapMarker;
@@ -38,6 +39,7 @@ import net.osmand.search.core.CustomSearchPoiFilter;
 import net.osmand.search.core.ObjectType;
 import net.osmand.search.core.SearchResult;
 import net.osmand.search.core.SearchSettings;
+import net.osmand.search.core.spatial.SpatialSearchResult;
 import net.osmand.shared.gpx.GpxFile;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
@@ -79,8 +81,43 @@ public class QuickSearchListItem {
 		return searchResult;
 	}
 
+	@Nullable
+	public SpatialSearchResult getSpatialSearchResult() {
+		SearchResult searchResult = getSearchResult();
+		if(searchResult != null) {
+			return searchResult.spatialResult;
+		}
+		return null;
+	}
+
+	public boolean isSpatialCategorySearchResult() {
+		SpatialSearchResult spatialSearchResult = getSpatialSearchResult();
+		return spatialSearchResult != null && spatialSearchResult.isPoiCategory()
+				&& spatialSearchResult.getReferenceObject() != null;
+	}
+
 	public boolean isDestinationHistoryItem() {
 		return isDestinationHistory(searchResult);
+	}
+
+	public boolean isLegacyHistoryItem() {
+		return isLegacySearchHistory(searchResult);
+	}
+
+	@Nullable
+	public HistoryEntry getHistoryEntry() {
+		if (searchResult != null) {
+			if (searchResult instanceof HistorySearchResult historySearchResult) {
+				return historySearchResult.getHistoryEntry();
+			}
+			if (searchResult.object instanceof HistoryEntry historyEntry) {
+				return historyEntry;
+			}
+			if (searchResult.relatedObject instanceof HistoryEntry historyEntry) {
+				return historyEntry;
+			}
+		}
+		return null;
 	}
 
 	public static String getCityTypeStr(Context ctx, CityType type) {
@@ -337,7 +374,7 @@ public class QuickSearchListItem {
 				break;
 			case RECENT_OBJ:
 				HistoryEntry entry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(entry)) {
+				if (isNavigationHistoryEntry(entry)) {
 					return app.getString(R.string.route_descr_destination);
 				}
 				if (!Algorithms.isEmpty(entry.getTypeName())) {
@@ -392,7 +429,7 @@ public class QuickSearchListItem {
 				return app.getUIUtilities().getThemedIcon(R.drawable.ic_action_group_name_16);
 			case RECENT_OBJ:
 				HistoryEntry historyEntry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(historyEntry)) {
+				if (isNavigationHistoryEntry(historyEntry)) {
 					return null;
 				}
 				String typeName = !Algorithms.isEmpty(historyEntry.getTypeName())
@@ -413,6 +450,7 @@ public class QuickSearchListItem {
 
 	@Nullable
 	public static String getStreetCityPart(SearchResult searchResult) {
+		//todo replace with street.getNameWithoutCityPart(lang, transliterate))
 		if (searchResult.localeName.endsWith(")")) {
 			int i = searchResult.localeName.indexOf('(');
 			if (i > 0) {
@@ -494,7 +532,7 @@ public class QuickSearchListItem {
 				return getIcon(app, R.drawable.ic_world_globe_dark);
 			case RECENT_OBJ:
 				HistoryEntry entry = (HistoryEntry) searchResult.object;
-				if (isDestinationHistory(entry)) {
+				if (isNavigationHistoryEntry(entry)) {
 					return app.getUIUtilities().getThemedIcon(R.drawable.ic_action_point_destination);
 				}
 				iconId = getHistoryIconId(app, entry);
@@ -569,7 +607,7 @@ public class QuickSearchListItem {
 
 	public static int getHistoryIconId(@NonNull OsmandApplication app,
 	                                   @NonNull HistoryEntry entry) {
-		if (isDestinationHistory(entry)) {
+		if (isNavigationHistoryEntry(entry)) {
 			return R.drawable.ic_action_point_destination;
 		}
 		int iconId = -1;
@@ -588,7 +626,7 @@ public class QuickSearchListItem {
 		return iconId;
 	}
 
-	private static boolean isDestinationHistory(@NonNull HistoryEntry entry) {
+	private static boolean isNavigationHistoryEntry(@NonNull HistoryEntry entry) {
 		return entry.getSource() == HistorySource.NAVIGATION;
 	}
 
@@ -596,7 +634,14 @@ public class QuickSearchListItem {
 		return searchResult != null
 				&& searchResult.objectType == ObjectType.RECENT_OBJ
 				&& searchResult.object instanceof HistoryEntry entry
-				&& isDestinationHistory(entry);
+				&& isNavigationHistoryEntry(entry);
+	}
+
+	private static boolean isLegacySearchHistory(@Nullable SearchResult searchResult) {
+		return searchResult != null
+				&& searchResult.objectType == ObjectType.RECENT_OBJ
+				&& searchResult.object instanceof HistoryEntry entry
+				&& !isNavigationHistoryEntry(entry);
 	}
 
 	@NonNull
@@ -752,7 +797,10 @@ public class QuickSearchListItem {
 		} else if (searchResult != null && searchResult.object instanceof MapObject mapObject) {
 			String title = mapObject.getName(mapLang);
 			String altName = Algorithms.isEmpty(searchResult.alternateName) ? mapObject.getName() : searchResult.alternateName;
-			if (Algorithms.isEmpty(title) && Algorithms.isEmpty(altName)) {
+			if (mapObject instanceof Building building && building.isInterpolation()
+					&& Algorithms.isNotEmpty(searchResult.localeName)) {
+				return searchResult.localeName; // interpolated house number
+			} else if (Algorithms.isEmpty(title) && Algorithms.isEmpty(altName)) {
 				return getSpannableName();
 			} else if (Algorithms.isEmpty(title)) {
 				return altName;

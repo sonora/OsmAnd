@@ -4,12 +4,14 @@ import static net.osmand.data.FavouritePoint.DEFAULT_BACKGROUND_TYPE;
 import static net.osmand.data.FavouritePoint.DEFAULT_UI_ICON_ID;
 import static net.osmand.shared.gpx.GpxUtilities.DEFAULT_ICON_NAME;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
@@ -77,11 +79,13 @@ public abstract class EditorFragment extends BaseFullScreenFragment
 	private OnGlobalLayoutListener onGlobalLayoutListener;
 
 	private int color;
+	private boolean colorSelected;
 	private String iconName = DEFAULT_ICON_NAME;
 	private BackgroundType backgroundType = DEFAULT_BACKGROUND_TYPE;
 
 	private int scrollViewY;
 	private int layoutHeightPrevious;
+	private boolean touchScrolling;
 
 	protected boolean cancelled;
 
@@ -92,6 +96,10 @@ public abstract class EditorFragment extends BaseFullScreenFragment
 
 	public void setColor(@ColorInt int color) {
 		this.color = color;
+	}
+
+	protected void setColorSelected(boolean colorSelected) {
+		this.colorSelected = colorSelected;
 	}
 
 	public String getIconName() {
@@ -239,15 +247,29 @@ public abstract class EditorFragment extends BaseFullScreenFragment
 		toolbar.setNavigationOnClickListener(v -> showExitDialog());
 	}
 
+	@SuppressLint("ClickableViewAccessibility")
 	private void setupScrollListener() {
 		ScrollView scrollView = view.findViewById(R.id.editor_scroll_view);
 		scrollViewY = scrollView.getScrollY();
+		touchScrolling = false;
+		scrollView.setOnTouchListener((v, event) -> {
+			int action = event.getActionMasked();
+			touchScrolling = action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL;
+			onScrollViewTouched(v, event);
+			return false;
+		});
 		scrollView.getViewTreeObserver().addOnScrollChangedListener(() -> {
-			if (scrollViewY != scrollView.getScrollY()) {
-				scrollViewY = scrollView.getScrollY();
-				onMainScrollChanged();
+			int scrollY = scrollView.getScrollY();
+			if (scrollViewY != scrollY) {
+				scrollViewY = scrollY;
+				if (touchScrolling) {
+					onMainScrollChanged();
+				}
 			}
 		});
+	}
+
+	protected void onScrollViewTouched(@NonNull View scrollView, @NonNull MotionEvent event) {
 	}
 
 	protected void onMainScrollChanged() {
@@ -383,6 +405,7 @@ public abstract class EditorFragment extends BaseFullScreenFragment
 	@Override
 	public void onPaletteItemSelected(@NonNull PaletteItem item) {
 		if (item instanceof PaletteItem.Solid solidItem) {
+			colorSelected = true;
 			setColor(solidItem.getColorInt());
 			updateContent();
 		}
@@ -481,7 +504,9 @@ public abstract class EditorFragment extends BaseFullScreenFragment
 	}
 
 	protected void savePressed() {
-		getColorController().renewLastUsedTime();
+		if (colorSelected) {
+			getColorController().renewLastUsedTime();
+		}
 		save(true);
 	}
 

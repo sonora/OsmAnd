@@ -81,6 +81,7 @@ public class DiscountHelper {
 	private static final String CHOOSE_PLAN_TYPE_SEA_DEPTH = "sea-depth";
 	private static final String CHOOSE_PLAN_TYPE_HILLSHADE = "hillshade";
 	private static final String CHOOSE_PLAN_TYPE_WIKIPEDIA = "wikipedia";
+	private static final String WEATHER = "weather";
 	private static final String CHOOSE_PLAN_TYPE_WIKIVOYAGE = "wikivoyage";
 	private static final String CHOOSE_PLAN_TYPE_OSMAND_CLOUD = "osmand-cloud";
 	private static final String CHOOSE_PLAN_TYPE_ADVANCED_WIDGETS = "advanced-widgets";
@@ -103,6 +104,9 @@ public class DiscountHelper {
 		OsmandSettings settings = app.getSettings();
 		boolean forceShowDiscountBottomSheet = settings.SHOULD_SHOW_DISCOUNT_BOTTOM_SHEET.get();
 		if (!settings.INAPPS_READ.get() && !(Version.isDeveloperVersion(app) && forceShowDiscountBottomSheet)) {
+			return;
+		}
+		if (settings.DO_NOT_SHOW_STARTUP_MESSAGES.get() && Version.isPaidVersion(app, false)) {
 			return;
 		}
 		if (mBannerVisible) {
@@ -179,13 +183,16 @@ public class DiscountHelper {
 			if (!validateUrl(app, data.url)) {
 				return;
 			}
+			boolean followingMode = app.getSettings().FOLLOW_THE_ROUTE.get() || app.getRoutingHelper().isFollowingMode();
 
 			if (app.getSettings().SHOULD_SHOW_DISCOUNT_BOTTOM_SHEET.get()) {
-				InAppPurchaseHelper purchaseHelper = mapActivity.getPurchaseHelper();
-				if (purchaseHelper != null) {
-					purchaseHelper.requestInventory(false);
+				if (!followingMode) {
+					InAppPurchaseHelper purchaseHelper = mapActivity.getPurchaseHelper();
+					if (purchaseHelper != null) {
+						purchaseHelper.requestInventory(false);
+					}
+					showDiscountBanner(mapActivity, data);
 				}
-				showDiscountBanner(mapActivity, data);
 				return;
 			}
 
@@ -222,6 +229,10 @@ public class DiscountHelper {
 			if (application.has(appName) && application.getBoolean(appName)
 					&& date.after(start) && date.before(end)) {
 
+				if (!showChristmasDialog) {
+					setCurrentSale(mapActivity, data);
+				}
+
 				OsmandSettings settings = app.getSettings();
 				int discountId = getDiscountId(data.message, start);
 				boolean discountChanged = settings.DISCOUNT_ID.get() != discountId;
@@ -232,7 +243,7 @@ public class DiscountHelper {
 				if (discountChanged
 						|| (app.getAppInitializer().getNumberOfStarts() - settings.DISCOUNT_SHOW_NUMBER_OF_STARTS.get() >= showStartFrequency
 						|| System.currentTimeMillis() - settings.DISCOUNT_SHOW_DATETIME_MS.get() > 1000L * 60 * 60 * 24 * showDayFrequency)) {
-					if (settings.DISCOUNT_TOTAL_SHOW.get() < maxTotalShow) {
+					if (settings.DISCOUNT_TOTAL_SHOW.get() < maxTotalShow && !followingMode) {
 						settings.DISCOUNT_ID.set(discountId);
 						settings.DISCOUNT_TOTAL_SHOW.set(settings.DISCOUNT_TOTAL_SHOW.get() + 1);
 						settings.DISCOUNT_SHOW_NUMBER_OF_STARTS.set(app.getAppInitializer().getNumberOfStarts());
@@ -315,10 +326,14 @@ public class DiscountHelper {
 		return result;
 	}
 
-	private static void showDiscountBanner(@NonNull MapActivity mapActivity, ControllerData data) {
+	private static void setCurrentSale(@NonNull MapActivity mapActivity, @NonNull ControllerData data) {
 		mData = data;
-		mBannerVisible = DiscountBottomSheet.showInstance(mapActivity.getSupportFragmentManager(), data);
 		mapActivity.getMapActions().updateDrawerMenu();
+	}
+
+	private static void showDiscountBanner(@NonNull MapActivity mapActivity, ControllerData data) {
+		setCurrentSale(mapActivity, data);
+		mBannerVisible = DiscountBottomSheet.showInstance(mapActivity.getSupportFragmentManager(), data);
 	}
 
 	private static void showPoiFilter(MapActivity mapActivity, PoiUIFilter poiFilter) {
@@ -396,7 +411,7 @@ public class DiscountHelper {
 	}
 
 	public static boolean shouldShowCurrentSaleInDrawer(@NonNull OsmandApplication app) {
-		return hasCurrentSale() && !Version.isPaidVersion(app);
+		return hasCurrentSale() && !Version.isPaidVersion(app, false);
 	}
 
 	@DrawableRes
@@ -469,8 +484,7 @@ public class DiscountHelper {
 					AbstractPoiType abstractType = poiTypes.getAnyPoiTypeByKey(name);
 					if (abstractType instanceof PoiCategory) {
 						acceptedTypes.put((PoiCategory) abstractType, null);
-					} else if (abstractType instanceof PoiType) {
-						PoiType type = (PoiType) abstractType;
+					} else if (abstractType instanceof PoiType type) {
 						PoiCategory category = type.getCategory();
 						LinkedHashSet<String> set = acceptedTypes.get(category);
 						if (set == null) {
@@ -685,6 +699,8 @@ public class DiscountHelper {
 				return null;
 			}
 			switch (planType) {
+				case WEATHER:
+					return OsmAndFeature.WEATHER;
 				case CHOOSE_PLAN_TYPE_SEA_DEPTH:
 					return OsmAndFeature.NAUTICAL;
 				case CHOOSE_PLAN_TYPE_HILLSHADE:

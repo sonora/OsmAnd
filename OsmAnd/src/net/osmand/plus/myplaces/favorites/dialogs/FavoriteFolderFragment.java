@@ -329,8 +329,7 @@ public class FavoriteFolderFragment extends BaseFavoriteListFragment
 	}
 
 	private void sortItems(@NonNull List<Object> items, @NonNull FavoriteListSortMode sortMode) {
-		LatLon latLon = app.getMapViewTrackingUtilities().getDefaultLocation();
-		items.sort(new FavoriteComparator(sortMode, latLon, app));
+		items.sort(new FavoriteComparator(sortMode, app));
 	}
 
 	@NonNull
@@ -406,7 +405,7 @@ public class FavoriteFolderFragment extends BaseFavoriteListFragment
 				FavoriteSelection selection = new FavoriteSelection(selectionHelper.getSelectedItems());
 				if (selection.isOnlyPoints()) {
 					menu.showPointsSelectOptionsMenu(view, selection.getPoints(), selectedGroup, nightMode,
-							FavoriteFolderFragment.this, FavoriteFolderFragment.this, FavoriteFolderFragment.this);
+							FavoriteFolderFragment.this, FavoriteFolderFragment.this, FavoriteFolderFragment.this, FavoriteFolderFragment.this);
 				} else if (selection.hasFolders()) {
 					menu.showDeleteSelectionOptionsMenu(view, selection, nightMode, FavoriteFolderFragment.this);
 				}
@@ -485,7 +484,7 @@ public class FavoriteFolderFragment extends BaseFavoriteListFragment
 	}
 
 	@Override
-	public void onSavingFavoritesFinished() {
+	public void onSavingFavoritesFinished(boolean success) {
 		updateContent();
 	}
 

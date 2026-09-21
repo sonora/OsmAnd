@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import net.osmand.IndexConstants;
+import net.osmand.data.AdditionalInfoBundle;
 import net.osmand.data.Amenity;
 import net.osmand.data.LatLon;
 import net.osmand.data.PointDescription;
@@ -34,14 +35,17 @@ import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class WptPtMenuBuilder extends MenuBuilder {
 
 	private final WptPt wpt;
 	private Map<String, String> amenityExtensions = new HashMap<>();
+	private Set<String> genericFallbackKeys = Collections.emptySet();
 
 	public WptPtMenuBuilder(@NonNull MapActivity mapActivity, @NonNull WptPt wpt,
 			@Nullable PlaceDetailsObject detailsObject) {
@@ -62,6 +66,7 @@ public class WptPtMenuBuilder extends MenuBuilder {
 				setAmenity(helper.findAmenity(originName, wpt.getLatitude(), wpt.getLongitude()));
 			}
 		}
+		genericFallbackKeys = AmenityExtensionsHelper.getStoredExtensionFallbackKeys(wpt.getExtensionsToRead());
 		amenityExtensions = helper.getUpdatedAmenityExtensions(wpt.getExtensionsToRead(), amenity);
 	}
 
@@ -137,8 +142,9 @@ public class WptPtMenuBuilder extends MenuBuilder {
 
 		if (!Algorithms.isEmpty(amenityExtensions)) {
 			boolean light = isLightContent();
-			AdditionalInfoBundle bundle = new AdditionalInfoBundle(app, amenityExtensions);
+			AdditionalInfoBundle bundle = new AdditionalInfoBundle(app.getPoiTypes(), amenityExtensions);
 			AmenityUIHelper helper = new AmenityUIHelper(mapActivity, getPreferredMapAppLang(), bundle);
+			helper.setGenericFallbackKeys(genericFallbackKeys);
 			helper.setLight(light);
 			helper.setLatLon(getLatLon());
 			helper.setCollapseExpandListener(getCollapseExpandListener());

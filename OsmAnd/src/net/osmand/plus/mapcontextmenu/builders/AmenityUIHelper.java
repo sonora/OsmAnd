@@ -3,15 +3,11 @@ package net.osmand.plus.mapcontextmenu.builders;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_LINKS_ID;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.CONTEXT_MENU_PHONE_ID;
 import static net.osmand.data.Amenity.*;
-import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE;
-import static net.osmand.osm.MapPoiTypes.WIKI_LANG;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.ALT_NAMES_ROW_KEY;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.NAMES_ROW_KEY;
-import static net.osmand.plus.wikipedia.WikiAlgorithms.WIKIPEDIA;
 import static net.osmand.plus.wikipedia.WikiAlgorithms.WIKI_DATA_BASE_URL;
 import static net.osmand.plus.wikipedia.WikiAlgorithms.WIKI_LINK;
 import static net.osmand.util.CollectionUtils.equalsToAny;
-import static net.osmand.util.CollectionUtils.startsWithAny;
 
 import android.content.Context;
 import android.content.Intent;
@@ -33,9 +29,9 @@ import androidx.core.util.Pair;
 import androidx.core.util.PatternsCompat;
 
 import net.osmand.PlatformUtil;
+import net.osmand.data.AdditionalInfoBundle;
 import net.osmand.data.Amenity;
 import net.osmand.data.LatLon;
-import net.osmand.data.MapObject;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
 import net.osmand.osm.PoiCategory;
@@ -88,6 +84,7 @@ public class AmenityUIHelper extends MenuBuilder {
 	private Map<String, List<PoiType>> collectedPoiTypes = new HashMap<>();
 	private boolean osmEditingEnabled = PluginsHelper.isActive(OsmEditingPlugin.class);
 	private boolean lastBuiltRowIsDescription = false;
+	private Set<String> genericFallbackKeys = Collections.emptySet();
 
 	public AmenityUIHelper(@NonNull MapActivity mapActivity, String preferredLang,
 			@NonNull AdditionalInfoBundle infoBundle) {
@@ -110,20 +107,8 @@ public class AmenityUIHelper extends MenuBuilder {
 		for (Entry<String, Object> entry : filteredInfo.entrySet()) {
 			String key = entry.getKey();
 			Object value = entry.getValue();
-			if (MapPoiTypes.getDefault().getAnyPoiAdditionalTypeByKey(key) instanceof PoiType that) {
-				if (that.isHidden()) {
-					continue;
-				}
-			}
-			if (key.contains(WIKIPEDIA) || key.contains(CONTENT)
-					|| key.contains(SHORT_DESCRIPTION) || key.contains(WIKI_LANG)) {
+			if (!additionalInfo.shouldDisplayKey(key)) {
 				continue;
-			}
-			if (ROUTE_ARTICLE.equals(subtype) && key.contains(DESCRIPTION)) {
-				continue;
-			}
-			if (key.equals(NAME)) {
-				continue; // will be added in buildNamesRow
 			}
 			AmenityInfoRow infoRow = null;
 			if (value instanceof String strValue) {
@@ -232,6 +217,12 @@ public class AmenityUIHelper extends MenuBuilder {
 		}
 	}
 
+	@Override
+	protected void openWikiUrl(@NonNull String url, boolean light) {
+		LatLon location = wikiAmenity != null ? wikiAmenity.getLocation() : getLatLon();
+		WikiArticleHelper.askShowArticle(mapActivity, !light, location, url);
+	}
+
 	public void buildWikiDataRow(@NonNull View view) {
 		String value = additionalInfo.get(WIKIDATA);
 		if (value != null) {
@@ -252,14 +243,7 @@ public class AmenityUIHelper extends MenuBuilder {
 	}
 
 	private void initVariables() {
-		poiCategory = null;
-		String typeTag = additionalInfo.get(TYPE);
-		if (!Algorithms.isEmpty(typeTag)) {
-			poiCategory = MapPoiTypes.getDefault().getPoiCategoryByName(typeTag);
-		}
-		if (poiCategory == null) {
-			poiCategory = MapPoiTypes.getDefault().getOtherPoiCategory();
-		}
+		poiCategory = additionalInfo.getCategory();
 		subtype = additionalInfo.get(SUBTYPE);
 		poiTypes = app.getPoiTypes();
 		cuisineRow = null;
@@ -328,12 +312,21 @@ public class AmenityUIHelper extends MenuBuilder {
 	private AmenityInfoRow createPoiAdditionalInfoRow(@NonNull Context context,
 	                                                  @NonNull String key, @NonNull String vl,
 	                                                  @Nullable CollapsableView collapsableView) {
-		if (isKeyToSkip(key)) return null;
+		if (additionalInfo.isKeyToSkip(key) || (key.equals("note") && !osmEditingEnabled))
+			return null;
 
-		PoiType pType = fetchPoiAdditionalType(key, vl);
+		PoiType pType = additionalInfo.getPoiAdditionalType(key, vl);
+		poiType = poiCategory.getPoiTypeByKeyName(key);
+		if (poiType == null && pType == null) {
+			poiType = poiTypes.getPoiTypeByKey(key);
+		}
 		if (pType == null) {
 			String altKey = key.replaceAll(":", "_");
-			pType = fetchPoiAdditionalType(altKey, vl);
+			pType = additionalInfo.getPoiAdditionalType(altKey, vl);
+			poiType = poiCategory.getPoiTypeByKeyName(altKey);
+			if (poiType == null && pType == null) {
+				poiType = poiTypes.getPoiTypeByKey(altKey);
+			}
 		}
 		if (pType != null && pType.isFilterOnly()) {
 			return null;
@@ -350,6 +343,7 @@ public class AmenityUIHelper extends MenuBuilder {
 
 		AmenityInfoRow.Builder rowBuilder = new AmenityInfoRow.Builder(key);
 		rowBuilder.setCollapsableView(collapsableView);
+		boolean useGenericFallback = genericFallbackKeys.contains(key);
 
 		if (pType != null) {
 			PoiAdditionalUiRule poiAdditionalUiRule = PoiAdditionalUiRules.INSTANCE.findRule(key);
@@ -360,11 +354,17 @@ public class AmenityUIHelper extends MenuBuilder {
 				return null; // the "Others" value is already displayed as a title
 			}
 			collectedPoiTypes.computeIfAbsent(category, s -> new ArrayList<>()).add(poiType);
-		} else if (showDefaultTags) {
-			pType = new PoiType(poiTypes, poiCategory, null, key, poiCategory.getIconKeyName());
+		} else if (showDefaultTags || useGenericFallback) {
+			String displayKey = useGenericFallback ? getGenericFallbackDisplayKey(key) : key;
+			if (useGenericFallback) {
+				rowBuilder.setIconId(R.drawable.ic_action_info_dark);
+			}
+			pType = new PoiType(poiTypes, poiCategory, null, displayKey, poiCategory.getIconKeyName());
 			pType.setText(true);
 			PoiAdditionalUiRule poiAdditionalUiRule = PoiAdditionalUiRules.INSTANCE.findRule(key);
-			poiAdditionalUiRule.fillRow(app, context, rowBuilder, this, pType, key, poiTypes.getPoiTranslation(vl), subtype);
+			// A custom GPX value is user data: show it as stored, do not translate it as a POI key.
+			String value = useGenericFallback ? vl : poiTypes.getPoiTranslation(vl);
+			poiAdditionalUiRule.fillRow(app, context, rowBuilder, this, pType, key, value, subtype);
 		} else {
 			return null; // skip non-translatable NON-poiType tags
 		}
@@ -372,27 +372,6 @@ public class AmenityUIHelper extends MenuBuilder {
 		lastBuiltRowIsDescription = rowBuilder.isDescription();
 		rowBuilder.setMatchWidthDivider(!rowBuilder.isDescription() && rowBuilder.isWiki());
 		return rowBuilder.build();
-	}
-
-	private boolean isKeyToSkip(@NonNull String key) {
-		return startsWithAny(key, COLLAPSABLE_PREFIX, ALT_NAME_WITH_LANG_PREFIX, LANG_YES)
-				|| equalsToAny(key, WIKI_PHOTO, WIKIDATA, WIKIMEDIA_COMMONS, "image", "mapillary", "subway_region")
-				|| (key.equals("note") && !osmEditingEnabled)
-				|| MapObject.isNameLangTag(key)
-				|| key.contains(ROUTE);
-	}
-
-	@Nullable
-	private PoiType fetchPoiAdditionalType(@NonNull String key, @Nullable String vl) {
-		poiType = poiCategory.getPoiTypeByKeyName(key);
-		AbstractPoiType pt = poiTypes.getAnyPoiAdditionalTypeByKey(key);
-		if (pt == null && !Algorithms.isEmpty(vl) && vl.length() < 50) {
-			pt = poiTypes.getAnyPoiAdditionalTypeByKey(key + "_" + vl);
-		}
-		if (poiType == null && pt == null) {
-			poiType = poiTypes.getPoiTypeByKey(key);
-		}
-		return pt != null ? (PoiType) pt : null;
 	}
 
 	public void buildNamesRow(ViewGroup viewGroup, Map<String, String> namesMap, boolean altName) {
@@ -582,8 +561,9 @@ public class AmenityUIHelper extends MenuBuilder {
 		textView.setTextColor(ColorUtilities.getPrimaryTextColor(app, !light));
 
 		int linkTextColor = ContextCompat.getColor(view.getContext(), light ? R.color.active_color_primary_light : R.color.active_color_primary_dark);
+		boolean isEmailAction = isEmailAction(text);
 
-		if (isPhoneNumber || isUrl) {
+		if (isPhoneNumber || isUrl || isEmailAction) {
 			textView.setTextColor(linkTextColor);
 			needLinks = false;
 		}
@@ -661,30 +641,18 @@ public class AmenityUIHelper extends MenuBuilder {
 
 		((LinearLayout) view).addView(baseView);
 
-		if (isPhoneNumber) {
-			ll.setOnClickListener(v -> {
-				if (customization.isFeatureEnabled(CONTEXT_MENU_PHONE_ID)) {
-					showDialog(text, Intent.ACTION_DIAL, "tel:", v);
-				}
-			});
-		} else if (isUrl) {
-			ll.setOnClickListener(v -> {
-				if (customization.isFeatureEnabled(CONTEXT_MENU_LINKS_ID)) {
-					String url = hiddenUrl == null ? text : hiddenUrl;
-					if (url.contains(WIKI_LINK)) {
-						LatLon location = wikiAmenity != null ? wikiAmenity.getLocation() : getLatLon();
-						WikiArticleHelper.askShowArticle(mapActivity, !light, location, url);
-					} else {
-						Intent intent = new Intent(Intent.ACTION_VIEW);
-						intent.setData(Uri.parse(url));
-						AndroidUtils.startActivityIfSafe(v.getContext(), intent);
-					}
-				}
-			});
-		} else if (isWiki) {
-			ll.setOnClickListener(v -> WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity, null));
-		} else if (isText && text.length() > 200) {
-			ll.setOnClickListener(v -> POIMapLayer.showPlainDescriptionDialog(view.getContext(), app, text, textPrefix));
+		if (!collapsable) {
+			if (isPhoneNumber) {
+				ll.setOnClickListener(v -> handlePhoneClick(textPrefix, text, v));
+			} else if (isUrl) {
+				ll.setOnClickListener(v -> handleUrlClick(textPrefix, text, hiddenUrl, light, v));
+			} else if (isEmailAction) {
+				ll.setOnClickListener(v -> handleEmailClick(textPrefix, text, v));
+			} else if (isWiki) {
+				ll.setOnClickListener(v -> WikipediaDialogFragment.showInstance(mapActivity, wikiAmenity, null));
+			} else if (isText && text.length() > 200) {
+				ll.setOnClickListener(v -> POIMapLayer.showPlainDescriptionDialog(view.getContext(), app, text, textPrefix));
+			}
 		}
 
 		rowBuilt();
@@ -816,5 +784,15 @@ public class AmenityUIHelper extends MenuBuilder {
 
 	public void setShowDefault(boolean showDefault) {
 		this.showDefaultTags = showDefault;
+	}
+
+	public void setGenericFallbackKeys(@NonNull Collection<String> genericFallbackKeys) {
+		this.genericFallbackKeys = new HashSet<>(genericFallbackKeys);
+	}
+
+	@NonNull
+	private String getGenericFallbackDisplayKey(@NonNull String key) {
+		int separatorIndex = key.indexOf(':');
+		return separatorIndex > 0 ? key.substring(separatorIndex + 1) : key;
 	}
 }

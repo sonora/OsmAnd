@@ -3,9 +3,10 @@ package net.osmand.plus.download.ui;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static net.osmand.plus.chooseplan.OsmAndFeature.UNLIMITED_MAP_DOWNLOADS;
 import static net.osmand.plus.download.DownloadValidationManager.MAXIMUM_AVAILABLE_FREE_DOWNLOADS;
+import static net.osmand.plus.utils.FontCache.FONT_WEIGHT_MEDIUM;
 
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageView;
@@ -14,6 +15,9 @@ import android.widget.Space;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
+
+import com.google.android.material.card.MaterialCardView;
 
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
@@ -23,7 +27,7 @@ import net.osmand.plus.helpers.DiscountHelper;
 import net.osmand.plus.settings.backend.OsmandSettings;
 import net.osmand.plus.settings.enums.ThemeUsageContext;
 import net.osmand.plus.utils.AndroidUtils;
-import net.osmand.plus.utils.ColorUtilities;
+import net.osmand.plus.utils.FontCache;
 import net.osmand.util.Algorithms;
 
 public class FreeVersionBanner {
@@ -66,6 +70,17 @@ public class FreeVersionBanner {
 		freeVersionDescriptionTextView = freeVersionBanner.findViewById(R.id.freeVersionDescriptionTextView);
 		freeVersionCtaArrow = freeVersionBanner.findViewById(R.id.freeVersionCtaArrow);
 		freeVersionCtaDiscountBadge = freeVersionBanner.findViewById(R.id.freeVersionCtaDiscountBadge);
+
+		updateCtaArrowDirection();
+		freeVersionBanner.findViewById(R.id.bannerTopLayout).setOnClickListener(onBannerClickListener);
+		freeVersionCtaContainer.setOnClickListener(onBannerClickListener);
+	}
+
+	private void updateCtaArrowDirection() {
+		Drawable arrow = AppCompatResources.getDrawable(activity, R.drawable.ic_arrow_forward);
+		if (arrow != null) {
+			freeVersionCtaArrow.setImageDrawable(AndroidUtils.getDrawableForDirection(activity, arrow.mutate()));
+		}
 	}
 
 	public void initFreeVersionBanner() {
@@ -84,41 +99,58 @@ public class FreeVersionBanner {
 			}
 			return;
 		}
-		setMinimizedFreeVersionBanner(false);
-		int downloadsLeft = getDownloadsLeft(false);
+		updateBanner(getDownloadsLeft(true));
+	}
+
+	private void updateBanner(int downloadsLeft) {
 		updateBannerState(downloadsLeft);
 		updateDownloadsProgress(downloadsLeft);
 		downloadsLeftTextView.setText(activity.getString(R.string.downloads_left_template, String.valueOf(downloadsLeft)));
-		freeVersionBanner.findViewById(R.id.bannerTopLayout).setOnClickListener(onBannerClickListener);
 	}
 
 	private void updateBannerState(int downloadsLeft) {
 		boolean limitReached = downloadsLeft == 0;
 		boolean nightMode = app.getDaynightHelper().isNightMode(settings.getApplicationMode(), ThemeUsageContext.APP);
-		updateBannerColors(nightMode);
+		updateBannerColors();
 		freeVersionTitleTextView.setText(limitReached ? R.string.free_download_limit_reached : R.string.free_version_title);
 		downloadsLeftTextView.setVisibility(limitReached ? View.GONE : View.VISIBLE);
 		freeVersionSubtitleTextView.setVisibility(limitReached ? View.VISIBLE : View.GONE);
 		freeVersionDescriptionTextView.setText(R.string.get_unlimited_downloads);
-		freeVersionCtaContainer.setOnClickListener(onBannerClickListener);
-		updateCtaDiscountBadge(nightMode);
-		int ctaBackgroundId = nightMode
-				? R.drawable.free_version_banner_cta_bg_ripple_dark
-				: R.drawable.free_version_banner_cta_bg_ripple;
+		boolean hasDiscount = updateCtaDiscountBadge(nightMode);
+		boolean filledCta = limitReached || hasDiscount;
+		int ctaBackgroundId = R.drawable.free_version_banner_cta_neutral_ripple;
+		int ctaHorizontalMargin = 0;
+		int ctaTopMargin = 0;
+		int ctaBottomMargin = 0;
+		LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) freeVersionCtaContainer.getLayoutParams();
+		if (filledCta) {
+			int touchOverhang = (layoutParams.height - freeVersionCtaContentContainer.getLayoutParams().height) / 2;
+			ctaHorizontalMargin = (int) app.getResources().getDimension(R.dimen.content_padding);
+			ctaTopMargin = (int) app.getResources().getDimension(R.dimen.content_padding_small) - touchOverhang;
+			ctaBottomMargin = ctaHorizontalMargin - touchOverhang;
+			ctaBackgroundId = nightMode
+					? R.drawable.free_version_banner_cta_bg_ripple_dark
+					: R.drawable.free_version_banner_cta_bg_ripple;
+		}
+		layoutParams.leftMargin = ctaHorizontalMargin;
+		layoutParams.rightMargin = ctaHorizontalMargin;
+		layoutParams.bottomMargin = ctaBottomMargin;
+		layoutParams.topMargin = ctaTopMargin;
 		freeVersionCtaContentContainer.setBackgroundResource(ctaBackgroundId);
 		freeVersionCtaContainer.setVisibility(View.VISIBLE);
 	}
 
-	private void updateBannerColors(boolean nightMode) {
+	private void updateBannerColors() {
 		int backgroundColor = AndroidUtils.getColorFromAttr(activity, R.attr.list_background_color);
-		GradientDrawable background = new GradientDrawable();
-		background.setColor(backgroundColor);
-		background.setCornerRadius(AndroidUtils.dpToPx(app, 12));
-		freeVersionBanner.setBackground(background);
+		if (freeVersionBanner instanceof MaterialCardView cardView) {
+			cardView.setCardBackgroundColor(backgroundColor);
+			cardView.setCardElevation(0);
+		} else {
+			freeVersionBanner.setBackgroundColor(backgroundColor);
+		}
 		int textColor = AndroidUtils.getColorFromAttr(activity, android.R.attr.textColor);
 		int textColorSecondary = AndroidUtils.getColorFromAttr(activity, android.R.attr.textColorSecondary);
 		freeVersionTitleTextView.setTextColor(textColor);
-		freeVersionDescriptionTextView.setTextColor(ColorUtilities.getActiveColor(app, nightMode));
 		downloadsLeftTextView.setTextColor(textColorSecondary);
 		freeVersionSubtitleTextView.setTextColor(textColorSecondary);
 	}
@@ -165,18 +197,8 @@ public class FreeVersionBanner {
 		return drawable;
 	}
 
-	protected void setMinimizedFreeVersionBanner(boolean minimize) {
-		if (minimize && DownloadActivity.isDownloadingPermitted(settings)) {
-			freeVersionBannerTitle.setVisibility(View.GONE);
-		} else {
-			freeVersionBannerTitle.setVisibility(View.VISIBLE);
-		}
-	}
-
 	protected void updateAvailableDownloads() {
-		int downloadsLeft = getDownloadsLeft(true);
-		updateBannerState(downloadsLeft);
-		updateDownloadsProgress(downloadsLeft);
+		updateBanner(getDownloadsLeft(true));
 	}
 
 	private int getDownloadsLeft(boolean includeActiveTasks) {

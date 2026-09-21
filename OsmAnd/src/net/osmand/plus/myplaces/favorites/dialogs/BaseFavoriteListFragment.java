@@ -56,6 +56,7 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 	protected FavouritesHelper helper;
 	protected ImportHelper importHelper;
 	protected boolean selectionMode = false;
+	private OnBackPressedCallback backCallback;
 
 	protected FavoriteFoldersAdapter adapter;
 	protected FavoriteGroup selectedGroup;
@@ -123,29 +124,16 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
 
-		OnBackPressedCallback backCallback = new OnBackPressedCallback(true) {
+		// Enabled only in selection mode, otherwise the system handles Back (predictive back animation).
+		backCallback = new OnBackPressedCallback(selectionMode) {
 			@Override
 			public void handleOnBackPressed() {
-				if (handleBackInsideFragment()) {
-					return;
-				}
-
-				setEnabled(false);
-				requireActivity().onBackPressed();
-				setEnabled(true);
+				exitSelectionMode();
 			}
 		};
 		setSelectionMode(selectionMode);
 
 		requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), backCallback);
-	}
-
-	private boolean handleBackInsideFragment() {
-		if (selectionMode) {
-			exitSelectionMode();
-			return true;
-		}
-		return false;
 	}
 
 	@Override
@@ -245,6 +233,9 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 
 	protected void setSelectionMode(boolean mode) {
 		selectionMode = mode;
+		if (backCallback != null) {
+			backCallback.setEnabled(mode);
+		}
 		if (!selectionMode) {
 			getSelectionHelper().clearSelectedItems();
 			changeTitle(String.valueOf(getSelectionHelper().getSelectedItems().size()));
@@ -257,15 +248,6 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 		return selectionMode;
 	}
 
-	@Override
-	public void onPause() {
-		super.onPause();
-		Activity activity = getActivity();
-		if (activity == null || !activity.isChangingConfigurations()) {
-			exitSelectionMode();
-		}
-	}
-
 	@Nullable
 	private ActionBar getSupportActionBar() {
 		MyPlacesActivity activity = (MyPlacesActivity) requireMyActivity();
@@ -273,9 +255,13 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 	}
 
 	public void shareFavorites(@NonNull List<FavoriteGroup> groups) {
+		shareFavorites(groups, null);
+	}
+
+	public void shareFavorites(@NonNull List<FavoriteGroup> groups, @Nullable String folderPath) {
 		FragmentActivity activity = getActivity();
 		if (activity != null) {
-			OsmAndTaskManager.executeTask(new ShareFavoritesAsyncTask(activity, groups, this));
+			OsmAndTaskManager.executeTask(new ShareFavoritesAsyncTask(activity, groups, folderPath, this));
 		}
 	}
 
@@ -294,7 +280,7 @@ public abstract class BaseFavoriteListFragment extends BaseFullScreenFragment
 	}
 
 	@Override
-	public void shareFavoritesFinished(@NonNull File destFile, @NonNull Spanned pointsDescription) {
+	public void shareFavoritesFinished(@NonNull File destFile, @Nullable Spanned pointsDescription) {
 		updateProgressVisibility(false);
 	}
 

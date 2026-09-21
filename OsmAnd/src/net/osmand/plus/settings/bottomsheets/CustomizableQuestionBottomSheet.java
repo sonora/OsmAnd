@@ -8,6 +8,7 @@ import static net.osmand.plus.base.dialog.data.DialogExtra.TITLE;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -31,6 +32,16 @@ public class CustomizableQuestionBottomSheet extends CustomizableBottomSheet {
 
 	public static final String TAG = CustomizableQuestionBottomSheet.class.getSimpleName();
 
+	@Nullable
+	@Override
+	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+		if (displayData == null) {
+			dismissAllowingStateLoss();
+			return null;
+		}
+		return super.onCreateView(inflater, parent, savedInstanceState);
+	}
+
 	@Override
 	public void createMenuItems(Bundle savedInstanceState) {
 		Context ctx = getContext();
@@ -44,16 +55,16 @@ public class CustomizableQuestionBottomSheet extends CustomizableBottomSheet {
 		TextView tvDescription = contentView.findViewById(R.id.description);
 
 		Drawable drawable = (Drawable) getExtra(DRAWABLE);
-		AndroidUiHelper.updateVisibility(tvTitle, drawable != null);
+		AndroidUiHelper.updateVisibility(ivIcon, drawable != null);
 		if (drawable != null) {
 			ivIcon.setImageDrawable(drawable);
 		}
 
-		String title = (String) getExtra(TITLE);
+		CharSequence title = (CharSequence) getExtra(TITLE);
 		AndroidUiHelper.updateVisibility(tvTitle, title != null);
 		tvTitle.setText(title);
 
-		String description = (String) getExtra(DESCRIPTION);
+		CharSequence description = (CharSequence) getExtra(DESCRIPTION);
 		AndroidUiHelper.updateVisibility(tvDescription, description != null);
 		tvDescription.setText(description);
 
