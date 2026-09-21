@@ -1,6 +1,8 @@
 package net.osmand.data;
 
-import static net.osmand.gpx.GPXUtilities.*;
+import static net.osmand.gpx.GPXUtilities.AMENITY_PREFIX;
+import static net.osmand.gpx.GPXUtilities.ICON_NAME_EXTENSION;
+import static net.osmand.gpx.GPXUtilities.OSM_PREFIX;
 import static net.osmand.osm.MapPoiTypes.ROUTES_PREFIX;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE;
 import static net.osmand.osm.MapPoiTypes.ROUTE_ARTICLE_POINT;
@@ -9,6 +11,24 @@ import static net.osmand.osm.MapPoiTypes.ROUTE_TRACK_POINT;
 import static net.osmand.osm.MapPoiTypes.WIKI_LANG;
 import static net.osmand.shared.gpx.GpxFile.XML_COLON;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import gnu.trove.list.array.TIntArrayList;
 import net.osmand.Location;
 import net.osmand.binary.BinaryMapIndexReader.TagValuePair;
 import net.osmand.binary.ObfConstants;
@@ -23,13 +43,6 @@ import net.osmand.util.Algorithms;
 import net.osmand.util.CollectionUtils;
 import net.osmand.util.MapUtils;
 
-import org.json.JSONObject;
-
-import java.util.*;
-import java.util.Map.Entry;
-
-import gnu.trove.list.array.TIntArrayList;
-
 
 public class Amenity extends MapObject {
 
@@ -43,6 +56,7 @@ public class Amenity extends MapObject {
 	public static final String SHORT_DESCRIPTION = "short_description";
 	public static final String ROUTE = "route";
 	public static final String OPENING_HOURS = "opening_hours";
+	public static final String NOTE = "note";
 	public static final String POPULATION = "population";
 	public static final String WIDTH = "width";
 	public static final String HEIGHT = "height";
@@ -783,6 +797,13 @@ public class Amenity extends MapObject {
 			}
 			json.put("additionalInfo", additionalInfoObj);
 		}
+		if (bbox31 != null && bbox31.length == 4) {
+			JSONArray bboxJson = new JSONArray();
+			for (int coordinate : bbox31) {
+				bboxJson.put(coordinate);
+			}
+			json.put("bbox31", bboxJson);
+		}
 
 		return json;
 	}
@@ -811,6 +832,14 @@ public class Amenity extends MapObject {
 				String value = namesObj.getString(key);
 				amenity.setAdditionalInfo(key, value);
 			}
+		}
+		Object bboxValue = json.opt("bbox31");
+		JSONArray bboxJson = bboxValue instanceof JSONArray ? (JSONArray) bboxValue
+				: bboxValue instanceof String ? new JSONArray((String) bboxValue) : null;
+		if (bboxJson != null && bboxJson.length() == 4) {
+			amenity.setBbox31(new int[] {
+					bboxJson.getInt(0), bboxJson.getInt(1), bboxJson.getInt(2), bboxJson.getInt(3)
+			});
 		}
 		return amenity;
 	}

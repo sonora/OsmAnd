@@ -1079,7 +1079,7 @@
     <string name="error_message_pattern">Chyba: {0}</string>
     <string name="dahboard_options_dialog_title">Nastavení domovské stránky</string>
     <string name="shared_string_card_was_hidden">Karta byla skryta</string>
-    <string name="shared_string_undo">Zpět</string>
+    <string name="shared_string_undo">Vrátit</string>
     <string name="tab_title_basic">Základní</string>
     <string name="tab_title_advanced">Rozšířené</string>
     <string name="building_number">Číslo domu</string>
@@ -1662,7 +1662,7 @@
     <string name="my_location">Moje poloha</string>
     <string name="shared_string_finish">Dokončit</string>
     <string name="plan_route">Naplánovat trasu</string>
-    <string name="shared_string_sort">Seřadit</string>
+    <string name="shared_string_sort">Řadit</string>
     <string name="coordinate_input">Zadání souřadnic</string>
     <string name="marker_save_as_track_descr">Vyexportovat vaše značky do tohoto GPX souboru:</string>
     <string name="move_to_history">Přesunout do historie</string>
@@ -4885,7 +4885,7 @@
     <string name="rendering_attr_watercolor_description">Barva vody</string>
     <string name="show_local_names">Zobrazit místní názvy</string>
     <string name="access_pinch_zoom_magnification">Zvětšení sevřením a roztažením prstů</string>
-    <string name="access_pinch_zoom_magnification_descr">Při gestech přiblížení použít škálování viewportu namísto diskrétních úrovní přiblížení.</string>
+    <string name="access_pinch_zoom_magnification_descr">Při gestu přiblížení použít škálování viewportu (zvětšení) namísto diskrétních úrovní přiblížení.</string>
     <string name="lang_en_barebones">Angličtina (základní)</string>
     <string name="show_spherical_map_description">Zobrazit sférický model Země</string>
     <string name="shared_string_price">Cena</string>
@@ -5248,7 +5248,7 @@
     <string name="coordinate_format_select_other">Vyberte jiný formát</string>
     <string name="coordinate_format_primary">Primární</string>
     <string name="shared_string_recent">Nedávné</string>
-    <string name="sort_by_nearest_to_map_center">Blízko středu mapy</string>
+    <string name="sort_by_nearest_to_map_center">Nejblíž ke středu mapy</string>
     <string name="last_week">Minulý týden</string>
     <string name="history_is_turned_off">Historie je vypnutá</string>
     <string name="search_and_navigation_history_disabled_descr">Historie vyhledávání a navigace jsou zakázány. Povolte je v nastavení, abyste mohli vidět tuto aktivitu.</string>
@@ -5259,7 +5259,7 @@
     <string name="search_around_my_location_description">Hledat okolo mojí polohy</string>
     <string name="sort_by_relevance">Relevance</string>
     <string name="routing_attr_motor_type_ethanol_name">Etanol</string>
-    <string name="sort_by_nearest_to_current_location">Nejblíže k aktuální poloze</string>
+    <string name="sort_by_nearest_to_current_location">Nejblíž k aktuální poloze</string>
     <string name="attached_media_delete_confirmation">Smazat %1$d mediálních položek od tohoto bodu? Média uložená aplikací a nepřipojená nikde jinde budou také smazána ze zařízení.</string>
     <string name="android_auto_missing_maps_desc">Stáhněte si chybějící mapy trasy, abyste mohli pokračovat.</string>
     <string name="android_auto_possible_missing_maps_desc">Možná chybí některé mapy. Zkuste pokračovat s použitím stávajících map.</string>
@@ -5271,7 +5271,7 @@
     <string name="astro_map_center_location">Střed mapy: %1$s</string>
     <string name="astro_solar_eclipse">Zatmění slunce</string>
     <string name="astro_solar_eclipse_subtitle">Prozkoumejte celosvětová zatmění slunce</string>
-    <string name="release_5_4">• Nové prostorové vyhledávání — vyhledávání míst a okolí daného místa\n\n • Vylepšené uživatelské rozhraní vyhledávání: třídění, filtry podle kategorií, přehlednější vzhled\n\n • Přidávání fotografií a médií do oblíbených\n\n • Oblíbené: podskupiny a složky, které lze připnout\n\n • Souřadnice: vyhledávání, mapová mřížka a zobrazení bodů zájmu (POI) nyní podporují lokátory EPSG a Maidenhead\n\n • Opraveny výpadky navigace; přepínání mezi standardním a rychlým trasováním\n\n • Nastavení měřítka mapy v Android Auto nezávisle na nastavení v telefonu\n\n • Do sekce Astronomie přidány sluneční a měsíční zatmění</string>
+    <string name="release_5_4">• Vylepšené uživatelské rozhraní vyhledávání: třídění, filtry podle kategorií, přehlednější vzhled\n\n • Přidávání fotografií a médií do oblíbených\n\n • Oblíbené: podskupiny a složky, které lze připnout\n\n • Souřadnice: vyhledávání, mapová mřížka a zobrazení bodů zájmu (POI) nyní podporují lokátory EPSG a Maidenhead\n\n • Opraveny výpadky navigace; přepínání mezi standardním a rychlým trasováním\n\n • Nastavení měřítka mapy v Android Auto nezávisle na nastavení v telefonu\n\n • Nové prostorové vyhledávání — vyhledávání míst a okolí daného místa\n\n • Do sekce Astronomie přidány sluneční a měsíční zatmění</string>
     <string name="always_keep_local_copy">Vždy držte lokální kopii</string>
     <string name="always_keep_local_copy_description">Media zůstávají připojena i v případě, že je originál odstraněn z galerie nebo souborů.</string>
     <string name="use_spatial_text_search">Použít prostorové vyhledávání textu</string>
@@ -5288,4 +5288,7 @@
     <string name="astro_penumbral_lunar_eclipse">Penumbrální zatmění Měsíce</string>
     <string name="astro_eclipse_phase_penumbral">Penumbrální</string>
     <string name="astro_lunar_eclipse_calculating_state">Výpočet viditelnosti na mapě…</string>
+    <string name="astro_eclipse_column_below_horizon">Pod obzorem</string>
+    <string name="crash_report_send_failed">Hlášení se nepodařilo odeslat. Zkuste to znovu později.</string>
+    <string name="crash_report_sent">Hlášení odesláno. Děkujeme!</string>
 </resources>

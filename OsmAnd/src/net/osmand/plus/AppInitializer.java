@@ -792,8 +792,12 @@ public class AppInitializer implements IProgress {
 
 	public void notifyFinish() {
 		app.uiHandler.post(() -> {
-			for (AppInitializeListener listener : listeners) {
-				listener.onFinish(this);
+			try {
+				for (AppInitializeListener listener : listeners) {
+					listener.onFinish(this);
+				}
+			} finally {
+				app.selectedGpxHelper.startPendingGpxRestore();
 			}
 		});
 	}

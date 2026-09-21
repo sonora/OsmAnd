@@ -21,42 +21,21 @@ import net.osmand.search.core.spatial.SpatialTextSearch.SpatialSearchResults;
 import net.osmand.search.core.spatial.SpatialTextSearch.SpatialTextSearchSettings;
 import net.osmand.util.SearchAlgorithms;
 
-//////////// TESTING //////////
-// ### ukraine_school.json - Missing A+ school - школа А+ (nothing found on website)
-// 		Result 2 (t2+0-w1-oth1-tp0) - ["школа а" [POI School] 'Початкова школа А+' 731005224 6351 (50.3700 30.4470)]
-// ### usa_new_york.json  - "apple city", "harlem city" (New york) - test that result odesn't appear "city" [POI_TYPE] + "apple" [CITY_TOWN_TYPE] 'New York' 
-// ### uk_saksag.json (NO street intersection, No City Antwerpen)  
-// ### usa_penn_avenue.json: (add ro-ki ignore) UNIT TESTING: (failing) 763 Ro-Ki Boulevard Nichols
-// ### usa_wilkes-barre.json '155 Park Avenue Wilkes Barre': duplicate result not present
-// ### portugal_travessa.json: See comment
-// ### ge3.json: '10 Am Remsufer Remseck am Neckar' - see comment
-
-// 1. UNIT TESTING: (poi additional germany) Gynaecologist - from all poi types should be result ! (not like old search)
-// 2. UNIT TESTING: Japan_kanto_tokyo (see example below on neighborouds) - test on small osm.gz?
-// 3. UNIT TESTING: Test poi category translations (add ru / de in test)
-// 4. UNIT TESTING: Test conscription number for some cities - "Bratislava Raketova 3248/6";
-// 5. UNIT TESTING: 'tongass national forest', 'national', national forest'
-// 6. UNIT TESTING: "Мигия озеро"
-// 7. UNIT TESTING: 'rû bas du rue', 'rue de l'eglise' (extra rue de la)
-// 8. UNIT TESTING: World - 'Venezia', 'Everest', 'Rio de Janeiro', 'остров Пасхи'
-
-// NO UNIT TESTING: '400 Susquehanna Boulevard Hazel Township' (MISSING Hazel Township)
-// NO UNIT TESTING: '330 Innovation Boulevard University Park' (partial result missing university park)
-
 ////////// IN PROGRESS //////////
-// REVIEW (index_words_dashboard - common озеро): POI / ADDRESS - France, Germany, US, Europe, China, Peru
-// REVIEW Auto test Analyze Performance & Android bootlenecks VisualVM (Pipeline + Intersection)
 // TODO FIX ORDER -  (tests)
+// TODO FIX TEST - category 8
+// TODO 'Hardware store' - Store is city? 
+// TODO 'Bank', 'Billa' - translations for poi categories 
 
-// TODO INDEX: Find POI Categories translations / synonyms via Common words - Стоматол., Dentist, Basilica 
-// TODO REVIEW: Abbrevations (synonyms / direction words) other languages?
-// TODO REVIEW: Analyze Abbrevations / common skip (abbrevations 1st=first)
+// DEDUPLICATE: Unit test - "Ярославів Вал"
+// DEDUPLICATE: Index place=state, province (World_basemap_mini) + county, ... (normal maps).. + wikidata id for boundaries (regions.ocbf) & display them - analyze
+// DEDUPLICATE: Add missing boundaries to Adress section (probably national parks?)
+// DEDUPLICATE: Duplicate village POI - - 'Khotiv' - missing wikidata on relation amenity. When generating amenity relation, wikidata tag could be taken from admin_centre, admin_center, ...
 
-// TODO Web worldwide search on missing results test "Arizona"
-// TODO DEDUPLICATE: Index place=state, county.. + wikidata id for boundaries (regions.ocbf) & display them - analyze
-// TODO DEDUPLICATE: Travel / Wiki - too many houses (duplicate names) in wiki maps - obstruct search by street "Ярославів Вал"`?
-// TODO Extend POI tile bboxes 200m? internet_access (fuel_diesel)
-// TODO Search in large parks, neighborhood same as in boundaries (index bbox POI), residential way/56238205
+// REVIEW: Compare Unit tests with Live maps
+// REVIEW: Find POI Categories translations / synonyms via Common words - Стоматол., Dentist, Basilica 
+// REVIEW: Abbrevations (synonyms / direction words) other languages? - https://github.com/osmandapp/OsmAnd/issues/16359
+// REVIEW: Analyze Abbrevations / common skip (abbrevations 1st=first) 
 
 /////////////// EXTRA FEATURES ///////////////
 // TODO Sorting before load objects (use elo and other buildings?) and limit results
@@ -403,8 +382,10 @@ public class SpatialSearchTestAndDocs {
 //		query = "андріівський узвіз Школа "; // ALWAYS_READ_COMMON_WORDS_ATOMS = true
 //		query = "25-та школа"; // 25-та школа, 25-та school
 		
-//		pattern = "Ukraine_kyiv";
-//		query = "Школа А+"; // +
+		pattern = "Ukraine_kyiv";
+//		settings.DEV_USE_PIPELINE = false;
+//		query = "А+"; // + 731005224 34010
+		query = "Школа А+"; // +
 //		query = "початкова А+"; // - -> +
 //		query = "початкова школа А+"; // - -> +
 //		query = "початкова A+"; // latin - -> +
@@ -430,15 +411,21 @@ public class SpatialSearchTestAndDocs {
 //		query = "Holmby road 18 B"; // 'Holmby 18 B', 'Holmby 18-B', 'Holmby 18B'
 //		query = "Holmby Melbourne 18B";
 		
-//		pattern = "Slovakia";
-//		pattern2 = "World_";
-//		query = "Bratislava Billa";
+		pattern = "Slovakia";
+//		location = new LatLon(45.04, 30.0);
+		location = new LatLon(46.3848, 25.0420);
+//		settings.DEDUPLICATE_RES = false;
+		pattern2 = "World_basemap_mini";
+		query = "Bratislava Billa";
 //		settings.DEDUPLICATE_RES = false;
 //		settings.ALLOW_HOUSE_POI_TYPE_INTERSECTION = false;
 //		query = "Shell 2 Rožňavská";
 //		query = "Bratislava Raketova 3248/6";
 //		query = "Bratislava Raketova 6";
 //		query = "Raketova 3248";
+
+//		settings.PIPELINE_MAX_STEPS = 1;
+//		settings.DEV_USE_PIPELINE_COMMON_LIMIT = true;
 		
 //		pattern = "Us_new-york_new"; // new-york, new-jersey
 //		pattern = "Us_new-"; 
@@ -509,12 +496,16 @@ public class SpatialSearchTestAndDocs {
 		// Barreira Urbanização Vale da Cabrita, 258548289, 696751116
 		// MATCH: Search Stats 5392.4 ms (read 11,248 KB) - 4979.9 ms 305,862 atoms (read 330.2, match 2981.5, poi 490.6), 361.8 ms compute 5,499 (loadBld 3.6, read 2.9)
 //		settings.MAX_PIPELINE_RES_TO_STOP = new int[] {1000};
-//		settings.PIPELINE_MAX_STEPS = 10;
+//		settings.PIPELINE_MAX_STEPS = 1;
+//		settings.DEV_USE_PIPELINE_COMMON_LIMIT = true;
 //		settings.PIPELINE_MAX_VIRTUAL_MASKS = 3;
+//		pattern = "portugal_travessa.gen";
 //		query = "Travessa de Santo António Rua Joaquim Ribeiro de Carvalho Portugal"; // 1
 //		query = "Travessa de Santo António Rua Joaquim Ribeiro de Carvalho Portugal "; // 1
 //		query = "Travessa de Santo António rua Joaquim Ribeiro de Carvalho Portugal"; // 1
-//		query = "Travessa Santo António Rua Joaquim Ribeiro Portugal "; // 20
+		
+//		query = "Santo António Carvalho Portugal"; // 1
+//		query = " Santo António Ribeiro"; // 20
 		
 //		pattern = "France_ile-de-france";
 //		pattern = "France_";
@@ -560,6 +551,7 @@ public class SpatialSearchTestAndDocs {
 //		query = "1181ZM cafe"; // TEST missing pois (postcode) 
 		
 //		pattern = "Italy_";
+//		pattern = "World_";
 //		query = "о. Пасхи"; // o
 //		query = "остров Пасхи"; // o. -> остров - not supported data need to be updated
 //		query = "New york";
@@ -747,8 +739,10 @@ public class SpatialSearchTestAndDocs {
 				return "кафе";
 			} else if (keyName.equals("bank")) {
 				return "банк";
-//			} else if (keyName.equals("school")) {
-//				return "школа";
+			} else if (keyName.equals("island")) {
+				return "остров";
+			} else if (keyName.equals("school")) {
+				return "школа";
 			} else if (keyName.equals("rugby_union")) {
 				return "rugby 9";
 			} else if (keyName.equals("9pin")) {

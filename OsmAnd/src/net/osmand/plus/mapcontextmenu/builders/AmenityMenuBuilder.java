@@ -1,6 +1,8 @@
 package net.osmand.plus.mapcontextmenu.builders;
 
 import static net.osmand.data.Amenity.WIKIDATA;
+import static net.osmand.data.Amenity.WIKIPEDIA;
+import static net.osmand.data.AdditionalInfoBundle.LOCALIZATIONS;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.NEAREST_POI_KEY;
 import static net.osmand.plus.mapcontextmenu.builders.MenuRowBuilder.NEAREST_WIKI_KEY;
 import static net.osmand.plus.wikivoyage.data.TravelObfHelper.TAG_URL;
@@ -101,11 +103,10 @@ public class AmenityMenuBuilder extends MenuBuilder {
 	}
 
 	public void buildInternalRows(@NonNull View view) {
-		amenityUIHelper = new AmenityUIHelper(mapActivity, getPreferredMapAppLang(), infoBundle);
+		amenityUIHelper = new AmenityUIHelper(mapActivity, infoBundle);
 		amenityUIHelper.setLight(isLightContent());
 		amenityUIHelper.setLatLon(getLatLon());
 		amenityUIHelper.setCollapseExpandListener(getCollapseExpandListener());
-		amenityUIHelper.setShowDefault(this.showDefaultTags);
 		amenityUIHelper.buildInternal(view);
 	}
 

@@ -627,7 +627,7 @@ public class SearchCoreFactory {
 				String wordToSearch = phrase.getUnknownWordToSearch();
 				List<String> wordToSearchSplit = splitAndNormalize(wordToSearch, true);
 				if (wordToSearchSplit.size() > 1) {
-					wordToSearch = phrase.selectMainUnknownWordToSearch(new ArrayList<>(wordToSearchSplit));
+					wordToSearch = SearchPhrase.selectMainUnknownWordToSearch(new ArrayList<>(wordToSearchSplit));
 				}
 				SearchRequest<MapObject> req = BinaryMapIndexReader.buildAddressByNameRequest(rm, rawDataCollector, wordToSearch.toLowerCase(),
 						phrase.isMainUnknownSearchWordComplete() ? StringMatcherMode.CHECK_EQUALS_FROM_SPACE
@@ -792,7 +792,6 @@ public class SearchCoreFactory {
 			}
 			ResultMatcher<Amenity> matcher = new ResultMatcher<Amenity>() {
 				int limit = 0;
-				boolean isSkipped = false;
 
 				@Override
 				public boolean publish(Amenity object) {
@@ -804,7 +803,6 @@ public class SearchCoreFactory {
 					}
 					String poiID = object.getType().getKeyName() + "_" + object.getId();
 					if (ids.contains(poiID)) {
-						isSkipped = true;
 						return false;
 					}
 					SearchResult sr = new SearchResult(phrase);
@@ -854,11 +852,6 @@ public class SearchCoreFactory {
 				@Override
 				public boolean isCancelled() {
 					return resultMatcher.isCancelled() && (limit < LIMIT);
-				}
-
-				@Override
-				public boolean isSkippedDuplication() {
-					return isSkipped;
 				}
 			};
 
@@ -1761,23 +1754,22 @@ public class SearchCoreFactory {
 
 				if (cacheBuilding != s) {
 					cacheBuilding = s;
-					SearchRequest<Building> sr = BinaryMapIndexReader
-							.buildAddressRequest(new ResultMatcher<Building>() {
+					if (s.getBuildings().isEmpty() && s.getIntersectedStreets().isEmpty()) {
+						SearchRequest<Building> sr = BinaryMapIndexReader
+								.buildAddressRequest(new ResultMatcher<Building>() {
+									@Override
+									public boolean publish(Building object) {
+										return true;
+									}
 
-								@Override
-								public boolean publish(Building object) {
-									return true;
-								}
-
-								@Override
-								public boolean isCancelled() {
-									return resultMatcher.isCancelled();
-								}
-							});
-
-					file.preloadBuildings(s, sr, phrase.getSettings().getStat());
+									@Override
+									public boolean isCancelled() {
+										return resultMatcher.isCancelled();
+									}
+								});
+						file.preloadBuildings(s, sr, phrase.getSettings().getStat());
+					}
 					Collections.sort(s.getBuildings(), new Comparator<Building>() {
-
 						@Override
 						public int compare(Building o1, Building o2) {
 							int i1 = Algorithms.extractFirstIntegerNumber(o1.getName());
@@ -1885,7 +1877,7 @@ public class SearchCoreFactory {
 		public void add(BinaryMapIndexReader reader) {
 			townCitiesInit.add(getKey(reader));
 		}
-		
+
 		// files could share the same region name (ex. old combined German state maps are all "Germany"),
 		// so cities must be cached per file, otherwise only the first file of the region is loaded
 		private String getKey(BinaryMapIndexReader reader) {

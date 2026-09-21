@@ -40,6 +40,7 @@ public class AmenityUIHelperStoredExtensionsTest extends AndroidTest {
 
 	private static final String KNOWN_COLON_KEY = "authentication:phone_call:number";
 	private static final String CUSTOM_KEY = "test:country";
+	private static final String COLLIDING_CUSTOM_KEY = "phone:custom";
 	private static final String CUSTOM_REFERENCE_KEY = "test:reference";
 	private static final String CUSTOM_ROUTE_KEY = "test:route_id";
 	private static final String UNKNOWN_UNPREFIXED_KEY = "unknown_point_field";
@@ -95,6 +96,18 @@ public class AmenityUIHelperStoredExtensionsTest extends AndroidTest {
 			assertEquals(R.drawable.ic_action_info_dark, row.iconId);
 		}
 		assertEquals("country", rows.get(CUSTOM_KEY).name);
+	}
+
+	@Test
+	public void genericFallbackIconOverridesCollidingPoiRule() {
+		Map<String, String> extensions = Collections.singletonMap(COLLIDING_CUSTOM_KEY, "value");
+
+		Map<String, AmenityInfoRow> rows = buildRows(extensions,
+				AmenityExtensionsHelper.getStoredExtensionFallbackKeys(extensions));
+
+		AmenityInfoRow row = rows.get(COLLIDING_CUSTOM_KEY);
+		assertNotNull(row);
+		assertEquals(R.drawable.ic_action_info_dark, row.iconId);
 	}
 
 	@Test
@@ -238,7 +251,7 @@ public class AmenityUIHelperStoredExtensionsTest extends AndroidTest {
 	private Map<String, AmenityInfoRow> buildRows(@NonNull Map<String, String> extensions,
 	                                              @NonNull Set<String> genericFallbackKeys) {
 		Map<String, AmenityInfoRow> rows = new HashMap<>();
-		AmenityUIHelper helper = new AmenityUIHelper(mapActivity, app.getLanguage(),
+		AmenityUIHelper helper = new AmenityUIHelper(mapActivity,
 				new AdditionalInfoBundle(app.getPoiTypes(), extensions)) {
 			@Override
 			public void buildAmenityRow(View view, AmenityInfoRow info) {

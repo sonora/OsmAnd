@@ -393,6 +393,8 @@ dependencies {
 	implementation 'androidx.preference:preference:1.1.0'
 	implementation 'androidx.lifecycle:lifecycle-process:2.6.0'
 	implementation "androidx.activity:activity:1.10.1"
+	// TODO(#25667): on BOM bump, if compose-ui >= 1.13.0 (b/486235925 fixed), delete
+	// OsmandApplication.applyComposeWorkarounds() and ComposeChipDetachFromWindowTest.
 	implementation platform('androidx.compose:compose-bom:2026.06.00')
 	implementation 'androidx.compose.ui:ui'
 	implementation 'androidx.compose.ui:ui-tooling-preview'
@@ -411,11 +413,11 @@ dependencies {
 	implementation 'com.android.billingclient:billing:8.0.0'
 	// turn off for now
 	//implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
-	implementation 'com.squareup.picasso:picasso:2.71828'
+	implementation 'com.squareup.picasso:picasso:2.8' // keep at 2.8 for AndroidX support
 	//implementation("io.coil-kt.coil3:coil-core:3.1.0")
 	//implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
 
-	implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
+	implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
 	implementation "net.osmand:antpluginlib:3.8.0@aar"
 	// JS core
 	implementation group: 'org.mozilla', name: 'rhino', version: '1.7.9'
@@ -423,7 +425,7 @@ dependencies {
 // implementation 'com.ibm.icu:icu4j:50.1'
 // implementation 'net.sf.trove4j:trove4j:3.0.3'
 
-	legacyImplementation "net.osmand:OsmAndCore_android:5.4@jar"
+	legacyImplementation "net.osmand:OsmAndCore_android:master-snapshot@jar"
 
 	implementation("com.getkeepsafe.taptargetview:taptargetview:1.15.0") {
 		exclude group: 'com.android.support'

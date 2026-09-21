@@ -20,6 +20,7 @@ import net.osmand.data.LatLon;
 import net.osmand.data.MapObject;
 import net.osmand.data.PointDescription;
 import net.osmand.data.Street;
+import net.osmand.map.OsmandRegions;
 import net.osmand.map.WorldRegion;
 import net.osmand.osm.AbstractPoiType;
 import net.osmand.osm.MapPoiTypes;
@@ -60,7 +61,6 @@ import net.osmand.search.core.SearchPhrase;
 import net.osmand.search.core.SearchPhrase.NameStringMatcher;
 import net.osmand.search.core.SearchResult;
 import net.osmand.search.core.SearchSettings;
-import net.osmand.search.core.spatial.SpatialTextSearchAPI;
 import net.osmand.shared.gpx.primitives.WptPt;
 import net.osmand.util.Algorithms;
 
@@ -78,9 +78,9 @@ public class QuickSearchHelper implements ResourceListener {
 	public static final int SEARCH_FAVORITE_API_CATEGORY_PRIORITY = 150;
 	public static final int SEARCH_FAVORITE_OBJECT_PRIORITY = 150;
 	public static final int SEARCH_FAVORITE_CATEGORY_PRIORITY = 151;
-	public static final int SEARCH_WPT_API_PRIORITY = 150;
+	public static final int SEARCH_WPT_API_PRIORITY = 600;
 	public static final int SEARCH_WPT_OBJECT_PRIORITY = 152;
-	public static final int SEARCH_TRACK_API_PRIORITY = 150;
+	public static final int SEARCH_TRACK_API_PRIORITY = 600;
 	public static final int SEARCH_TRACK_OBJECT_PRIORITY = 153;
 	public static final int SEARCH_INDEX_ITEM_API_PRIORITY = 150;
 	public static final int SEARCH_INDEX_ITEM_PRIORITY = 150;
@@ -125,35 +125,10 @@ public class QuickSearchHelper implements ResourceListener {
 		core.clearAPIs();
 		core.resetSearch();
 		resultCollection = null;
-		if (useSpatialTextSearch()) {
-			registerSpatialMapSearchAPIs();
-		} else {
-			core.init();
-		}
+		core.init(useSpatialTextSearch());
 
 		registerNonMapSearchAPIs();
 		refreshCustomPoiFilters();
-	}
-
-	private void registerSpatialMapSearchAPIs() {
-		SearchCoreFactory.SearchAmenityByNameAPI amenitiesApi = new SearchCoreFactory.SearchAmenityByNameAPI();
-		core.registerAPI(new SearchCoreFactory.SearchAmenityTypesAPI(app.getPoiTypes()));
-		core.registerAPI(new SearchCoreFactory.SearchLocationAndUrlAPI(amenitiesApi,
-				app.getSettings()::isInternetConnectionAvailable));
-		core.registerAPI(new SpatialCategoryAmenityByTypeAPI(app.getPoiTypes()));
-		core.registerAPI(new SpatialTextSearchAPI(app.getPoiTypes()));
-	}
-
-	private static class SpatialCategoryAmenityByTypeAPI extends SearchCoreFactory.SearchAmenityByTypeAPI {
-
-		public SpatialCategoryAmenityByTypeAPI(@NonNull MapPoiTypes types) {
-			super(types, null);
-		}
-
-		@Override
-		public int getSearchPriority(SearchPhrase p) {
-			return p.isLastWord(ObjectType.POI_TYPE) ? super.getSearchPriority(p) : -1;
-		}
 	}
 
 	private void registerNonMapSearchAPIs() {
@@ -885,7 +860,7 @@ public class QuickSearchHelper implements ResourceListener {
 			if (group.getType().isScreen() && group.getParentGroup() != null
 					&& group.getParentGroup().getParentGroup() != null
 					&& group.getParentGroup().getParentGroup().getType() != DownloadResourceGroupType.WORLD
-					&& isMatch(phrase, name)) {
+					&& OsmandRegions.isRegionNameMatched(phrase.getFullSearchPhrase(), name)) {
 
 				for (DownloadResourceGroup g : group.getGroups()) {
 					if (g.getType() == DownloadResourceGroupType.REGION_MAPS) {
@@ -919,17 +894,6 @@ public class QuickSearchHelper implements ResourceListener {
 					processGroup(g, phrase, resultMatcher);
 				}
 			}
-		}
-
-		private boolean isMatch(SearchPhrase phrase, String text) {
-			if (phrase.getFullSearchPhrase().length() <= 1 && phrase.isNoSelectedType()) {
-				return true;
-			}
-			NameStringMatcher matcher = new NameStringMatcher(
-					phrase.getFullSearchPhrase(),
-					StringMatcherMode.CHECK_EQUALS_FROM_SPACE
-			);
-			return matcher.matches(text);
 		}
 
 		@Override

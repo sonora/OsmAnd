@@ -111,7 +111,7 @@ public class FavouritePointMenuBuilder extends MenuBuilder {
 		buildCommentRow(view, point.getComment());
 
 		if (!Algorithms.isEmpty(mergedAmenityExtensions)) {
-			AmenityUIHelper helper = new AmenityUIHelper(mapActivity, getPreferredMapAppLang(), mergedAmenityInfoBundle);
+			AmenityUIHelper helper = new AmenityUIHelper(mapActivity, mergedAmenityInfoBundle);
 			helper.setGenericFallbackKeys(genericFallbackKeys);
 			helper.setLight(isLightContent());
 			helper.setLatLon(getLatLon());

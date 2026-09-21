@@ -165,10 +165,10 @@ public class SearchAlgorithms {
     }
 
     public static String removeQuotes(String s) {
-        if (!s.contains("«") && !s.contains("»")) {
-            return s;
-        }
-        return s.replace("«", "").replace("»", "");
+	    if (s.contains("«") || s.contains("»")) {
+		    return s.replace("«", "").replace("»", "");
+	    }
+	    return s;
     }
     
     public static String alignChars(String fullText) {
@@ -380,11 +380,23 @@ public class SearchAlgorithms {
 		}
 		return dBbox;
 	}
-	
+
 	public static int letters(String s) {
 		int count = 0;
 		for (int i = 0; i < s.length(); i++) {
-			if (!Character.isDigit(s.charAt(i)) && Character.isLetter(s.charAt(i))) {
+			char c = s.charAt(i);
+			if (Character.isLetter(c) && !Character.isDigit(c)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	public static int letters(String s, int maxCount) {
+		int count = 0;
+		for (int i = 0; count <= maxCount && i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (Character.isLetter(c) && !Character.isDigit(c)) {
 				count++;
 			}
 		}

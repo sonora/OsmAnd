@@ -810,7 +810,7 @@
     <string name="poi_lodging">Loĝo</string>
     <string name="poi_harbour">Haveno</string>
     <string name="poi_marina">Jaĥt-haveno</string>
-    <string name="poi_miniature_golf">Minigolfludejo</string>
+    <string name="poi_miniature_golf">Minigolf-ludejo</string>
     <string name="poi_water_park">Akvoparko</string>
     <string name="poi_recreation_ground">Ripoza tereno</string>
     <string name="poi_village_green">Verda tereno</string>
@@ -2066,7 +2066,7 @@
     <string name="poi_historic_civilization_tiahuanacota">Civilizo: Tiahuanaco-kulturo</string>
     <string name="poi_animal_training_dog">hundoj</string>
     <string name="poi_animal_training_horse">ĉevaloj</string>
-    <string name="poi_horse_yes">Ĉevaloj permesataj</string>
+    <string name="poi_horse_yes">jes</string>
     <string name="poi_horse_no">Ĉevaloj malpermesataj</string>
     <string name="poi_animal_yes">Bestoj permesitaj</string>
     <string name="poi_animal_no">Bestoj malpermesataj</string>
@@ -3166,10 +3166,10 @@
     <string name="poi_couloir">Akvosulko</string>
     <string name="poi_mountain_area">Montara areo</string>
     <string name="poi_surface_clay">Pavimo: argilo</string>
-    <string name="poi_surface_tartan">tartano</string>
-    <string name="poi_surface_artificial_turf">artefarita herbo</string>
-    <string name="poi_surface_decoturf">DecoTurf</string>
-    <string name="poi_surface_metal_grid">metala krado</string>
+    <string name="poi_surface_tartan">Pavimo: tartano</string>
+    <string name="poi_surface_artificial_turf">Pavimo: artefarita herbo</string>
+    <string name="poi_surface_decoturf">Pavimo: DecoTurf</string>
+    <string name="poi_surface_metal_grid">Pavimo: metala krado</string>
     <string name="poi_location_underground">Loko: subtere</string>
     <string name="poi_location_underwater">Loko: subakve</string>
     <string name="poi_location_overground">Loko: supertere</string>
@@ -3641,7 +3641,7 @@
     <string name="poi_tourist_bus_no">Aliro por turismaj aŭtobusoj: ne</string>
     <string name="poi_coach_yes">Aliro por longdistancaj aŭtobusoj: jes</string>
     <string name="poi_coach_no">Aliro por longdistancaj aŭtobusoj: ne</string>
-    <string name="poi_ski_yes">Aliro por skiantoj: jes</string>
+    <string name="poi_ski_yes">jes</string>
     <string name="poi_ski_no">Aliro por skiantoj: ne</string>
     <string name="poi_snowmobile_private">Aliro por motorsledoj: nur laŭ privata permeso</string>
     <string name="poi_snowmobile_no">Aliro por motorsledoj: ne</string>
@@ -4539,7 +4539,7 @@
     <string name="poi_sinkhole_estavelle">Dolino: dudirekta (estavelo)</string>
     <string name="poi_spikes">Trafika pikil-strio</string>
     <string name="poi_toy_library">Biblioteko de ludiloj</string>
-    <string name="poi_surface_chipseal">Asfalto kun rompŝtono</string>
+    <string name="poi_surface_chipseal">Pavimo: asfalto kun rompŝtonoj</string>
     <string name="poi_cemt_ii">II (regiona, Kampine-ŝipoj)</string>
     <string name="poi_cemt">CEMT (Klasifiko de Eŭropaj Enlandaj Akvovojoj)</string>
     <string name="poi_lock_name">Nomo de kluzo</string>
@@ -4937,7 +4937,7 @@
     <string name="poi_climbing_area">Grimpada tereno</string>
     <string name="poi_climbing_route">Grimpada kurso</string>
     <string name="poi_climbing_route_bottom">Malsupro de grimpada kurso</string>
-    <string name="poi_cafe_yes">jes</string>
+    <string name="poi_cafe_yes">Kafejo: jes</string>
     <string name="poi_route_activity_type_mountain_biking">Montbiciklaj kursoj</string>
     <string name="poi_route_activity_type_road_cycling">Ŝose-biciklaj kursoj</string>
     <string name="poi_network_cycling">Reto de kurso (bicikla)</string>
@@ -5174,4 +5174,15 @@
     <string name="poi_water_type_filter">Speco de akvujo</string>
     <string name="poi_water_lake">lago</string>
     <string name="poi_surface_laterite">Pavimo: laterito</string>
+    <string name="poi_mtb_filter">Taŭga por montbiciklado</string>
+    <string name="poi_ski_filter">Taŭga por skiado</string>
+    <string name="poi_horse_filter">Taŭga por ĉevalrajdado</string>
+    <string name="poi_winter_hiking_filter">Taŭga por vintra marŝado</string>
+    <string name="poi_mtb_yes">jes</string>
+    <string name="poi_winter_hiking_yes">jes</string>
+    <string name="poi_air_conditioning">Klimatizo</string>
+    <string name="poi_website_menu">Manĝkarto</string>
+    <string name="poi_air_conditioning_yes">jes</string>
+    <string name="poi_air_conditioning_no">ne</string>
+    <string name="poi_disc_golf_course">Diskgolf-ludejo</string>
 </resources>

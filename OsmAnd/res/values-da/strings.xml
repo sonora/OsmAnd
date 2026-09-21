@@ -520,7 +520,7 @@
     <string name="arrived_at_destination">Ankommet.</string>
     <string name="invalid_locations">Ugyldige koordinater</string>
     <string name="loading_data">Indlæser data…</string>
-    <string name="previous_run_crashed">Sidste OsmAnd kørsel fejlede. Logfilen er i {0}. Rapporter hændelsen og vedhæft logfilen.</string>
+    <string name="previous_run_crashed">Sidste kørsel af OsmAnd havde nedbrud. Logfilen er i {0}. Rapporter problemet og vedhæft logfilen.</string>
     <string name="saving_gpx_tracks">Gemmer GPX-fil…</string>
     <string name="finished_task">Færdig</string>
     <string name="data_settings">Data</string>
@@ -987,7 +987,7 @@
     <string name="osmand_parking_hour">t</string>
     <string name="shared_string_minute_lowercase">min</string>
     <string name="osmand_parking_time_left">tilbage</string>
-    <string name="parking_place_limited">Tidsbegrænset parkering til</string>
+    <string name="parking_place_limited">Parkering tidsbegrænset til</string>
     <string name="your_edits">Redigeringer</string>
     <string name="osmand_parking_overdue">Udløbet</string>
     <string name="delay_to_start_navigation">Start sving-for-sving vejledning efter…</string>
@@ -2181,7 +2181,7 @@
     <string name="default_speed_setting_descr">Ændre standardhastighedsindstillinger</string>
     <string name="new_profile">Ny profil</string>
     <string name="shared_string_crash">Nedbrud</string>
-    <string name="last_launch_crashed">Sidste kørsel af OsmAnd mislykkedes. Hjælp med at forbedre OsmAnd ved at dele fejlmeddelelsen.</string>
+    <string name="last_launch_crashed">Sidste kørsel af OsmAnd havde nedbrud. Hjælp med at forbedre OsmAnd ved at dele fejlmeddelelsen.</string>
     <string name="app_mode_ufo">UFO</string>
     <string name="release_3_4">• App-profiler: opret en brugerdefineret profil med en brugerdefineret ikon og farve\n\n • Tilpas enhver profilers standard- og min/max hastigheder\n\n •Tilføjet et modul til de aktuelle koordinater\n\n • Tilføjede muligheder for at vise kompasset og en radiuslineal på kortet\n\n • Rettet logføring af baggrundsspor\n\n • Forbedret hentning af kort i baggrunden\n\n • Returned \'Turn screen on\' option\n\n • Rettet Wikipedia sprogvalg\n\n • Rettet kompasknappens opførsel under navigationen\n\n • Andre fejlrettelser</string>
     <string name="app_mode_personal_transporter">Person transport</string>
@@ -3665,7 +3665,7 @@
     <string name="show_borders_of_downloaded_maps">Vis grænser for downloadede kort</string>
     <string name="show_map_symbols_desc">Tekst, vejskilte og andre.</string>
     <string name="rendering_engine_failed">OsmAnd\'s kortgengivelse er for nylig brudt ned.</string>
-    <string name="share_crash_log">Del log over nedbrud</string>
+    <string name="share_crash_log">Del nedbrudsrapport</string>
     <string name="dismiss_changes_descr">Alle ændringer vil blive afvist.</string>
     <string name="restart_now">Genstart nu</string>
     <string name="map_rendering_engine_v1">Version 1</string>
@@ -4910,7 +4910,7 @@
     <string name="miles">Miles</string>
     <string name="mpg">MPG</string>
     <string name="access_pinch_zoom_magnification">Forstørrelse med knibezoom</string>
-    <string name="access_pinch_zoom_magnification_descr">Brug viewport-skalering i stedet for separate zoom-niveauer ved zoom-bevægelser.</string>
+    <string name="access_pinch_zoom_magnification_descr">Brug viewport-skalering (forstørrelse) i stedet for separate zoom-niveauer ved zoom-bevægelsen.</string>
     <string name="show_spherical_map_description">Vis sfærisk model af Jorden</string>
     <string name="shared_string_price">Pris</string>
     <string name="rendering_attr_showSkiSlopes_name">Vis skiløjper</string>
@@ -5380,7 +5380,7 @@
     <string name="use_spatial_text_search_description">Erstat de almindelige API\'er til hurtigsøgning med den eksperimentelle, rumlige tekstsøgningsmotor.</string>
     <string name="always_keep_local_copy">Behold altid en lokal kopi</string>
     <string name="always_keep_local_copy_description">Medie forbliver tilknyttet, selvom originalen slettes fra galleriet eller filer.</string>
-    <string name="release_5_4">• Ny rumlig søgning — find steder og søg i området omkring et sted\n\n • Opdateret søgebrugerflade: sortering, kategorifiltre, mere overskueligt design\n\n • Vedhæft billeder og mediefiler til Favoritter\n\n • Favoritter: understøttelse af undergrupper og mapper, der kan fastgøres\n\n • Koordinater: Søgning, kortgitter og visning af interessepunkter understøtter nu EPSG- og Maidenhead-koordinatsystemer\n\n • Afhjulpet problemer med navigationen; skift mellem standard- og hurtig ruteplanlægning\n\n • Indstil kortskalaen i Android Auto uafhængigt af din telefon\n\n • Astronomi: Sol- og måneformørkelser tilføjet</string>
+    <string name="release_5_4">• Opdateret søgebrugerflade: sortering, kategorifiltre, mere overskueligt design\n\n • Vedhæft billeder og mediefiler til Favoritter\n\n • Favoritter: understøttelse af undergrupper og mapper, der kan fastgøres\n\n • Koordinater: Søgning, kortgitter og visning af interessepunkter understøtter nu EPSG- og Maidenhead-koordinatsystemer\n\n • Afhjulpet problemer med navigationen; skift mellem standard- og hurtig ruteplanlægning\n\n • Indstil kortskalaen i Android Auto uafhængigt af din telefon\n\n• Ny rumlig søgning — find steder og søg i området omkring et sted\n\n • Astronomi: Sol- og måneformørkelser tilføjet</string>
     <string name="share_favorites_media_preparation_failed">Det var ikke muligt at vedhæfte mediefiler. Deler kun punkter.</string>
     <plurals name="files_count">
         <item quantity="one">%d fil</item>
@@ -5395,4 +5395,11 @@
     <string name="share_favorites_share_failed">Det var ikke muligt at dele filen.</string>
     <string name="share_favorites_missing_media_warning">Nogle af de vedhæftede mediefiler kunne ikke medtages.</string>
     <string name="search_on_web">Søg på nettet</string>
+    <string name="astro_eclipse_column_below_horizon">Under horisonten</string>
+    <string name="quick_action_add_track">Tilføj spor</string>
+    <string name="quick_action_tracks_select_descr">Tilføj et eller flere spor for at vise eller skjule dem på kortet med et enkelt tryk.</string>
+    <string name="quick_action_tracks_always_ask_descr">Med et tryk på denne handling åbnes listen over spor, hvor du kan vise eller skjule et eller flere af dem.</string>
+    <string name="quick_action_all_tracks">Alle spor</string>
+    <string name="crash_report_sent">Rapport sendt. Tak!</string>
+    <string name="crash_report_send_failed">Kunne ikke sende rapporten. Prøv igen senere.</string>
 </resources>

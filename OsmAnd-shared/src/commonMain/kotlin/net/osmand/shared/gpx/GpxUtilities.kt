@@ -70,6 +70,7 @@ object GpxUtilities {
 	const val AMENITY_PREFIX = "amenity_"
 	const val ORIGIN_EXTENSION = "origin"
 	const val AMENITY_ORIGIN_EXTENSION = AMENITY_PREFIX + ORIGIN_EXTENSION
+	const val OSM_URL_EXTENSION = "osm_url"
 	const val ACTIVITY_TYPE = OSMAND_EXTENSIONS_PREFIX + "activity"
 
 	const val GAP_PROFILE_TYPE = "gap"
@@ -134,6 +135,7 @@ object GpxUtilities {
 		"speed_sensor" to PointAttributes.SENSOR_TAG_SPEED,
 		"cad" to PointAttributes.SENSOR_TAG_CADENCE,
 		"cadence" to PointAttributes.SENSOR_TAG_CADENCE,
+		"power" to PointAttributes.SENSOR_TAG_BIKE_POWER,
 		"temp" to PointAttributes.SENSOR_TAG_TEMPERATURE_W,
 		"wtemp" to PointAttributes.SENSOR_TAG_TEMPERATURE_W,
 		"atemp" to PointAttributes.SENSOR_TAG_TEMPERATURE_A,
