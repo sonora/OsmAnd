@@ -41,3 +41,10 @@
 -dontwarn javax.ws.rs.**
 -dontwarn org.immutables.value.**
 -dontwarn org.kxml2.io.**
+
+# Remove most logging
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+    public static int i(...);
+}
