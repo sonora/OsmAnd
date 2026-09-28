@@ -349,13 +349,13 @@ public class OsmandApplication extends MultiDexApplication {
 	}
 
 	private synchronized void startDiagnostics() {
-		OsmAndDiagnosticThread diagnosticThread = this.diagnosticThread;
-		if (diagnosticThread == null || !diagnosticThread.isAlive()) {
-			memoryLog.watchActivities(this);
-			diagnosticThread = new OsmAndDiagnosticThread(this);
-			diagnosticThread.start();
-			this.diagnosticThread = diagnosticThread;
-		}
+//		OsmAndDiagnosticThread diagnosticThread = this.diagnosticThread;
+//		if (diagnosticThread == null || !diagnosticThread.isAlive()) {
+//			memoryLog.watchActivities(this);
+//			diagnosticThread = new OsmAndDiagnosticThread(this);
+//			diagnosticThread.start();
+//			this.diagnosticThread = diagnosticThread;
+//		}
 	}
 
 	private synchronized void stopDiagnostics() {
