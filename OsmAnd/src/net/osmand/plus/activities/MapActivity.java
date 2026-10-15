@@ -1319,8 +1319,7 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 	}
 
 	public void updatePinchZoomMagnification() {
-		boolean enabled = PluginsHelper.isActive(AccessibilityPlugin.class)
-				&& settings.ACCESSIBILITY_PINCH_ZOOM_MAGNIFICATION.get();
+		boolean enabled = settings.ACCESSIBILITY_PINCH_ZOOM_MAGNIFICATION.get();
 		getMapView().setPinchZoomMagnificationEnabled(enabled);
 	}
 
