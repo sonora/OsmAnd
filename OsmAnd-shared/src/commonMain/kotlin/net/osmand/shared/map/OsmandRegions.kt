@@ -20,6 +20,7 @@ import net.osmand.shared.util.collections.KTIntArrayList
 import net.osmand.shared.util.primaryCollator
 import net.osmand.shared.util.synchronized
 import okio.IOException
+import kotlin.concurrent.Volatile
 import kotlin.jvm.JvmStatic
 import kotlin.math.abs
 
@@ -96,6 +97,12 @@ class OsmandRegions {
 		this.translator = translator
 	}
 
+	/**
+	 * Reads the regions out of [fileName]. A missing file throws an IOException, a damaged one what
+	 * reading it runs into, usually an IllegalStateException of the reader; any exception is
+	 * declared, since on iOS one that is not ends the app instead of reaching the caller.
+	 */
+	@Throws(Exception::class)
 	fun prepareFile(fileName: String): BinaryMapIndexReader {
 		val reader = BinaryMapIndexReader(fileName)
 		this.reader = reader
@@ -781,6 +788,23 @@ class OsmandRegions {
 		const val LOCALE_NAME_REVERSED_FORMAT = "%2\$s, %1\$s"
 
 		private val LOG = LoggerFactory.getLogger("OsmandRegions")
+
+		@Volatile
+		private var DEFAULT_INSTANCE: OsmandRegions? = null
+
+		/**
+		 * The regions the platform has read, which java hands over through
+		 * `PlatformUtil.setOsmandRegions`. The common words take the names of the regions from them
+		 * once, so they have to be set before the first `CommonWords.getInstance`.
+		 */
+		@JvmStatic
+		fun setDefault(regions: OsmandRegions?) {
+			DEFAULT_INSTANCE = regions
+		}
+
+		/** The regions given to [setDefault], or null when the platform has not set any. */
+		@JvmStatic
+		fun getDefault(): OsmandRegions? = DEFAULT_INSTANCE
 
 		private val ACCEPT_ALL = object : SearchFilter {
 			override fun accept(types: KTIntArrayList, index: MapIndex): Boolean = true
