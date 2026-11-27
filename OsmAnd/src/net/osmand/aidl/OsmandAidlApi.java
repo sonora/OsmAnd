@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -43,6 +44,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -110,7 +112,9 @@ import net.osmand.plus.quickaction.QuickAction;
 import net.osmand.plus.resources.SQLiteTileSource;
 import net.osmand.plus.routing.IRoutingDataUpdateListener;
 import net.osmand.plus.routing.NextDirectionInfo;
+import net.osmand.plus.routing.RouteDirectionInfo;
 import net.osmand.plus.routing.RoutingHelper;
+import net.osmand.plus.routing.RoutingHelperUtils;
 import net.osmand.plus.routing.VoiceRouter;
 import net.osmand.plus.routing.VoiceRouter.VoiceMessageListener;
 import net.osmand.plus.settings.backend.ApplicationMode;
@@ -483,10 +487,16 @@ public class OsmandAidlApi {
 	private void registerReceiver(BroadcastReceiver rec, MapActivity ma, String filter) {
 		try {
 			receivers.put(filter, rec);
-			AndroidUtils.registerBroadcastReceiver(ma, filter, rec, true);
+			ContextCompat.registerReceiver(ma, rec, new IntentFilter(filter), ContextCompat.RECEIVER_NOT_EXPORTED);
 		} catch (IllegalStateException e) {
 			LOG.error(e);
 		}
+	}
+
+	// the AIDL service checks the caller, then hands the call to MapActivity: no other app may send or read these
+	void sendInternalBroadcast(@NonNull Intent intent) {
+		intent.setPackage(app.getPackageName());
+		app.sendBroadcast(intent);
 	}
 
 	private void registerRemoveMapWidgetReceiver(@NonNull MapActivity mapActivity) {
@@ -1014,7 +1024,7 @@ public class OsmandAidlApi {
 	private void refreshMap() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_REFRESH_MAP);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 	}
 
 	boolean reloadMap() {
@@ -1800,7 +1810,7 @@ public class OsmandAidlApi {
 				Intent intent = new Intent();
 				intent.setAction(AIDL_SHOW_SQLITEDB_FILE);
 				intent.putExtra(AIDL_FILE_NAME, fileName);
-				app.sendBroadcast(intent);
+				sendInternalBroadcast(intent);
 			}
 			return true;
 		}
@@ -1817,7 +1827,7 @@ public class OsmandAidlApi {
 				Intent intent = new Intent();
 				intent.setAction(AIDL_HIDE_SQLITEDB_FILE);
 				intent.putExtra(AIDL_FILE_NAME, fileName);
-				app.sendBroadcast(intent);
+				sendInternalBroadcast(intent);
 				return true;
 			}
 		}
@@ -1832,7 +1842,7 @@ public class OsmandAidlApi {
 		intent.putExtra(AIDL_ZOOM, zoom);
 		intent.putExtra(AIDL_ROTATION, rotation);
 		intent.putExtra(AIDL_ANIMATED, animated);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2356,7 +2366,7 @@ public class OsmandAidlApi {
 		intent.setAction(AIDL_TAKE_PHOTO_NOTE);
 		intent.putExtra(AIDL_LATITUDE, latitude);
 		intent.putExtra(AIDL_LONGITUDE, longitude);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2365,7 +2375,7 @@ public class OsmandAidlApi {
 		intent.setAction(AIDL_START_VIDEO_RECORDING);
 		intent.putExtra(AIDL_LATITUDE, latitude);
 		intent.putExtra(AIDL_LONGITUDE, longitude);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2374,14 +2384,14 @@ public class OsmandAidlApi {
 		intent.setAction(AIDL_START_AUDIO_RECORDING);
 		intent.putExtra(AIDL_LATITUDE, latitude);
 		intent.putExtra(AIDL_LONGITUDE, longitude);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean stopRecording() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_STOP_RECORDING);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2399,7 +2409,7 @@ public class OsmandAidlApi {
 		intent.putExtra(AIDL_PROFILE, profile);
 		intent.putExtra(AIDL_FORCE, force);
 		intent.putExtra(AIDL_LOCATION_PERMISSION, requestLocationPermission);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2417,42 +2427,42 @@ public class OsmandAidlApi {
 		intent.putExtra(AIDL_PROFILE, profile);
 		intent.putExtra(AIDL_FORCE, force);
 		intent.putExtra(AIDL_LOCATION_PERMISSION, requestLocationPermission);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean pauseNavigation() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_PAUSE_NAVIGATION);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean resumeNavigation() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_RESUME_NAVIGATION);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean stopNavigation() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_STOP_NAVIGATION);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean muteNavigation() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_MUTE_NAVIGATION);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
 	boolean unmuteNavigation() {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_UNMUTE_NAVIGATION);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2468,7 +2478,7 @@ public class OsmandAidlApi {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_LOCK_STATE);
 		intent.putExtra(AIDL_LOCK_STATE, lock);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -2812,9 +2822,20 @@ public class OsmandAidlApi {
 				} else {
 					NextDirectionInfo ndi = rh.getNextRouteDirectionInfo(baseNdi, true);
 					if (ndi != null && ndi.distanceTo > 0 && ndi.directionInfo != null) {
+						RouteDirectionInfo info = ndi.directionInfo;
+						TurnType tt = info.getTurnType();
 						directionInfo.setDistanceTo(ndi.distanceTo);
-						directionInfo.setTurnType(ndi.directionInfo.getTurnType().getValue());
+						directionInfo.setTurnType(tt.getValue());
+						directionInfo.setExitNumber(tt.isRoundAbout() ? tt.getExitOut() : 0);
+						directionInfo.setTurnAngle(tt.getTurnAngle());
+						directionInfo.setLanes(tt.getLanes());
+						String streetName = RoutingHelperUtils.formatStreetName(info.getStreetName(), info.getRef(), info.getDestinationName(), "");
+						directionInfo.setStreetName(Algorithms.isEmpty(streetName) ? null : streetName);
 					}
+				}
+				if (rh.isRouteCalculated()) {
+					directionInfo.setLeftTime(rh.getLeftTime());
+					directionInfo.setLeftDistance(rh.getLeftDistance());
 				}
 				for (OsmandAidlServiceV2.AidlCallbackParams cb : aidlCallbackListenerV2.getAidlCallbacks().values()) {
 					if (!aidlCallbackListenerV2.getAidlCallbacks().isEmpty() && (cb.getKey() & KEY_ON_NAV_DATA_UPDATE) > 0) {
@@ -2915,7 +2936,7 @@ public class OsmandAidlApi {
 				Intent intent = new Intent();
 				intent.setAction(AIDL_ADD_CONTEXT_MENU_BUTTONS);
 				intent.putExtra(AIDL_OBJECT_ID, buttonsParams.getId());
-				app.sendBroadcast(intent);
+				sendInternalBroadcast(intent);
 			}
 			return true;
 		} else {
@@ -2930,7 +2951,7 @@ public class OsmandAidlApi {
 			Intent intent = new Intent();
 			intent.setAction(AIDL_REMOVE_CONTEXT_MENU_BUTTONS);
 			intent.putExtra(AIDL_OBJECT_ID, buttonsParamsId);
-			app.sendBroadcast(intent);
+			sendInternalBroadcast(intent);
 			return true;
 		} else {
 			return false;
@@ -3084,7 +3105,7 @@ public class OsmandAidlApi {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_EXECUTE_QUICK_ACTION);
 		intent.putExtra(AIDL_QUICK_ACTION_NUMBER, actionNumber);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -3206,7 +3227,7 @@ public class OsmandAidlApi {
 		intent.putExtra(AIDL_LOCATION, location);
 		intent.putExtra(AIDL_PACKAGE_NAME, packName);
 		intent.putExtra(AIDL_TIME_TO_NOT_USE_OTHER_GPS, timeToNotUseOtherGPS);
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
@@ -3214,7 +3235,7 @@ public class OsmandAidlApi {
 		Intent intent = new Intent();
 		intent.setAction(AIDL_EXIT_APP);
 		intent.putExtra(AIDL_EXIT_APP_RESTART, params.shouldRestart());
-		app.sendBroadcast(intent);
+		sendInternalBroadcast(intent);
 		return true;
 	}
 
